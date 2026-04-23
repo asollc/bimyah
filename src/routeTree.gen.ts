@@ -9,38 +9,75 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SoloRouteImport } from './routes/solo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
+import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
 
+const SoloRoute = SoloRouteImport.update({
+  id: '/solo',
+  path: '/solo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinGameIdRoute = JoinGameIdRouteImport.update({
+  id: '/join/$gameId',
+  path: '/join/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GameGameIdRoute = GameGameIdRouteImport.update({
+  id: '/game/$gameId',
+  path: '/game/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/solo': typeof SoloRoute
+  '/game/$gameId': typeof GameGameIdRoute
+  '/join/$gameId': typeof JoinGameIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/solo': typeof SoloRoute
+  '/game/$gameId': typeof GameGameIdRoute
+  '/join/$gameId': typeof JoinGameIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/solo': typeof SoloRoute
+  '/game/$gameId': typeof GameGameIdRoute
+  '/join/$gameId': typeof JoinGameIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
+  id: '__root__' | '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SoloRoute: typeof SoloRoute
+  GameGameIdRoute: typeof GameGameIdRoute
+  JoinGameIdRoute: typeof JoinGameIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/solo': {
+      id: '/solo'
+      path: '/solo'
+      fullPath: '/solo'
+      preLoaderRoute: typeof SoloRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,21 +85,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join/$gameId': {
+      id: '/join/$gameId'
+      path: '/join/$gameId'
+      fullPath: '/join/$gameId'
+      preLoaderRoute: typeof JoinGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/game/$gameId': {
+      id: '/game/$gameId'
+      path: '/game/$gameId'
+      fullPath: '/game/$gameId'
+      preLoaderRoute: typeof GameGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SoloRoute: SoloRoute,
+  GameGameIdRoute: GameGameIdRoute,
+  JoinGameIdRoute: JoinGameIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
