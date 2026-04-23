@@ -206,7 +206,7 @@ export function GameTable({
       <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
         <div
           className="wood-table grid place-items-center rounded-full"
-          style={{ width: "min(70vw, 60vh)", height: "min(70vw, 60vh)" }}
+          style={{ width: "min(52.5vw, 45vh)", height: "min(52.5vw, 45vh)" }}
         >
           {/* Center cards */}
           <div className="flex items-center gap-2">
