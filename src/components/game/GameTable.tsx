@@ -148,7 +148,7 @@ export function GameTable({
       center: [],
       players: s.players.map((p) => ({
         ...p,
-        ready: false,
+        ready: p.isBot, // bots auto-ready
         piles: [],
         pileLocked: [],
         hand: [],
