@@ -7,7 +7,7 @@ function shortId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-type Json = import("@/integrations/supabase/types").Json;
+import type { Json } from "@/integrations/supabase/types";
 
 export async function createOnlineGame(state: GameState, hostId: string): Promise<string> {
   const id = shortId();
