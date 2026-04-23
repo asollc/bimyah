@@ -7,16 +7,19 @@ function shortId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+type Json = import("@/integrations/supabase/types").Json;
+
 export async function createOnlineGame(state: GameState, hostId: string): Promise<string> {
   const id = shortId();
   const stateWithId = { ...state, id };
-  await supabase.from(TABLE).insert({
-    id,
-    host_id: hostId,
-    status: state.status,
-    // jsonb column accepts plain object
-    state: stateWithId as unknown as Record<string, unknown>,
-  });
+  await supabase.from(TABLE).insert([
+    {
+      id,
+      host_id: hostId,
+      status: state.status,
+      state: stateWithId as unknown as Json,
+    },
+  ]);
   return id;
 }
 
@@ -25,7 +28,7 @@ export async function pushOnlineGame(state: GameState): Promise<void> {
     .from(TABLE)
     .update({
       status: state.status,
-      state: state as unknown as Record<string, unknown>,
+      state: state as unknown as Json,
       updated_at: new Date().toISOString(),
     })
     .eq("id", state.id);
