@@ -21,9 +21,15 @@ function SoloGame() {
     }
   }, []);
 
-  const [state, setLocalState] = useState<GameState | null>(() =>
-    setup ? createInitialGame("solo", setup) : null,
-  );
+  const [state, setLocalState] = useState<GameState | null>(() => {
+    if (!setup) return null;
+    const initial = createInitialGame("solo", setup);
+    // Auto-ready bots so countdown starts as soon as the human hits Ready
+    return {
+      ...initial,
+      players: initial.players.map((p) => (p.isBot ? { ...p, ready: true } : p)),
+    };
+  });
 
   useEffect(() => {
     if (!setup) {
