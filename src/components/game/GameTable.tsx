@@ -407,6 +407,7 @@ function PlayerSeat({
           className={cn(
             "flex gap-1.5",
             position.pileLayout === "col" ? "flex-col" : "flex-row",
+            !isMe && position.rotate,
           )}
         >
           {player.piles.map((pile, i) => {
