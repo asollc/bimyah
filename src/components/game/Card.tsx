@@ -1,5 +1,6 @@
 import type { Card } from "@/game/types";
 import { cn } from "@/lib/utils";
+import cardBackImg from "@/assets/card-back.jpeg";
 
 export function PlayingCard({
   card,
@@ -77,21 +78,18 @@ export function CardBack({
       onClick={onClick}
       style={{ width, height }}
       className={cn(
-        "card-back no-select pile-stack relative inline-flex items-center justify-center transition-transform",
+        "card-back no-select pile-stack relative inline-flex items-center justify-center overflow-hidden transition-transform",
         onClick && "active:scale-95 hover:-translate-y-0.5",
         highlight && "ring-2 ring-[var(--mint)] shadow-[var(--shadow-glow-mint)]",
         className,
       )}
     >
-      {/* mini pow */}
-      <div className="pow-burst" style={{ width: width * 0.78, height: width * 0.78 }}>
-        <span
-          className="font-display font-black text-[oklch(0.18_0.04_165)]"
-          style={{ fontSize: width * 0.18, lineHeight: 1 }}
-        >
-          BIMYAH!
-        </span>
-      </div>
+      <img
+        src={cardBackImg}
+        alt=""
+        draggable={false}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
     </button>
   );
 }
