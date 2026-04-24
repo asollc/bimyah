@@ -141,7 +141,6 @@
   background: linear-gradient(160deg, #ffffff 0%, #f5f7f6 100%);
   border-radius: 8px;
   box-shadow: var(--shadow-card);
-  border: 2px solid #ffffff;
   position: relative;
   overflow: hidden;
 }
@@ -152,17 +151,8 @@
     var(--emerald-deep);
   border-radius: 8px;
   box-shadow: var(--shadow-card);
-  border: 2px solid #ffffff;
   position: relative;
   overflow: hidden;
-}
-
-.card-back::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 5px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.25);
 }
 
 /* Pile stack illusion */
