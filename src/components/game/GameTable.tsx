@@ -408,7 +408,8 @@ function PlayerSeat({
       {status !== "lobby" && (
         <div
           className={cn(
-            "flex gap-1.5",
+            "flex",
+            pileGap,
             position.pileLayout === "col" ? "flex-col" : "flex-row",
             !isMe && position.rotate,
           )}
