@@ -358,7 +358,8 @@ function PlayerSeat({
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
   // Determine pile width based on player count and seat
-  const pileWidth = isMe ? 44 : 30;
+  const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
+  const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
