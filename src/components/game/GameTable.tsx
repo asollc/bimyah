@@ -393,6 +393,7 @@ function PlayerSeat({
         className={cn(
           "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
           isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
+          !isMe && "mb-12",
         )}
         style={{ borderLeft: `3px solid ${colorHex}` }}
       >
