@@ -92,13 +92,6 @@ export function CardBack({
           BIMYAH!
         </span>
       </div>
-      {count > 1 && (
-        <span
-          className="absolute -top-1 -right-1 rounded-full bg-[var(--gold)] px-1.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)] shadow"
-        >
-          {count}
-        </span>
-      )}
     </button>
   );
 }
