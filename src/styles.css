@@ -79,9 +79,11 @@
 
   /* Gradients */
   --gradient-bg: radial-gradient(
-      ellipse at top,
-      oklch(0.3 0.14 22) 0%,
-      oklch(0.1 0.05 20) 70%
+      ellipse at center,
+      oklch(0.5 0.22 25) 0%,
+      oklch(0.38 0.2 22) 40%,
+      oklch(0.22 0.12 20) 85%,
+      oklch(0.14 0.07 20) 100%
     );
   --gradient-mint: linear-gradient(135deg, oklch(0.7 0.24 28), oklch(0.5 0.22 22));
   --gradient-gold: linear-gradient(135deg, oklch(0.9 0.16 95), oklch(0.7 0.18 75));

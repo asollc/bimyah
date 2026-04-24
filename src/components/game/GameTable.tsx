@@ -206,48 +206,48 @@ export function GameTable({
       <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
         <div
           className="wood-table grid place-items-center rounded-full"
-          style={{ width: "min(52.5vw, 45vh)", height: "min(52.5vw, 45vh)" }}
+          style={{ width: "min(42vw, 36vh)", height: "min(42vw, 36vh)" }}
         >
-          {/* Center cards */}
-          <div className="flex items-center gap-2">
-            {state.status === "lobby" && (
-              <div className="text-center font-display text-sm uppercase tracking-widest text-white/70">
-                {state.players.length < 2
-                  ? "Waiting for players…"
-                  : "Tap Ready!"}
-              </div>
+          {/* Inner content: center cards + BIMYAH */}
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {state.status === "lobby" && (
+                <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
+                  {state.players.length < 2
+                    ? "Waiting for players…"
+                    : "Tap Ready!"}
+                </div>
+              )}
+              {state.status !== "lobby" &&
+                state.center.map((slot, i) => {
+                  const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
+                  const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
+                  if (slot.card) {
+                    return (
+                      <div key={i} onClick={() => handleCenterTap(i)} className="cursor-pointer">
+                        <PlayingCard card={slot.card} width={36} />
+                      </div>
+                    );
+                  }
+                  return <EmptySlot key={i} width={36} outlineColor={outline} />;
+                })}
+            </div>
+
+            {/* BIMYAH button under center cards, inside table */}
+            {state.status === "playing" && (
+              <button
+                onClick={handleBimyah}
+                disabled={!canDeclareBimyah(state, meId)}
+                className={cn(
+                  "btn-3d btn-3d-red mt-1 px-3 py-1.5 text-[11px]",
+                  canDeclareBimyah(state, meId) && "animate-pulse-ring",
+                )}
+              >
+                BIMYAH!
+              </button>
             )}
-            {state.status !== "lobby" &&
-              state.center.map((slot, i) => {
-                const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
-                const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
-                if (slot.card) {
-                  return (
-                    <div key={i} onClick={() => handleCenterTap(i)} className="cursor-pointer">
-                      <PlayingCard card={slot.card} width={42} />
-                    </div>
-                  );
-                }
-                return <EmptySlot key={i} width={42} outlineColor={outline} />;
-              })}
           </div>
         </div>
-
-        {/* BIMYAH button just under center */}
-        {state.status === "playing" && (
-          <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 -translate-y-2">
-            <button
-              onClick={handleBimyah}
-              disabled={!canDeclareBimyah(state, meId)}
-              className={cn(
-                "btn-3d btn-3d-red pointer-events-auto text-sm",
-                canDeclareBimyah(state, meId) && "animate-pulse-ring",
-              )}
-            >
-              BIMYAH!
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Countdown overlay */}
@@ -313,23 +313,23 @@ type SeatPos = {
 function getSeatPositions(n: number): SeatPos[] {
   if (n === 2) {
     return [
-      { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-[12%] left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
     ];
   }
   if (n === 3) {
     return [
-      { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-[15%] left-[12%]", pileLayout: "row", rotate: "rotate-180" },
-      { className: "top-[15%] right-[12%]", pileLayout: "row", rotate: "rotate-180" },
+      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "top-3 left-3", pileLayout: "row", rotate: "rotate-180" },
+      { className: "top-3 right-3", pileLayout: "row", rotate: "rotate-180" },
     ];
   }
   // 4
   return [
-    { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-    { className: "right-[12%] top-1/2 -translate-y-1/2", pileLayout: "row", rotate: "-rotate-90" },
-    { className: "top-[12%] left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    { className: "left-[12%] top-1/2 -translate-y-1/2", pileLayout: "row", rotate: "rotate-90" },
+    { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "-rotate-90" },
+    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "rotate-90" },
   ];
 }
 
