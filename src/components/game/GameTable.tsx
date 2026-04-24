@@ -327,9 +327,9 @@ function getSeatPositions(n: number): SeatPos[] {
   // 4
   return [
     { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
-    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "-rotate-90" },
+    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "row" },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "rotate-90" },
+    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "row" },
   ];
 }
 
