@@ -17,42 +17,44 @@ export function PlayingCard({
 }) {
   const isRed = card.suit === "♥" || card.suit === "♦";
   const height = Math.round(width * 1.4);
+  const color = isRed ? "#dc2626" : "#0a0a0a";
+  const cornerSize = width * 0.26;
+  const centerSize = width * 0.5;
   return (
     <button
       type="button"
       onClick={onClick}
       style={{ width, height }}
       className={cn(
-        "card-face no-select relative inline-flex flex-col justify-between p-1 transition-transform animate-pop-in",
+        "card-face no-select relative inline-flex transition-transform animate-pop-in",
         selected && "ring-2 ring-[var(--mint)] -translate-y-2 shadow-[var(--shadow-glow-mint)]",
         onClick && "active:scale-95",
         className,
       )}
       aria-label={`${card.rank}${card.suit}`}
     >
+      {/* Top-left corner */}
       <div
-        className="flex items-start justify-start font-display font-bold leading-none"
-        style={{ color: isRed ? "#dc2626" : "#0a0a0a", fontSize: width * 0.32 }}
+        className="absolute font-display font-bold leading-none flex flex-col items-center"
+        style={{ color, fontSize: cornerSize, top: width * 0.08, left: width * 0.08 }}
       >
-        <div className="flex flex-col items-center">
-          <span>{card.rank}</span>
-          <span style={{ fontSize: width * 0.28 }}>{card.suit}</span>
-        </div>
+        <span>{card.rank}</span>
+        <span style={{ fontSize: cornerSize * 0.9, marginTop: width * 0.02 }}>{card.suit}</span>
       </div>
+      {/* Center suit */}
       <div
-        className="self-center font-display font-black leading-none"
-        style={{ color: isRed ? "#dc2626" : "#0a0a0a", fontSize: width * 0.55 }}
+        className="absolute inset-0 grid place-items-center font-display font-black leading-none"
+        style={{ color, fontSize: centerSize }}
       >
         {card.suit}
       </div>
+      {/* Bottom-right corner (rotated) */}
       <div
-        className="flex items-end justify-end font-display font-bold leading-none rotate-180"
-        style={{ color: isRed ? "#dc2626" : "#0a0a0a", fontSize: width * 0.32 }}
+        className="absolute font-display font-bold leading-none flex flex-col items-center rotate-180"
+        style={{ color, fontSize: cornerSize, bottom: width * 0.08, right: width * 0.08 }}
       >
-        <div className="flex flex-col items-center">
-          <span>{card.rank}</span>
-          <span style={{ fontSize: width * 0.28 }}>{card.suit}</span>
-        </div>
+        <span>{card.rank}</span>
+        <span style={{ fontSize: cornerSize * 0.9, marginTop: width * 0.02 }}>{card.suit}</span>
       </div>
     </button>
   );
