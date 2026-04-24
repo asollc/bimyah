@@ -206,7 +206,7 @@ export function GameTable({
       <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
         <div
           className="wood-table grid place-items-center rounded-full"
-          style={{ width: "min(42vw, 36vh)", height: "min(42vw, 36vh)" }}
+          style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
         >
           {/* Inner content: center cards + BIMYAH */}
           <div className="flex flex-col items-center justify-center gap-2">
@@ -308,6 +308,7 @@ type SeatPos = {
   className: string;
   pileLayout: "row" | "col";
   rotate?: string;
+  compact?: boolean;
 };
 
 function getSeatPositions(n: number): SeatPos[] {
@@ -327,9 +328,9 @@ function getSeatPositions(n: number): SeatPos[] {
   // 4
   return [
     { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
-    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "-rotate-90" },
+    { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "rotate-90" },
+    { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
   ];
 }
 
@@ -357,7 +358,8 @@ function PlayerSeat({
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
   // Determine pile width based on player count and seat
-  const pileWidth = isMe ? 44 : 30;
+  const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
+  const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
@@ -406,7 +408,8 @@ function PlayerSeat({
       {status !== "lobby" && (
         <div
           className={cn(
-            "flex gap-1.5",
+            "flex",
+            pileGap,
             position.pileLayout === "col" ? "flex-col" : "flex-row",
             !isMe && position.rotate,
           )}
