@@ -308,6 +308,7 @@ type SeatPos = {
   className: string;
   pileLayout: "row" | "col";
   rotate?: string;
+  compact?: boolean;
 };
 
 function getSeatPositions(n: number): SeatPos[] {
@@ -327,9 +328,9 @@ function getSeatPositions(n: number): SeatPos[] {
   // 4
   return [
     { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
-    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "row" },
+    { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "row" },
+    { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
   ];
 }
 
