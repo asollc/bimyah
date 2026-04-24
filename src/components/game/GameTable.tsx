@@ -313,23 +313,23 @@ type SeatPos = {
 function getSeatPositions(n: number): SeatPos[] {
   if (n === 2) {
     return [
-      { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-[12%] left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
     ];
   }
   if (n === 3) {
     return [
-      { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-[15%] left-[12%]", pileLayout: "row", rotate: "rotate-180" },
-      { className: "top-[15%] right-[12%]", pileLayout: "row", rotate: "rotate-180" },
+      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "top-3 left-3", pileLayout: "row", rotate: "rotate-180" },
+      { className: "top-3 right-3", pileLayout: "row", rotate: "rotate-180" },
     ];
   }
   // 4
   return [
-    { className: "bottom-2 left-1/2 -translate-x-1/2", pileLayout: "row" },
-    { className: "right-[12%] top-1/2 -translate-y-1/2", pileLayout: "row", rotate: "-rotate-90" },
-    { className: "top-[12%] left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    { className: "left-[12%] top-1/2 -translate-y-1/2", pileLayout: "row", rotate: "rotate-90" },
+    { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+    { className: "right-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "-rotate-90" },
+    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+    { className: "left-2 top-1/2 -translate-y-1/2", pileLayout: "col", rotate: "rotate-90" },
   ];
 }
 
