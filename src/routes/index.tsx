@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
+import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
 import { Bot, Users, Plus } from "lucide-react";
@@ -57,19 +58,30 @@ function HomePage() {
 
   return (
     <div className="relative flex h-[100dvh] w-screen flex-col items-center justify-between overflow-hidden px-4 py-3">
+      {/* floating background cards */}
+      <FloatingCards />
+
       {/* top bar */}
-      <div className="flex w-full items-center justify-between">
+      <div className="relative z-10 flex w-full items-center justify-between">
         <RotationIcon />
         <HowToPlayButton />
       </div>
 
       {/* hero */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="relative z-10 flex flex-col items-center gap-3">
         <PowLogo size={330} />
+        <div
+          className="text-3d-yellow font-display text-center text-sm font-black uppercase leading-tight sm:text-base"
+          style={{ letterSpacing: "0.08em" }}
+        >
+          A Fast-Paced Card Race
+          <br />
+          With No Turns!
+        </div>
       </div>
 
       {/* buttons */}
-      <div className="flex w-full max-w-xs flex-col gap-3">
+      <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
         {!showSolo && !showJoin && (
           <>
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
@@ -97,7 +109,7 @@ function HomePage() {
       </div>
 
       {/* footer history */}
-      <div className="w-full max-w-xs text-center">
+      <div className="relative z-10 w-full max-w-xs text-center">
         <div className="mb-1 font-display text-[10px] uppercase tracking-widest text-white/40">
           Win History
         </div>
@@ -116,6 +128,43 @@ function HomePage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function FloatingCards() {
+  // deterministic spread of small floating card backs across the screen
+  const cards = [
+    { top: "8%", left: "6%", size: 38, rot: -14, dx: 12, dy: -10, dur: 9 },
+    { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11 },
+    { top: "42%", left: "3%", size: 34, rot: 8, dx: 10, dy: 14, dur: 10 },
+    { top: "55%", left: "90%", size: 40, rot: -22, dx: -10, dy: -12, dur: 12 },
+    { top: "72%", left: "10%", size: 36, rot: 14, dx: 14, dy: -8, dur: 9.5 },
+    { top: "80%", left: "78%", size: 42, rot: -10, dx: -12, dy: 10, dur: 10.5 },
+    { top: "30%", left: "48%", size: 30, rot: 22, dx: 8, dy: -10, dur: 13 },
+    { top: "88%", left: "45%", size: 32, rot: -16, dx: -8, dy: -12, dur: 11.5 },
+  ];
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
+      {cards.map((c, i) => (
+        <div
+          key={i}
+          className="animate-float-card absolute"
+          style={
+            {
+              top: c.top,
+              left: c.left,
+              "--rot": `${c.rot}deg`,
+              "--dx": `${c.dx}px`,
+              "--dy": `${c.dy}px`,
+              "--dur": `${c.dur}s`,
+              animationDelay: `${i * 0.4}s`,
+            } as React.CSSProperties
+          }
+        >
+          <CardBack width={c.size} />
+        </div>
+      ))}
     </div>
   );
 }
