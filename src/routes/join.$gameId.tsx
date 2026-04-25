@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { fetchOnlineGame, pushOnlineGame } from "@/game/online";
+import { joinGame } from "@/game/peer";
+import { registerSession } from "@/game/sessionStore";
 import { PLAYER_COLORS } from "@/game/engine";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
@@ -22,23 +23,27 @@ function JoinGame() {
     setBusy(true);
     setErr(null);
     try {
-      const state = await fetchOnlineGame(gameId);
+      const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
+      const session = await joinGame(gameId, myId);
+      const state = session.getState();
       if (!state) {
-        setErr("Game not found");
+        setErr("Could not load game");
         setBusy(false);
+        session.destroy();
         return;
       }
       if (state.status !== "lobby") {
         setErr("Game already started");
         setBusy(false);
+        session.destroy();
         return;
       }
       if (state.players.length >= 4) {
         setErr("Game is full");
         setBusy(false);
+        session.destroy();
         return;
       }
-      const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
       const newPlayer = {
         id: myId,
         name: name.trim().slice(0, 14),
@@ -50,13 +55,14 @@ function JoinGame() {
         hand: [],
         openPileIndex: null,
       };
-      const next = { ...state, players: [...state.players, newPlayer] };
-      await pushOnlineGame(next);
+      session.setState((s) => ({ ...s, players: [...s.players, newPlayer] }));
+      registerSession(session);
       sessionStorage.setItem(`bimyah_me_${gameId}`, myId);
       sessionStorage.setItem(`bimyah_name_${gameId}`, newPlayer.name);
       void navigate({ to: "/game/$gameId", params: { gameId } });
     } catch (e) {
-      setErr("Failed to join");
+      console.error(e);
+      setErr("Could not connect. Check the code.");
       setBusy(false);
     }
   }
@@ -86,7 +92,7 @@ function JoinGame() {
           disabled={!name.trim() || busy}
           className="btn-3d btn-3d-mint w-full text-base"
         >
-          {busy ? "Joining…" : "Join Game"}
+          {busy ? "Connecting…" : "Join Game"}
         </button>
       </form>
       <div />
