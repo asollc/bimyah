@@ -65,7 +65,7 @@ function HomePage() {
 
       {/* hero */}
       <div className="flex flex-col items-center gap-2">
-        <PowLogo size={220} />
+        <PowLogo size={330} />
       </div>
 
       {/* buttons */}
