@@ -39,7 +39,7 @@ export type Intent =
    *  rare client-side resets like Play Again that don't fit a named intent). */
   | { kind: "replaceState"; state: GameState };
 
-function applyIntent(state: GameState, intent: Intent): GameState {
+export function applyIntent(state: GameState, intent: Intent): GameState {
   switch (intent.kind) {
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
