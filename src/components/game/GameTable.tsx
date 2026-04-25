@@ -14,7 +14,7 @@ import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
 import { Copy, Check, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Intent } from "@/game/peer";
+import { applyIntent, type Intent } from "@/game/peer";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
