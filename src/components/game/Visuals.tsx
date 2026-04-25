@@ -1,26 +1,19 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import bimyahLogo from "@/assets/bimyah-logo.png";
 
 export function PowLogo({ size = 220 }: { size?: number }) {
   return (
     <div
-      className="pow-burst animate-pop-in"
+      className="animate-pop-in flex items-center justify-center"
       style={{ width: size, height: size * 0.95 }}
     >
-      <div className="flex flex-col items-center justify-center">
-        <span
-          className="font-display font-black leading-none text-[oklch(0.18_0.04_165)]"
-          style={{ fontSize: size * 0.22, letterSpacing: "-0.03em" }}
-        >
-          BIMYAH!
-        </span>
-        <span
-          className="mt-1 font-body font-semibold text-[oklch(0.25_0.06_165)]"
-          style={{ fontSize: size * 0.06, letterSpacing: "0.2em" }}
-        >
-          THE CARD GAME
-        </span>
-      </div>
+      <img
+        src={bimyahLogo}
+        alt="BIMYAH! The Card Game"
+        draggable={false}
+        className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]"
+      />
     </div>
   );
 }
