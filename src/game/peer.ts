@@ -1,40 +1,98 @@
 import Peer, { type DataConnection } from "peerjs";
 import type { GameState } from "./types";
+import {
+  closePile,
+  declareBimyah,
+  declareSet,
+  holdCenterCard,
+  openPile,
+  setReady,
+  swapCard,
+} from "./engine";
 
 /**
  * WebRTC multiplayer using PeerJS.
  *
  * Architecture:
- * - Host opens a Peer with id `bimyah-XXXX` (4-digit code) and accepts connections.
- * - Host holds authoritative GameState in memory. On every local mutation, the
- *   host broadcasts the new state to all connected peers.
- * - Joiners connect to the host, receive state updates, and send their own
- *   state mutations back as full snapshots ({ type: "state", state }).
- * - Host accepts the joiner snapshot, replaces local state, and rebroadcasts to
- *   all other peers (so all clients converge on the host's authoritative copy).
+ * - Host owns the authoritative GameState. Only the host mutates it
+ *   (player intents, bot ticks, countdown ticks, hold timeouts).
+ * - Joiners DO NOT mutate state locally. They send named intents to the host;
+ *   the host applies them to its current state and broadcasts the result.
+ * - Joiners may apply an optimistic local update for snappy UI; the next
+ *   authoritative broadcast from the host overwrites it.
+ *
+ * This avoids the previous bug where two joiners (or joiner+host) sent
+ * full-state snapshots that overwrote each other and produced ghost
+ * selections / unresponsive center cards.
  */
 
+export type Intent =
+  | { kind: "ready"; playerId: string; ready: boolean }
+  | { kind: "openPile"; playerId: string; stackIndex: number }
+  | { kind: "closePile"; playerId: string }
+  | { kind: "holdCenter"; playerId: string; centerIndex: number }
+  | { kind: "swap"; playerId: string; cardId: string }
+  | { kind: "declareSet"; playerId: string }
+  | { kind: "declareBimyah"; playerId: string }
+  | { kind: "playAgain" }
+  /** Fallback: full-state replace (only used by host->client broadcasts and
+   *  rare client-side resets like Play Again that don't fit a named intent). */
+  | { kind: "replaceState"; state: GameState };
+
+export function applyIntent(state: GameState, intent: Intent): GameState {
+  switch (intent.kind) {
+    case "ready":
+      return setReady(state, intent.playerId, intent.ready);
+    case "openPile":
+      return openPile(state, intent.playerId, intent.stackIndex);
+    case "closePile":
+      return closePile(state, intent.playerId);
+    case "holdCenter":
+      return holdCenterCard(state, intent.playerId, intent.centerIndex);
+    case "swap":
+      return swapCard(state, intent.playerId, intent.cardId);
+    case "declareSet":
+      return declareSet(state, intent.playerId);
+    case "declareBimyah":
+      return declareBimyah(state, intent.playerId);
+    case "playAgain":
+      return {
+        ...state,
+        status: "lobby",
+        winnerId: null,
+        countdownEndsAt: null,
+        center: [],
+        players: state.players.map((p) => ({
+          ...p,
+          ready: p.isBot,
+          piles: [],
+          pileLocked: [],
+          hand: [],
+          openPileIndex: null,
+        })),
+      };
+    case "replaceState":
+      return intent.state;
+  }
+}
+
 export type PeerSession = {
-  /** Local player id assigned by the session. Always set after `ready` resolves. */
   meId: string;
-  /** 4-digit room code (also embedded in peer id). */
   code: string;
-  /** True if this peer is the host. */
   isHost: boolean;
-  /** Subscribe to state changes. Returns unsubscribe. */
   subscribe: (cb: (s: GameState) => void) => () => void;
-  /** Get current state. */
   getState: () => GameState | null;
-  /** Apply a mutation locally and propagate. */
+  /** Apply a mutation. Host: applies + broadcasts. Joiner: sends intent. */
   setState: (mutator: (s: GameState) => GameState) => void;
-  /** Number of currently connected peers (host only). */
+  /** Send a structured intent (preferred for joiners). */
+  sendIntent: (intent: Intent) => void;
   connectionCount: () => number;
-  /** Tear down the connection. */
   destroy: () => void;
 };
 
 type Message =
   | { type: "state"; state: GameState }
+  | { type: "intent"; intent: Intent }
   | { type: "hello"; name: string };
 
 function fourDigitCode(): string {
@@ -46,26 +104,18 @@ function peerIdFor(code: string): string {
 }
 
 const PEER_OPTS = {
-  // Default PeerJS cloud server. Free, no setup required.
-  // Could be replaced with a self-hosted PeerServer if needed.
   debug: 1,
 };
 
-/**
- * Host a new game. Initial state must already include the host as the first
- * player. Returns once the Peer is open and ready to accept connections.
- */
 export async function hostGame(
   initialState: GameState,
   hostId: string,
 ): Promise<PeerSession> {
-  // Try a few codes in case of collision on the public PeerJS server.
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = fourDigitCode();
     try {
-      const session = await tryHost(code, initialState, hostId);
-      return session;
+      return await tryHost(code, initialState, hostId);
     } catch (err) {
       lastErr = err;
     }
@@ -84,16 +134,23 @@ function tryHost(
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
 
-    function broadcast(except?: DataConnection) {
+    function broadcast() {
       const msg: Message = { type: "state", state };
       for (const c of conns.values()) {
-        if (c === except) continue;
         if (c.open) c.send(msg);
       }
     }
 
     function notifyLocal() {
       for (const cb of listeners) cb(state);
+    }
+
+    function applyAndBroadcast(mutator: (s: GameState) => GameState) {
+      const next = mutator(state);
+      if (next === state) return;
+      state = next;
+      notifyLocal();
+      broadcast();
     }
 
     peer.on("open", () => {
@@ -103,16 +160,12 @@ function tryHost(
         isHost: true,
         subscribe: (cb) => {
           listeners.add(cb);
-          // immediate callback
           cb(state);
           return () => listeners.delete(cb);
         },
         getState: () => state,
-        setState: (mutator) => {
-          state = mutator(state);
-          notifyLocal();
-          broadcast();
-        },
+        setState: (mutator) => applyAndBroadcast(mutator),
+        sendIntent: (intent) => applyAndBroadcast((s) => applyIntent(s, intent)),
         connectionCount: () => conns.size,
         destroy: () => {
           for (const c of conns.values()) {
@@ -131,18 +184,16 @@ function tryHost(
     peer.on("connection", (conn) => {
       conn.on("open", () => {
         conns.set(conn.peer, conn);
-        // send current state immediately
         const msg: Message = { type: "state", state };
         conn.send(msg);
       });
       conn.on("data", (raw) => {
         const msg = raw as Message;
-        if (msg.type === "state") {
-          // Joiner-initiated change. Replace state, fan out to everyone else.
-          state = { ...msg.state, id: code };
-          notifyLocal();
-          broadcast(conn);
+        if (msg.type === "intent") {
+          // Apply the joiner's intent against current authoritative state.
+          applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
+        // Ignore "state" from joiners — joiners are no longer authoritative.
       });
       conn.on("close", () => {
         conns.delete(conn.peer);
@@ -150,16 +201,11 @@ function tryHost(
     });
 
     peer.on("error", (err) => {
-      // unavailable-id => the peer id (code) is taken on the broker.
       reject(err);
     });
   });
 }
 
-/**
- * Join an existing game by 4-digit code. Returns once a state snapshot has
- * been received from the host.
- */
 export async function joinGame(code: string, myId: string): Promise<PeerSession> {
   return new Promise((resolve, reject) => {
     const peer = new Peer(PEER_OPTS);
@@ -170,10 +216,6 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
     peer.on("open", () => {
       const conn = peer.connect(peerIdFor(code), { reliable: true });
 
-      conn.on("open", () => {
-        // wait for first state push to resolve
-      });
-
       conn.on("data", (raw) => {
         const msg = raw as Message;
         if (msg.type === "state") {
@@ -181,6 +223,9 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
           for (const cb of listeners) cb(state);
           if (!resolved) {
             resolved = true;
+            const send = (m: Message) => {
+              if (conn.open) conn.send(m);
+            };
             const session: PeerSession = {
               meId: myId,
               code,
@@ -192,10 +237,17 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
               },
               getState: () => state,
               setState: (mutator) => {
+                // Optimistic local update (snappy UI). Host's next broadcast
+                // is authoritative and will overwrite this.
                 if (!state) return;
                 state = mutator(state);
                 for (const cb of listeners) cb(state);
-                if (conn.open) conn.send({ type: "state", state } as Message);
+                // Joiner cannot send a function; send full state as a
+                // last-resort intent. Prefer sendIntent for known actions.
+                send({ type: "intent", intent: { kind: "replaceState", state } });
+              },
+              sendIntent: (intent) => {
+                send({ type: "intent", intent });
               },
               connectionCount: () => (conn.open ? 1 : 0),
               destroy: () => {
@@ -216,7 +268,6 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
         if (!resolved) reject(err);
       });
 
-      // safety timeout
       setTimeout(() => {
         if (!resolved) reject(new Error("Could not connect to host"));
       }, 10000);

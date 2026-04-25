@@ -2,13 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameState, Player, PlayerColor } from "@/game/types";
 import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
-  closePile,
-  declareBimyah,
-  declareSet,
-  holdCenterCard,
-  openPile,
-  setReady,
-  swapCard,
   tickCountdown,
   tickHolds,
   canDeclareBimyah,
@@ -21,6 +14,7 @@ import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
 import { Copy, Check, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { applyIntent, type Intent } from "@/game/peer";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
@@ -32,11 +26,15 @@ export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
 export function GameTable({
   state,
   setState,
+  sendIntent,
+  isHost = true,
   meId,
   inviteUrl,
 }: {
   state: GameState;
   setState: (mutator: (s: GameState) => GameState) => void;
+  sendIntent?: (intent: Intent) => void;
+  isHost?: boolean;
   meId: string;
   inviteUrl?: string;
 }) {
@@ -48,16 +46,26 @@ export function GameTable({
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
 
-  // ===== Game tick =====
+  // Helper: route an action either through the structured intent (preferred,
+  // joiner→host) or fall back to local setState (host / solo).
+  const dispatch = (intent: Intent) => {
+    if (sendIntent && !isHost) {
+      sendIntent(intent);
+    } else {
+      setState((s) => applyIntent(s, intent));
+    }
+  };
+
+  // ===== Game tick (HOST ONLY in multiplayer; always on in solo) =====
   useEffect(() => {
+    if (!isHost) return;
     const t = setInterval(() => {
       setState((s) => tickCountdown(s));
       setState((s) => tickHolds(s));
-      // Bots
       stepBots(state, botMemory.current, (m) => setState(m));
     }, 250);
     return () => clearInterval(t);
-  }, [state, setState]);
+  }, [state, setState, isHost]);
 
   // Win announce
   useEffect(() => {
@@ -100,7 +108,7 @@ export function GameTable({
     if (!me || state.status !== "playing") return;
     if (me.pileLocked[pileIndex]) return;
     sfx.flip();
-    setState((s) => openPile(s, meId, pileIndex));
+    dispatch({ kind: "openPile", playerId: meId, stackIndex: pileIndex });
   };
 
   const handleCenterTap = (i: number) => {
@@ -110,7 +118,7 @@ export function GameTable({
     if (me.openPileIndex === null) return;
     if (me.hand.length >= 5) return;
     sfx.flip();
-    setState((s) => holdCenterCard(s, meId, i));
+    dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
   };
 
   const handleHandCardTap = (cardId: string) => {
@@ -118,45 +126,31 @@ export function GameTable({
     const holding = state.center.some((sl) => sl.heldBy === meId);
     if (!holding) return;
     sfx.swap();
-    setState((s) => swapCard(s, meId, cardId));
+    dispatch({ kind: "swap", playerId: meId, cardId });
   };
 
   const handleSet = () => {
     if (!me) return;
     if (me.hand.length === 4 && isFourOfAKind(me.hand)) {
       sfx.set();
-      setState((s) => declareSet(s, meId));
+      dispatch({ kind: "declareSet", playerId: meId });
     }
   };
 
   const handleBimyah = () => {
     if (!me) return;
     if (canDeclareBimyah(state, meId)) {
-      setState((s) => declareBimyah(s, meId));
+      dispatch({ kind: "declareBimyah", playerId: meId });
     }
   };
 
-  const onReady = () => setState((s) => setReady(s, meId, true));
+  const onReady = () => dispatch({ kind: "ready", playerId: meId, ready: true });
 
   const onPlayAgain = () => {
-    // Reset: clear ready states, status -> lobby, clear piles/hand/center
-    setState((s) => ({
-      ...s,
-      status: "lobby",
-      winnerId: null,
-      countdownEndsAt: null,
-      center: [],
-      players: s.players.map((p) => ({
-        ...p,
-        ready: p.isBot, // bots auto-ready
-        piles: [],
-        pileLocked: [],
-        hand: [],
-        openPileIndex: null,
-      })),
-    }));
+    dispatch({ kind: "playAgain" });
     setShowPlayAgain(false);
   };
+
 
   const copyInvite = () => {
     if (!inviteUrl) return;

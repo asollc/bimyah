@@ -47,6 +47,8 @@ function OnlineGame() {
     <GameTable
       state={state}
       setState={setState}
+      sendIntent={session.sendIntent}
+      isHost={session.isHost}
       meId={meId}
       inviteUrl={session.code}
     />
