@@ -52,7 +52,7 @@ export function GameTable({
     if (sendIntent && !isHost) {
       sendIntent(intent);
     } else {
-      setState((s) => applyLocalIntent(s, intent));
+      setState((s) => applyIntent(s, intent));
     }
   };
 
