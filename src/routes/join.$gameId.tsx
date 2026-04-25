@@ -73,7 +73,7 @@ function JoinGame() {
         <RotationIcon />
         <HowToPlayButton />
       </div>
-      <PowLogo size={180} />
+      <PowLogo size={270} />
       <form onSubmit={submit} className="flex w-full max-w-xs flex-col gap-3">
         <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
           Joining game <span className="text-[var(--mint)]">{gameId}</span>
