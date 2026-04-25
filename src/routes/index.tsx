@@ -5,7 +5,8 @@ import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
 import { Bot, Users, Plus } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
-import { createOnlineGame } from "@/game/online";
+import { hostGame } from "@/game/peer";
+import { registerSession } from "@/game/sessionStore";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,18 +30,29 @@ function HomePage() {
   }, []);
   const [showSolo, setShowSolo] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [hosting, setHosting] = useState(false);
+  const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const wins = getWinCounts().slice(0, 5);
 
   async function hostMultiplayer() {
-    const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
-    const myName = `Player`;
-    const initial = createInitialGame("temp", [{ id: hostId, name: myName, isBot: false }]);
-    const id = await createOnlineGame(initial, hostId);
-    sessionStorage.setItem(`bimyah_me_${id}`, hostId);
-    sessionStorage.setItem(`bimyah_name_${id}`, myName);
-    void navigate({ to: "/game/$gameId", params: { gameId: id } });
+    setHosting(true);
+    setHostErr(null);
+    try {
+      const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
+      const myName = "Host";
+      const initial = createInitialGame("temp", [{ id: hostId, name: myName, isBot: false }]);
+      const session = await hostGame(initial, hostId);
+      registerSession(session);
+      sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
+      sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
+      void navigate({ to: "/game/$gameId", params: { gameId: session.code } });
+    } catch (e) {
+      console.error(e);
+      setHostErr("Could not start host session. Try again.");
+      setHosting(false);
+    }
   }
 
   return (
@@ -63,12 +75,20 @@ function HomePage() {
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
               <Bot className="mr-2 h-5 w-5" /> Solo vs Bots
             </button>
-            <button onClick={hostMultiplayer} className="btn-3d btn-3d-gold w-full text-base">
-              <Plus className="mr-2 h-5 w-5" /> Host Multiplayer
+            <button
+              onClick={hostMultiplayer}
+              disabled={hosting}
+              className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              {hosting ? "Starting…" : "Host Multiplayer"}
             </button>
             <button onClick={() => setShowJoin(true)} className="btn-3d btn-3d-dark w-full text-base">
               <Users className="mr-2 h-5 w-5" /> Join with Code
             </button>
+            {hostErr && (
+              <div className="text-center text-xs text-[var(--player-red)]">{hostErr}</div>
+            )}
           </>
         )}
 
@@ -133,20 +153,21 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
   return (
     <>
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
-        Enter game code
+        Enter 4-digit code
       </div>
       <input
         autoFocus
+        inputMode="numeric"
         value={code}
-        onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
-        placeholder="ABC123"
-        className="rounded-lg border border-[var(--mint)]/40 bg-black/40 px-4 py-3 text-center font-mono text-2xl tracking-[0.5em] text-white placeholder:text-white/30"
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        placeholder="0000"
+        className="rounded-lg border border-[var(--mint)]/40 bg-black/40 px-4 py-3 text-center font-mono text-3xl tracking-[0.5em] text-white placeholder:text-white/30"
       />
       <Link
         to="/join/$gameId"
         params={{ gameId: code }}
         className={
-          code.length === 6
+          code.length === 4
             ? "btn-3d btn-3d-mint w-full text-sm"
             : "btn-3d btn-3d-mint w-full text-sm pointer-events-none opacity-40"
         }
