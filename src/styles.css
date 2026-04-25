@@ -363,6 +363,34 @@
   animation: countdown-pop 1s ease-out;
 }
 
+/* Floating background cards */
+@keyframes float-card {
+  0% {
+    transform: translate(0, 0) rotate(var(--rot, 0deg));
+  }
+  50% {
+    transform: translate(var(--dx, 10px), var(--dy, -14px)) rotate(calc(var(--rot, 0deg) + 6deg));
+  }
+  100% {
+    transform: translate(0, 0) rotate(var(--rot, 0deg));
+  }
+}
+.animate-float-card {
+  animation: float-card var(--dur, 8s) ease-in-out infinite;
+}
+
+/* 3D yellow text */
+.text-3d-yellow {
+  color: #fde047;
+  text-shadow:
+    0 1px 0 #ca8a04,
+    0 2px 0 #a16207,
+    0 3px 0 #854d0e,
+    0 4px 0 #713f12,
+    0 5px 6px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(253, 224, 71, 0.35);
+}
+
 /* Utility — mobile lock */
 .no-select {
   -webkit-user-select: none;
