@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
+import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
 import { Bot, Users, Plus } from "lucide-react";
@@ -57,15 +58,26 @@ function HomePage() {
 
   return (
     <div className="relative flex h-[100dvh] w-screen flex-col items-center justify-between overflow-hidden px-4 py-3">
+      {/* floating background cards */}
+      <FloatingCards />
+
       {/* top bar */}
-      <div className="flex w-full items-center justify-between">
+      <div className="relative z-10 flex w-full items-center justify-between">
         <RotationIcon />
         <HowToPlayButton />
       </div>
 
       {/* hero */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="relative z-10 flex flex-col items-center gap-3">
         <PowLogo size={330} />
+        <div
+          className="text-3d-yellow font-display text-center text-sm font-black uppercase leading-tight sm:text-base"
+          style={{ letterSpacing: "0.08em" }}
+        >
+          A Fast-Paced Card Race
+          <br />
+          With No Turns!
+        </div>
       </div>
 
       {/* buttons */}
