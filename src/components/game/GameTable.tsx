@@ -101,7 +101,14 @@ export function GameTable({
   }, [state.status, state.countdownEndsAt]);
 
   // ===== Layout positions around table =====
-  const positions = useMemo(() => getSeatPositions(state.players.length), [state.players.length]);
+  // Rotate the players array so the local player ("me") is always at index 0,
+  // which maps to the bottom seat. Other players keep their relative order.
+  const seatOrder = useMemo(() => {
+    const idx = state.players.findIndex((p) => p.id === meId);
+    if (idx <= 0) return state.players;
+    return [...state.players.slice(idx), ...state.players.slice(0, idx)];
+  }, [state.players, meId]);
+  const positions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
 
   // helpers
   const handlePileTap = (pileIndex: number) => {
@@ -253,9 +260,8 @@ export function GameTable({
       )}
 
       {/* Player seats */}
-      {state.players.map((player) => {
+      {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
-        const seatIdx = state.players.indexOf(player);
         const pos = positions[seatIdx];
         return (
           <PlayerSeat
