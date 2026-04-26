@@ -239,73 +239,136 @@ function tryHost(
 
 export async function joinGame(code: string, myId: string): Promise<PeerSession> {
   return new Promise((resolve, reject) => {
-    const peer = new Peer(PEER_OPTS);
+    let peer: Peer = new Peer(PEER_OPTS);
+    let conn: DataConnection | null = null;
     let resolved = false;
+    let destroyed = false;
     let state: GameState | null = null;
     const listeners = new Set<(s: GameState) => void>();
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    peer.on("open", () => {
-      const conn = peer.connect(peerIdFor(code), { reliable: true });
+    function notify() {
+      if (state) for (const cb of listeners) cb(state);
+    }
 
-      conn.on("data", (raw) => {
+    function send(m: Message) {
+      if (conn && conn.open) conn.send(m);
+    }
+
+    function attachConn(c: DataConnection) {
+      conn = c;
+      c.on("data", (raw) => {
         const msg = raw as Message;
         if (msg.type === "state") {
           state = msg.state;
-          for (const cb of listeners) cb(state);
+          notify();
           if (!resolved) {
             resolved = true;
-            const send = (m: Message) => {
-              if (conn.open) conn.send(m);
-            };
-            const session: PeerSession = {
-              meId: myId,
-              code,
-              isHost: false,
-              subscribe: (cb) => {
-                listeners.add(cb);
-                if (state) cb(state);
-                return () => listeners.delete(cb);
-              },
-              getState: () => state,
-              setState: (mutator) => {
-                // Optimistic local update (snappy UI). Host's next broadcast
-                // is authoritative and will overwrite this.
-                if (!state) return;
-                state = mutator(state);
-                for (const cb of listeners) cb(state);
-                // Joiner cannot send a function; send full state as a
-                // last-resort intent. Prefer sendIntent for known actions.
-                send({ type: "intent", intent: { kind: "replaceState", state } });
-              },
-              sendIntent: (intent) => {
-                send({ type: "intent", intent });
-              },
-              connectionCount: () => (conn.open ? 1 : 0),
-              destroy: () => {
-                try {
-                  conn.close();
-                } catch {
-                  // ignore
-                }
-                peer.destroy();
-              },
-            };
             resolve(session);
           }
         }
       });
-
-      conn.on("error", (err) => {
-        if (!resolved) reject(err);
+      c.on("close", () => {
+        if (destroyed) return;
+        scheduleReconnect();
       });
+      c.on("error", () => {
+        if (!resolved) {
+          // Initial failure handled by timeout below.
+          return;
+        }
+        if (destroyed) return;
+        scheduleReconnect();
+      });
+    }
 
-      setTimeout(() => {
-        if (!resolved) reject(new Error("Could not connect to host"));
-      }, 10000);
-    });
+    function openAndConnect() {
+      peer.on("open", () => {
+        if (destroyed) return;
+        const c = peer.connect(peerIdFor(code), { reliable: true });
+        attachConn(c);
+      });
+      peer.on("error", (err) => {
+        if (!resolved) {
+          reject(err);
+          return;
+        }
+        if (destroyed) return;
+        scheduleReconnect();
+      });
+    }
 
-    peer.on("error", (err) => {
-      if (!resolved) reject(err);
-    });
+    function scheduleReconnect() {
+      if (destroyed || reconnectTimer) return;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (destroyed) return;
+        try {
+          conn?.close();
+        } catch {
+          // ignore
+        }
+        try {
+          peer.destroy();
+        } catch {
+          // ignore
+        }
+        peer = new Peer(PEER_OPTS);
+        openAndConnect();
+      }, 1500);
+    }
+
+    const session: PeerSession = {
+      meId: myId,
+      code,
+      isHost: false,
+      subscribe: (cb) => {
+        listeners.add(cb);
+        if (state) cb(state);
+        return () => {
+          listeners.delete(cb);
+        };
+      },
+      getState: () => state,
+      setState: (mutator) => {
+        if (!state) return;
+        state = mutator(state);
+        notify();
+        send({ type: "intent", intent: { kind: "replaceState", state } });
+      },
+      sendIntent: (intent) => {
+        send({ type: "intent", intent });
+      },
+      connectionCount: () => (conn?.open ? 1 : 0),
+      reconnect: () => {
+        if (conn?.open) return;
+        scheduleReconnect();
+      },
+      isConnected: () => !!conn?.open,
+      destroy: () => {
+        destroyed = true;
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        try {
+          conn?.close();
+        } catch {
+          // ignore
+        }
+        try {
+          peer.destroy();
+        } catch {
+          // ignore
+        }
+      },
+    };
+
+    openAndConnect();
+
+    setTimeout(() => {
+      if (!resolved) reject(new Error("Could not connect to host"));
+    }, 10000);
   });
 }
+
