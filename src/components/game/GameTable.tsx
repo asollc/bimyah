@@ -314,6 +314,7 @@ export function GameTable({
             onPileTap={isMe ? handlePileTap : undefined}
             onHandCardTap={isMe ? handleHandCardTap : undefined}
             onSet={isMe ? handleSet : undefined}
+            selectedHandCardId={isMe ? selectedHandCardId : null}
           />
         );
       })}
