@@ -45,6 +45,18 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
+  // Card the local player has tapped in their hand, ready to be swapped
+  // with a held center card. Cleared whenever the swap completes, the hold
+  // expires, or the card is no longer in hand.
+  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+
+  // Clear selection if the selected card is no longer in our hand.
+  useEffect(() => {
+    if (!selectedHandCardId) return;
+    if (!me || !me.hand.some((c) => c.id === selectedHandCardId)) {
+      setSelectedHandCardId(null);
+    }
+  }, [me, selectedHandCardId]);
 
   // Helper: route an action either through the structured intent (preferred,
   // joiner→host) or fall back to local setState (host / solo).
@@ -121,7 +133,16 @@ export function GameTable({
   const handleCenterTap = (i: number) => {
     if (!me || state.status !== "playing") return;
     const slot = state.center[i];
-    if (!slot.card || slot.heldBy) return;
+    if (!slot.card) return;
+    // If this slot is the one we are already holding and we have a selected
+    // hand card, complete the swap.
+    if (slot.heldBy === meId && selectedHandCardId) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: meId, cardId: selectedHandCardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    if (slot.heldBy) return;
     if (me.openPileIndex === null) return;
     if (me.hand.length >= 5) return;
     sfx.flip();
@@ -131,9 +152,16 @@ export function GameTable({
   const handleHandCardTap = (cardId: string) => {
     if (!me) return;
     const holding = state.center.some((sl) => sl.heldBy === meId);
-    if (!holding) return;
-    sfx.swap();
-    dispatch({ kind: "swap", playerId: meId, cardId });
+    // If we're holding a center card, tapping a hand card completes the swap
+    // immediately (keeps the original one-tap flow working).
+    if (holding) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    // Otherwise, toggle selection so the player can pre-pick a card.
+    setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
   };
 
   const handleSet = () => {
@@ -228,11 +256,16 @@ export function GameTable({
                   const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
                   if (slot.card) {
                     const isMine = slot.heldBy === meId;
+                    const readyToComplete = isMine && !!selectedHandCardId;
                     return (
                       <div
                         key={i}
                         onClick={() => handleCenterTap(i)}
-                        className={cn("cursor-pointer", outline && "rounded-lg p-0.5")}
+                        className={cn(
+                          "cursor-pointer",
+                          outline && "rounded-lg p-0.5",
+                          readyToComplete && "animate-pulse-ring",
+                        )}
                         style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
                         aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
                       >
@@ -281,6 +314,7 @@ export function GameTable({
             onPileTap={isMe ? handlePileTap : undefined}
             onHandCardTap={isMe ? handleHandCardTap : undefined}
             onSet={isMe ? handleSet : undefined}
+            selectedHandCardId={isMe ? selectedHandCardId : null}
           />
         );
       })}
@@ -353,6 +387,7 @@ function PlayerSeat({
   onPileTap,
   onHandCardTap,
   onSet,
+  selectedHandCardId,
 }: {
   player: Player;
   position: SeatPos;
@@ -362,6 +397,7 @@ function PlayerSeat({
   onPileTap?: (i: number) => void;
   onHandCardTap?: (cardId: string) => void;
   onSet?: () => void;
+  selectedHandCardId?: string | null;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -381,6 +417,7 @@ function PlayerSeat({
               key={c.id}
               card={c}
               width={42}
+              selected={selectedHandCardId === c.id}
               onClick={() => onHandCardTap?.(c.id)}
             />
           ))}
