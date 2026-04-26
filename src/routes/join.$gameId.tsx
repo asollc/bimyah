@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { joinGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
+import { saveIdentity } from "@/game/persistence";
 import { PLAYER_COLORS } from "@/game/engine";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
@@ -59,6 +60,7 @@ function JoinGame() {
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${gameId}`, myId);
       sessionStorage.setItem(`bimyah_name_${gameId}`, newPlayer.name);
+      saveIdentity(gameId, { meId: myId, name: newPlayer.name, role: "joiner" });
       void navigate({ to: "/game/$gameId", params: { gameId } });
     } catch (e) {
       console.error(e);

@@ -8,6 +8,7 @@ import { Bot, Users, Plus } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
+import { saveIdentity } from "@/game/persistence";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,6 +49,7 @@ function HomePage() {
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
+      saveIdentity(session.code, { meId: hostId, name: myName, role: "host" });
       void navigate({ to: "/game/$gameId", params: { gameId: session.code } });
     } catch (e) {
       console.error(e);
