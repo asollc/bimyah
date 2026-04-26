@@ -8,6 +8,7 @@ import { Bot, Users, Plus } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
+import { saveIdentity } from "@/game/persistence";
 
 export const Route = createFileRoute("/")({
   head: () => ({
