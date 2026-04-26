@@ -76,26 +76,24 @@ export function stepBots(
       continue;
     }
 
-    // 3. If holding center card → swap
+    // 3. If holding center card → complete the swap
     const holdSlot = state.center.findIndex((sl) => sl.heldBy === bot.id);
     if (holdSlot !== -1) {
-      // Pick hand card to throw away: one not matching the mode rank
       if (bot.hand.length === 0) continue;
+      const heldCard = state.center[holdSlot].card;
+      if (!heldCard) continue;
       const target = modeRank(bot.hand);
-      // The held card is the LAST one in hand
-      const holdCard = bot.hand[bot.hand.length - 1];
-      // If the held card is target rank → great, throw away a different card
+      // If the held card matches the mode rank, give up a non-matching hand card.
+      // Otherwise the held card is useless — give up a non-matching card too
+      // (which effectively returns the held card via swap symmetry only when
+      // we'd pick the worst card; here we just pick any non-target card, or
+      // fall back to any card).
       let throwAway: Card | undefined;
-      if (holdCard.rank === target.rank) {
-        // Throw away a card whose rank isn't target
-        throwAway = bot.hand.find((c) => c.rank !== target.rank && c.id !== holdCard.id);
-        // Fallback: throw any non-held card
-        if (!throwAway) throwAway = bot.hand.find((c) => c.id !== holdCard.id);
-      } else {
-        // The held card is useless → return it (swap held card back)
-        throwAway = holdCard;
+      if (heldCard.rank === target.rank) {
+        throwAway = bot.hand.find((c) => c.rank !== target.rank);
       }
-      if (!throwAway) continue;
+      if (!throwAway) throwAway = bot.hand.find((c) => c.rank !== target.rank);
+      if (!throwAway) throwAway = bot.hand[0];
       apply((s) => swapCard(s, bot.id, throwAway!.id));
       continue;
     }
