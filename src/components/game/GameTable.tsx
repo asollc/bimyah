@@ -45,6 +45,18 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
+  // Card the local player has tapped in their hand, ready to be swapped
+  // with a held center card. Cleared whenever the swap completes, the hold
+  // expires, or the card is no longer in hand.
+  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+
+  // Clear selection if the selected card is no longer in our hand.
+  useEffect(() => {
+    if (!selectedHandCardId) return;
+    if (!me || !me.hand.some((c) => c.id === selectedHandCardId)) {
+      setSelectedHandCardId(null);
+    }
+  }, [me, selectedHandCardId]);
 
   // Helper: route an action either through the structured intent (preferred,
   // joiner→host) or fall back to local setState (host / solo).
