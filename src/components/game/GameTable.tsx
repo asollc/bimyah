@@ -417,6 +417,7 @@ function PlayerSeat({
               key={c.id}
               card={c}
               width={42}
+              selected={selectedHandCardId === c.id}
               onClick={() => onHandCardTap?.(c.id)}
             />
           ))}
