@@ -256,11 +256,16 @@ export function GameTable({
                   const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
                   if (slot.card) {
                     const isMine = slot.heldBy === meId;
+                    const readyToComplete = isMine && !!selectedHandCardId;
                     return (
                       <div
                         key={i}
                         onClick={() => handleCenterTap(i)}
-                        className={cn("cursor-pointer", outline && "rounded-lg p-0.5")}
+                        className={cn(
+                          "cursor-pointer",
+                          outline && "rounded-lg p-0.5",
+                          readyToComplete && "animate-pulse-ring",
+                        )}
                         style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
                         aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
                       >
