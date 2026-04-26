@@ -194,6 +194,10 @@ function tryHost(
         setState: (mutator) => applyAndBroadcast(mutator),
         sendIntent: (intent) => applyAndBroadcast((s) => applyIntent(s, intent)),
         connectionCount: () => conns.size,
+        reconnect: () => {
+          // Host is always "reconnected" once peer is open. No-op.
+        },
+        isConnected: () => !peer.disconnected && !peer.destroyed,
         destroy: () => {
           for (const c of conns.values()) {
             try {
