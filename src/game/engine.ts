@@ -100,9 +100,10 @@ export function closePile(state: GameState, playerId: string): GameState {
 }
 
 /**
- * Player picks up a center card. The card stays "in" the slot conceptually; we mark heldBy + heldUntil
- * and the player's hand temporarily gets the card. They MUST swap one of their hand cards to fulfill.
- * Constraint: hand can hold up to 5 cards.
+ * Player taps a center card to "hold" it. The card visually stays in the
+ * center slot — it is NOT added to the hand. The slot is marked with the
+ * player's id and a 5s expiry. The player must complete the swap by tapping
+ * one of their hand cards before the timer expires.
  */
 export function holdCenterCard(
   state: GameState,
@@ -115,24 +116,22 @@ export function holdCenterCard(
   // player must be examining a pile (have hand)
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.openPileIndex === null) return state;
-  if (player.hand.length >= MAX_HAND) return state;
+  if (player.hand.length === 0) return state; // need at least one card to swap with
+  if (player.hand.length > MAX_HAND) return state;
   // also one hold at a time per player
   const holdsByPlayer = state.center.some((s) => s.heldBy === playerId);
   if (holdsByPlayer) return state;
-  // Move card from center to player's hand
-  const newHand = [...player.hand, slot.card];
-  const players = state.players.map((p) => (p.id === playerId ? { ...p, hand: newHand } : p));
   const center = state.center.map((s, i) =>
     i === centerIndex
-      ? { card: null, heldBy: playerId, heldUntil: Date.now() + HOLD_DURATION_MS }
+      ? { ...s, heldBy: playerId, heldUntil: Date.now() + HOLD_DURATION_MS }
       : s,
   );
-  return { ...state, players, center };
+  return { ...state, center };
 }
 
 /**
- * Player swaps: returns one of their hand cards into the held center slot.
- * If the player gave back the same card they picked up, that's also valid.
+ * Player completes the swap: their chosen hand card replaces the held center
+ * card, and the previously-held center card is added to their hand.
  */
 export function swapCard(
   state: GameState,
@@ -141,50 +140,34 @@ export function swapCard(
 ): GameState {
   const heldIdx = state.center.findIndex((s) => s.heldBy === playerId);
   if (heldIdx === -1) return state;
+  const slot = state.center[heldIdx];
+  if (!slot.card) return state;
   const player = state.players.find((p) => p.id === playerId);
   if (!player) return state;
-  const card = player.hand.find((c) => c.id === cardId);
-  if (!card) return state;
-  // remove card from hand
-  const newHand = player.hand.filter((c) => c.id !== cardId);
-  // The hand must remain valid (<= openPile original size; max 5 anyway)
+  const handCard = player.hand.find((c) => c.id === cardId);
+  if (!handCard) return state;
+  const centerCard = slot.card;
+  // Replace the chosen hand card with the previously-held center card,
+  // preserving the slot order in the hand.
+  const newHand = player.hand.map((c) => (c.id === cardId ? centerCard : c));
   const players = state.players.map((p) => (p.id === playerId ? { ...p, hand: newHand } : p));
   const center = state.center.map((s, i) =>
-    i === heldIdx ? { card, heldBy: null, heldUntil: null } : s,
+    i === heldIdx ? { card: handCard, heldBy: null, heldUntil: null } : s,
   );
   return { ...state, players, center };
 }
 
 /**
- * Release a hold (timeout): return the previously-held card from player's hand back to center.
- * The "previously held" card is the LAST one they added — but we don't track that explicitly;
- * we track via heldBy: when a hold expires, return ONE arbitrary held card. We approximate by
- * checking the hand for cards that aren't part of the originally opened pile.
+ * Release a hold (timeout): the card never left the slot, so we just clear
+ * the hold markers and let anyone tap it again.
  */
 export function releaseHold(state: GameState, centerIndex: number): GameState {
   const slot = state.center[centerIndex];
   if (!slot.heldBy) return state;
-  const playerId = slot.heldBy;
-  const player = state.players.find((p) => p.id === playerId);
-  if (!player) return state;
-
-  // The held card is the last card added to hand (we always append on holdCenterCard).
-  const heldCard = player.hand[player.hand.length - 1];
-  if (!heldCard) {
-    // Just clear the hold marker
-    const center = state.center.map((s, i) =>
-      i === centerIndex ? { ...s, heldBy: null, heldUntil: null } : s,
-    );
-    return { ...state, center };
-  }
-  const newHand = player.hand.slice(0, -1);
-  const players = state.players.map((p) => (p.id === playerId ? { ...p, hand: newHand } : p));
   const center = state.center.map((s, i) =>
-    i === centerIndex
-      ? { card: heldCard, heldBy: null, heldUntil: null }
-      : s,
+    i === centerIndex ? { ...s, heldBy: null, heldUntil: null } : s,
   );
-  return { ...state, players, center };
+  return { ...state, center };
 }
 
 /**

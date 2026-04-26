@@ -227,8 +227,15 @@ export function GameTable({
                   const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
                   const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
                   if (slot.card) {
+                    const isMine = slot.heldBy === meId;
                     return (
-                      <div key={i} onClick={() => handleCenterTap(i)} className="cursor-pointer">
+                      <div
+                        key={i}
+                        onClick={() => handleCenterTap(i)}
+                        className={cn("cursor-pointer", outline && "rounded-lg p-0.5")}
+                        style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
+                        aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
+                      >
                         <PlayingCard card={slot.card} width={36} />
                       </div>
                     );

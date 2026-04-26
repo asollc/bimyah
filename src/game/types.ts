@@ -25,8 +25,12 @@ export type Player = {
 };
 
 export type CenterSlot = {
+  // The card currently resting face-up in the center slot. While a player has
+  // tapped it ("holding"), the card stays here visually — it is NOT moved into
+  // their hand until they complete the swap by picking a hand card.
   card: Card | null;
-  // playerId currently holding (after picking up)
+  // playerId currently holding (after tapping). The slot's `card` is still the
+  // held card; we just block other players from grabbing it.
   heldBy: string | null;
   heldUntil: number | null; // ms timestamp when 5s expires
 };
