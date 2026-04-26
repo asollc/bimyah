@@ -133,7 +133,16 @@ export function GameTable({
   const handleCenterTap = (i: number) => {
     if (!me || state.status !== "playing") return;
     const slot = state.center[i];
-    if (!slot.card || slot.heldBy) return;
+    if (!slot.card) return;
+    // If this slot is the one we are already holding and we have a selected
+    // hand card, complete the swap.
+    if (slot.heldBy === meId && selectedHandCardId) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: meId, cardId: selectedHandCardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    if (slot.heldBy) return;
     if (me.openPileIndex === null) return;
     if (me.hand.length >= 5) return;
     sfx.flip();
@@ -143,9 +152,16 @@ export function GameTable({
   const handleHandCardTap = (cardId: string) => {
     if (!me) return;
     const holding = state.center.some((sl) => sl.heldBy === meId);
-    if (!holding) return;
-    sfx.swap();
-    dispatch({ kind: "swap", playerId: meId, cardId });
+    // If we're holding a center card, tapping a hand card completes the swap
+    // immediately (keeps the original one-tap flow working).
+    if (holding) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    // Otherwise, toggle selection so the player can pre-pick a card.
+    setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
   };
 
   const handleSet = () => {
