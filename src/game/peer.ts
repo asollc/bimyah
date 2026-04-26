@@ -123,6 +123,29 @@ export async function hostGame(
   throw lastErr ?? new Error("Failed to host game");
 }
 
+/**
+ * Re-host an existing game using a known code (for resuming after a tab
+ * close / refresh / mobile-app-kill on the host side). The PeerJS server
+ * will release the previous peer-id once the old socket is gone, so this
+ * may need to be retried for a few seconds.
+ */
+export async function rehostGame(
+  code: string,
+  state: GameState,
+  hostId: string,
+): Promise<PeerSession> {
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      return await tryHost(code, state, hostId);
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+  throw lastErr ?? new Error("Failed to re-host game");
+}
+
 function tryHost(
   code: string,
   initialState: GameState,
