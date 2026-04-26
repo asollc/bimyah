@@ -387,6 +387,7 @@ function PlayerSeat({
   onPileTap,
   onHandCardTap,
   onSet,
+  selectedHandCardId,
 }: {
   player: Player;
   position: SeatPos;
@@ -396,6 +397,7 @@ function PlayerSeat({
   onPileTap?: (i: number) => void;
   onHandCardTap?: (cardId: string) => void;
   onSet?: () => void;
+  selectedHandCardId?: string | null;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
