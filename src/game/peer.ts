@@ -87,6 +87,10 @@ export type PeerSession = {
   /** Send a structured intent (preferred for joiners). */
   sendIntent: (intent: Intent) => void;
   connectionCount: () => number;
+  /** Force a reconnection attempt (joiner only; no-op for host). */
+  reconnect: () => void;
+  /** True when the underlying transport is currently open. */
+  isConnected: () => boolean;
   destroy: () => void;
 };
 
