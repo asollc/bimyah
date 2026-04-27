@@ -71,7 +71,7 @@ function HomePage() {
 
       {/* top bar */}
       <div className="relative z-10 flex w-full items-center justify-between">
-        <RotationIcon />
+        <div className="h-9 w-9" />
         <HowToPlayButton />
       </div>
 
@@ -90,18 +90,18 @@ function HomePage() {
 
       {/* buttons */}
       <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
-        {!showSolo && !showJoin && (
+        {!showSolo && !showJoin && !showHost && (
           <>
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
               <Bot className="mr-2 h-5 w-5" /> Solo vs Bots
             </button>
             <button
-              onClick={hostMultiplayer}
+              onClick={() => setShowHost(true)}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
               <Plus className="mr-2 h-5 w-5" />
-              {hosting ? "Starting…" : "Host Multiplayer"}
+              Host Multiplayer
             </button>
             <button onClick={() => setShowJoin(true)} className="btn-3d btn-3d-dark w-full text-base">
               <Users className="mr-2 h-5 w-5" /> Join with Code
@@ -114,6 +114,17 @@ function HomePage() {
 
         {showSolo && <SoloPicker onCancel={() => setShowSolo(false)} />}
         {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
+        {showHost && (
+          <HostNamePicker
+            hosting={hosting}
+            error={hostErr}
+            onCancel={() => {
+              setShowHost(false);
+              setHostErr(null);
+            }}
+            onStart={(name) => hostMultiplayer(name)}
+          />
+        )}
       </div>
 
       {/* footer history */}
