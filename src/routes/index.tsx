@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PowLogo, RotationIcon } from "@/components/game/Visuals";
+import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
@@ -32,18 +32,24 @@ function HomePage() {
   }, []);
   const [showSolo, setShowSolo] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [showHost, setShowHost] = useState(false);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const wins = getWinCounts().slice(0, 5);
 
-  async function hostMultiplayer() {
+  async function hostMultiplayer(rawName: string) {
     setHosting(true);
     setHostErr(null);
     try {
+      const myName = (rawName || "").trim().slice(0, 14) || "Host";
+      try {
+        localStorage.setItem("bimyah_last_name", myName);
+      } catch {
+        /* ignore quota / private mode */
+      }
       const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
-      const myName = "Host";
       const initial = createInitialGame("temp", [{ id: hostId, name: myName, isBot: false }]);
       const session = await hostGame(initial, hostId);
       registerSession(session);
