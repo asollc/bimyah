@@ -8,11 +8,11 @@ import {
   COUNTDOWN_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
-import { Confetti, Countdown, RotationIcon } from "./Visuals";
+import { Confetti, Countdown, HomeButton } from "./Visuals";
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 
@@ -198,7 +198,7 @@ export function GameTable({
     <div className="relative h-[100dvh] w-screen overflow-hidden">
       {/* Top bar */}
       <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <RotationIcon />
+        <HomeButton />
         <button
           onClick={() => {
             const next = !muted;
