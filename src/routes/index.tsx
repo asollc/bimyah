@@ -37,7 +37,13 @@ function HomePage() {
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const wins = getWinCounts().slice(0, 5);
+  // Win history lives in localStorage, so it's only available on the client.
+  // Reading it during render would cause a hydration mismatch (SSR sees an
+  // empty list, client sees real wins). Defer to an effect.
+  const [wins, setWins] = useState<Array<{ name: string; wins: number }>>([]);
+  useEffect(() => {
+    setWins(getWinCounts().slice(0, 5));
+  }, []);
 
   async function hostMultiplayer(rawName: string) {
     setHosting(true);
