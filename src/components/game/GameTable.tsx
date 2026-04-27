@@ -352,7 +352,9 @@ export function GameTable({
             onPileTap={isMe ? handlePileTap : undefined}
             onHandCardTap={isMe ? handleHandCardTap : undefined}
             onSet={isMe ? handleSet : undefined}
+            onSort={isMe ? handleSort : undefined}
             selectedHandCardId={isMe ? selectedHandCardId : null}
+            handOrder={isMe ? handOrder : undefined}
           />
         );
       })}
