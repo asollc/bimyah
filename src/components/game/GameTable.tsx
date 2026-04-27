@@ -65,6 +65,7 @@ export function GameTable({
   // never reference a card id that no longer exists).
   useEffect(() => {
     if (!me) return;
+    if (handOrder.length === 0) return;
     const handIds = me.hand.map((c) => c.id).sort().join("|");
     const orderIds = handOrder.slice().sort().join("|");
     if (handIds !== orderIds) {
