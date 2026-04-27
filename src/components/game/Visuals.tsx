@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Home } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import bimyahLogo from "@/assets/bimyah-logo.png";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function PowLogo({ size = 220 }: { size?: number }) {
   return (
@@ -103,5 +115,57 @@ export function RotationIcon({ className }: { className?: string }) {
         </span>
       )}
     </button>
+  );
+}
+
+/**
+ * Round home button. Tapping prompts the user to confirm before returning to
+ * the home screen (so they don't accidentally drop out of an active game).
+ */
+export function HomeButton({ className }: { className?: string }) {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur transition active:scale-90",
+          className,
+        )}
+        aria-label="Return to home screen"
+      >
+        <Home className="h-4 w-4" />
+      </button>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-xl text-[var(--mint)]">
+              Leave the game?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
+              Returning to the home screen will leave your current game behind.
+              You can rejoin if it's still in the lobby, but in-progress games
+              will keep going without you.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 bg-black/30 text-white hover:bg-black/50 hover:text-white">
+              Stay
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setOpen(false);
+                void navigate({ to: "/" });
+              }}
+              className="bg-[var(--mint)] text-[oklch(0.18_0.04_165)] hover:bg-[var(--mint)]/90"
+            >
+              Go Home
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
