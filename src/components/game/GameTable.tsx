@@ -427,7 +427,9 @@ function PlayerSeat({
   onPileTap,
   onHandCardTap,
   onSet,
+  onSort,
   selectedHandCardId,
+  handOrder,
 }: {
   player: Player;
   position: SeatPos;
@@ -437,7 +439,9 @@ function PlayerSeat({
   onPileTap?: (i: number) => void;
   onHandCardTap?: (cardId: string) => void;
   onSet?: () => void;
+  onSort?: () => void;
   selectedHandCardId?: string | null;
+  handOrder?: string[];
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -447,12 +451,20 @@ function PlayerSeat({
   const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
+  // Apply local display order to the hand if set, otherwise use engine order.
+  const orderedHand =
+    handOrder && handOrder.length === player.hand.length
+      ? (handOrder
+          .map((id) => player.hand.find((c) => c.id === id))
+          .filter(Boolean) as typeof player.hand)
+      : player.hand;
+
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
       {/* Hand row (only for me, when pile open) */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
         <div className="relative mb-1 flex items-end justify-center gap-1.5">
-          {player.hand.map((c) => (
+          {orderedHand.map((c) => (
             <PlayingCard
               key={c.id}
               card={c}
@@ -461,19 +473,34 @@ function PlayerSeat({
               onClick={() => onHandCardTap?.(c.id)}
             />
           ))}
-          <button
-            onClick={onSet}
-            disabled={!handReady}
-            className={cn(
-              "ml-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
-              handReady
-                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
-                : "bg-white/10 text-white/40",
-            )}
-            style={{ alignSelf: "flex-start" }}
-          >
-            SET
-          </button>
+          <div className="ml-1 flex flex-col items-stretch gap-1" style={{ alignSelf: "flex-start" }}>
+            <button
+              onClick={onSet}
+              disabled={!handReady}
+              className={cn(
+                "rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                handReady
+                  ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                  : "bg-white/10 text-white/40",
+              )}
+            >
+              SET
+            </button>
+            <button
+              onClick={onSort}
+              disabled={player.hand.length < 2}
+              className={cn(
+                "flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                player.hand.length >= 2
+                  ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                  : "bg-white/5 text-white/30",
+              )}
+              aria-label="Sort hand by rank"
+            >
+              <ArrowDownUp className="h-2.5 w-2.5" />
+              SORT
+            </button>
+          </div>
         </div>
       )}
 
@@ -514,6 +541,19 @@ function PlayerSeat({
                   style={{ width: pileWidth, height: pileWidth * 1.4 }}
                   className="rounded-lg border-2 border-dashed border-white/10"
                 />
+              );
+            }
+            if (pile.length === 0 && isOpen) {
+              return (
+                <div key={i} className="relative inline-block">
+                  <div
+                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                    className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
+                  />
+                  <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
+                    OPEN
+                  </span>
+                </div>
               );
             }
             return (
