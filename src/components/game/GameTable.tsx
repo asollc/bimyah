@@ -8,11 +8,11 @@ import {
   COUNTDOWN_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
-import { Confetti, Countdown, RotationIcon } from "./Visuals";
+import { Confetti, Countdown, HomeButton } from "./Visuals";
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 
@@ -49,6 +49,9 @@ export function GameTable({
   // with a held center card. Cleared whenever the swap completes, the hold
   // expires, or the card is no longer in hand.
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+  // Local-only display order for the hand (array of card ids). Empty = use the
+  // engine's order. Reset whenever the underlying hand contents change.
+  const [handOrder, setHandOrder] = useState<string[]>([]);
 
   // Clear selection if the selected card is no longer in our hand.
   useEffect(() => {
@@ -57,6 +60,17 @@ export function GameTable({
       setSelectedHandCardId(null);
     }
   }, [me, selectedHandCardId]);
+
+  // Reset the local hand order whenever the hand contents change (so we
+  // never reference a card id that no longer exists).
+  useEffect(() => {
+    if (!me) return;
+    const handIds = me.hand.map((c) => c.id).sort().join("|");
+    const orderIds = handOrder.slice().sort().join("|");
+    if (handIds !== orderIds) {
+      setHandOrder([]);
+    }
+  }, [me, handOrder]);
 
   // Helper: route an action either through the structured intent (preferred,
   // joiner→host) or fall back to local setState (host / solo).
@@ -172,6 +186,30 @@ export function GameTable({
     }
   };
 
+  // Sort the local hand display so identical ranks cluster together,
+  // ordered by frequency desc then by rank. Purely cosmetic — engine state
+  // is unchanged, so this stays multiplayer-safe.
+  const handleSort = () => {
+    if (!me || me.hand.length === 0) return;
+    const counts = new Map<string, number>();
+    for (const c of me.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+    const RANK_ORDER: Record<string, number> = {
+      A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+      "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+    };
+    const sorted = [...me.hand].sort((a, b) => {
+      const fa = counts.get(a.rank) ?? 0;
+      const fb = counts.get(b.rank) ?? 0;
+      if (fa !== fb) return fb - fa;
+      const ra = RANK_ORDER[a.rank] ?? 99;
+      const rb = RANK_ORDER[b.rank] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return a.suit.localeCompare(b.suit);
+    });
+    setHandOrder(sorted.map((c) => c.id));
+    sfx.flip();
+  };
+
   const handleBimyah = () => {
     if (!me) return;
     if (canDeclareBimyah(state, meId)) {
@@ -198,7 +236,7 @@ export function GameTable({
     <div className="relative h-[100dvh] w-screen overflow-hidden">
       {/* Top bar */}
       <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <RotationIcon />
+        <HomeButton />
         <button
           onClick={() => {
             const next = !muted;
@@ -314,7 +352,9 @@ export function GameTable({
             onPileTap={isMe ? handlePileTap : undefined}
             onHandCardTap={isMe ? handleHandCardTap : undefined}
             onSet={isMe ? handleSet : undefined}
+            onSort={isMe ? handleSort : undefined}
             selectedHandCardId={isMe ? selectedHandCardId : null}
+            handOrder={isMe ? handOrder : undefined}
           />
         );
       })}
@@ -387,7 +427,9 @@ function PlayerSeat({
   onPileTap,
   onHandCardTap,
   onSet,
+  onSort,
   selectedHandCardId,
+  handOrder,
 }: {
   player: Player;
   position: SeatPos;
@@ -397,7 +439,9 @@ function PlayerSeat({
   onPileTap?: (i: number) => void;
   onHandCardTap?: (cardId: string) => void;
   onSet?: () => void;
+  onSort?: () => void;
   selectedHandCardId?: string | null;
+  handOrder?: string[];
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -407,12 +451,20 @@ function PlayerSeat({
   const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
+  // Apply local display order to the hand if set, otherwise use engine order.
+  const orderedHand =
+    handOrder && handOrder.length === player.hand.length
+      ? (handOrder
+          .map((id) => player.hand.find((c) => c.id === id))
+          .filter(Boolean) as typeof player.hand)
+      : player.hand;
+
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
       {/* Hand row (only for me, when pile open) */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
         <div className="relative mb-1 flex items-end justify-center gap-1.5">
-          {player.hand.map((c) => (
+          {orderedHand.map((c) => (
             <PlayingCard
               key={c.id}
               card={c}
@@ -421,19 +473,34 @@ function PlayerSeat({
               onClick={() => onHandCardTap?.(c.id)}
             />
           ))}
-          <button
-            onClick={onSet}
-            disabled={!handReady}
-            className={cn(
-              "ml-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
-              handReady
-                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
-                : "bg-white/10 text-white/40",
-            )}
-            style={{ alignSelf: "flex-start" }}
-          >
-            SET
-          </button>
+          <div className="ml-1 flex flex-col items-stretch gap-1" style={{ alignSelf: "flex-start" }}>
+            <button
+              onClick={onSet}
+              disabled={!handReady}
+              className={cn(
+                "rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                handReady
+                  ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                  : "bg-white/10 text-white/40",
+              )}
+            >
+              SET
+            </button>
+            <button
+              onClick={onSort}
+              disabled={player.hand.length < 2}
+              className={cn(
+                "flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                player.hand.length >= 2
+                  ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                  : "bg-white/5 text-white/30",
+              )}
+              aria-label="Sort hand by rank"
+            >
+              <ArrowDownUp className="h-2.5 w-2.5" />
+              SORT
+            </button>
+          </div>
         </div>
       )}
 
@@ -474,6 +541,19 @@ function PlayerSeat({
                   style={{ width: pileWidth, height: pileWidth * 1.4 }}
                   className="rounded-lg border-2 border-dashed border-white/10"
                 />
+              );
+            }
+            if (pile.length === 0 && isOpen) {
+              return (
+                <div key={i} className="relative inline-block">
+                  <div
+                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                    className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
+                  />
+                  <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
+                    OPEN
+                  </span>
+                </div>
               );
             }
             return (

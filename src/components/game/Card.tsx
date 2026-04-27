@@ -75,24 +75,35 @@ export function CardBack({
 }) {
   const height = Math.round(width * 1.4);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{ width, height }}
-      className={cn(
-        "card-back no-select pile-stack relative inline-flex items-center justify-center overflow-hidden transition-transform",
-        onClick && "active:scale-95 hover:-translate-y-0.5",
-        highlight && "ring-2 ring-[var(--mint)] shadow-[var(--shadow-glow-mint)]",
-        className,
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={onClick}
+        style={{ width, height }}
+        className={cn(
+          "card-back no-select pile-stack relative inline-flex items-center justify-center overflow-hidden transition-transform",
+          onClick && "active:scale-95 hover:-translate-y-0.5",
+          highlight &&
+            "ring-4 ring-[var(--mint)] -translate-y-1 shadow-[0_0_24px_var(--mint),0_0_48px_var(--mint)]",
+          className,
+        )}
+      >
+        <img
+          src={cardBackImg}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </button>
+      {highlight && (
+        <span
+          className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)] shadow animate-pulse-ring"
+          style={{ color: "var(--mint)" }}
+        >
+          <span className="text-[oklch(0.18_0.04_165)]">OPEN</span>
+        </span>
       )}
-    >
-      <img
-        src={cardBackImg}
-        alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-    </button>
+    </div>
   );
 }
 

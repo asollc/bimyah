@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PowLogo, RotationIcon } from "@/components/game/Visuals";
+import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
@@ -32,18 +32,24 @@ function HomePage() {
   }, []);
   const [showSolo, setShowSolo] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [showHost, setShowHost] = useState(false);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const wins = getWinCounts().slice(0, 5);
 
-  async function hostMultiplayer() {
+  async function hostMultiplayer(rawName: string) {
     setHosting(true);
     setHostErr(null);
     try {
+      const myName = (rawName || "").trim().slice(0, 14) || "Host";
+      try {
+        localStorage.setItem("bimyah_last_name", myName);
+      } catch {
+        /* ignore quota / private mode */
+      }
       const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
-      const myName = "Host";
       const initial = createInitialGame("temp", [{ id: hostId, name: myName, isBot: false }]);
       const session = await hostGame(initial, hostId);
       registerSession(session);
@@ -65,7 +71,7 @@ function HomePage() {
 
       {/* top bar */}
       <div className="relative z-10 flex w-full items-center justify-between">
-        <RotationIcon />
+        <div className="h-9 w-9" />
         <HowToPlayButton />
       </div>
 
@@ -84,18 +90,18 @@ function HomePage() {
 
       {/* buttons */}
       <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
-        {!showSolo && !showJoin && (
+        {!showSolo && !showJoin && !showHost && (
           <>
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
               <Bot className="mr-2 h-5 w-5" /> Solo vs Bots
             </button>
             <button
-              onClick={hostMultiplayer}
+              onClick={() => setShowHost(true)}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
               <Plus className="mr-2 h-5 w-5" />
-              {hosting ? "Starting…" : "Host Multiplayer"}
+              Host Multiplayer
             </button>
             <button onClick={() => setShowJoin(true)} className="btn-3d btn-3d-dark w-full text-base">
               <Users className="mr-2 h-5 w-5" /> Join with Code
@@ -108,6 +114,17 @@ function HomePage() {
 
         {showSolo && <SoloPicker onCancel={() => setShowSolo(false)} />}
         {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
+        {showHost && (
+          <HostNamePicker
+            hosting={hosting}
+            error={hostErr}
+            onCancel={() => {
+              setShowHost(false);
+              setHostErr(null);
+            }}
+            onStart={(name) => hostMultiplayer(name)}
+          />
+        )}
       </div>
 
       {/* footer history */}
@@ -225,6 +242,57 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
       >
         Join Game
       </Link>
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
+    </>
+  );
+}
+
+function HostNamePicker({
+  hosting,
+  error,
+  onCancel,
+  onStart,
+}: {
+  hosting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onStart: (name: string) => void;
+}) {
+  const [name, setName] = useState<string>(() => {
+    try {
+      return localStorage.getItem("bimyah_last_name") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const trimmed = name.trim();
+  const canStart = trimmed.length >= 1 && !hosting;
+  return (
+    <>
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Your name
+      </div>
+      <input
+        autoFocus
+        value={name}
+        maxLength={14}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && canStart) onStart(trimmed);
+        }}
+        placeholder="Enter your name"
+        className="rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-xl tracking-wider text-white placeholder:text-white/30"
+      />
+      <button
+        onClick={() => onStart(trimmed)}
+        disabled={!canStart}
+        className="btn-3d btn-3d-gold w-full text-sm disabled:opacity-40"
+      >
+        {hosting ? "Starting…" : "Start Hosting"}
+      </button>
+      {error && (
+        <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
+      )}
       <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
