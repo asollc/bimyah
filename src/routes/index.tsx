@@ -246,3 +246,54 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
     </>
   );
 }
+
+function HostNamePicker({
+  hosting,
+  error,
+  onCancel,
+  onStart,
+}: {
+  hosting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onStart: (name: string) => void;
+}) {
+  const [name, setName] = useState<string>(() => {
+    try {
+      return localStorage.getItem("bimyah_last_name") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const trimmed = name.trim();
+  const canStart = trimmed.length >= 1 && !hosting;
+  return (
+    <>
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Your name
+      </div>
+      <input
+        autoFocus
+        value={name}
+        maxLength={14}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && canStart) onStart(trimmed);
+        }}
+        placeholder="Enter your name"
+        className="rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-xl tracking-wider text-white placeholder:text-white/30"
+      />
+      <button
+        onClick={() => onStart(trimmed)}
+        disabled={!canStart}
+        className="btn-3d btn-3d-gold w-full text-sm disabled:opacity-40"
+      >
+        {hosting ? "Starting…" : "Start Hosting"}
+      </button>
+      {error && (
+        <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
+      )}
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
+    </>
+  );
+}
