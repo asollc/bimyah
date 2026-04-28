@@ -201,22 +201,7 @@ export function GameTable({
   // is unchanged, so this stays multiplayer-safe.
   const handleSort = () => {
     if (!me || me.hand.length === 0) return;
-    const counts = new Map<string, number>();
-    for (const c of me.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
-    const RANK_ORDER: Record<string, number> = {
-      A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
-      "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
-    };
-    const sorted = [...me.hand].sort((a, b) => {
-      const fa = counts.get(a.rank) ?? 0;
-      const fb = counts.get(b.rank) ?? 0;
-      if (fa !== fb) return fb - fa;
-      const ra = RANK_ORDER[a.rank] ?? 99;
-      const rb = RANK_ORDER[b.rank] ?? 99;
-      if (ra !== rb) return ra - rb;
-      return a.suit.localeCompare(b.suit);
-    });
-    setHandOrder(sorted.map((c) => c.id));
+    setSortEnabled(true);
     sfx.flip();
   };
 
