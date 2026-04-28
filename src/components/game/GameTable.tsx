@@ -53,15 +53,12 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
-  // Card the local player has tapped in their hand, ready to be swapped
-  // with a held center card. Cleared whenever the swap completes, the hold
-  // expires, or the card is no longer in hand.
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
+  const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
-  // Whether the player has enabled "sort" mode for their hand. While true,
-  // the hand is always displayed grouped by rank — including after swaps,
-  // so the player doesn't need to re-tap SORT every turn. Reset when the
-  // pile is closed.
   const [sortEnabled, setSortEnabled] = useState(false);
+  const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in our hand.
   useEffect(() => {
