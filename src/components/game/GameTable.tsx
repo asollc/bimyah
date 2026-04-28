@@ -307,9 +307,11 @@ export function GameTable({
             <div className="flex items-center gap-1.5">
               {state.status === "lobby" && (
                 <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
-                  {state.players.length < 2
-                    ? "Waiting for players…"
-                    : "Tap Ready!"}
+                  {state.players.length < 2 ? (
+                    "Waiting for players…"
+                  ) : (
+                    <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
+                  )}
                 </div>
               )}
               {state.status !== "lobby" &&
