@@ -425,7 +425,7 @@ function PlayerSeat({
   onSet,
   onSort,
   selectedHandCardId,
-  handOrder,
+  sortEnabled,
 }: {
   player: Player;
   position: SeatPos;
@@ -437,7 +437,7 @@ function PlayerSeat({
   onSet?: () => void;
   onSort?: () => void;
   selectedHandCardId?: string | null;
-  handOrder?: string[];
+  sortEnabled?: boolean;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -447,17 +447,31 @@ function PlayerSeat({
   const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
-  // Apply local display order to the hand if set, otherwise use engine order.
-  const orderedHand =
-    handOrder && handOrder.length === player.hand.length
-      ? (handOrder
-          .map((id) => player.hand.find((c) => c.id === id))
-          .filter(Boolean) as typeof player.hand)
-      : player.hand;
+  // When sort mode is enabled, group identical ranks together (frequency desc,
+  // then rank asc). Recomputed every render so swaps stay grouped automatically.
+  const orderedHand = (() => {
+    if (!sortEnabled || player.hand.length < 2) return player.hand;
+    const counts = new Map<string, number>();
+    for (const c of player.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+    const RANK_ORDER: Record<string, number> = {
+      A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+      "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+    };
+    return [...player.hand].sort((a, b) => {
+      const fa = counts.get(a.rank) ?? 0;
+      const fb = counts.get(b.rank) ?? 0;
+      if (fa !== fb) return fb - fa;
+      const ra = RANK_ORDER[a.rank] ?? 99;
+      const rb = RANK_ORDER[b.rank] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return a.suit.localeCompare(b.suit);
+    });
+  })();
 
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
-      {/* Hand row (only for me, when pile open) */}
+      {/* Hand row (only for me, when pile open) — centered over piles. SET/SORT
+          buttons are absolutely positioned so they don't shift the hand off-center. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
         <div className="relative mb-1 flex items-end justify-center gap-1.5">
           {orderedHand.map((c) => (
@@ -469,7 +483,9 @@ function PlayerSeat({
               onClick={() => onHandCardTap?.(c.id)}
             />
           ))}
-          <div className="ml-1 flex flex-col items-stretch gap-1" style={{ alignSelf: "flex-start" }}>
+          <div
+            className="absolute left-full top-0 ml-1 flex flex-col items-stretch gap-1"
+          >
             <button
               onClick={onSet}
               disabled={!handReady}
@@ -487,7 +503,9 @@ function PlayerSeat({
               disabled={player.hand.length < 2}
               className={cn(
                 "flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
-                player.hand.length >= 2
+                sortEnabled
+                  ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                  : player.hand.length >= 2
                   ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
                   : "bg-white/5 text-white/30",
               )}
