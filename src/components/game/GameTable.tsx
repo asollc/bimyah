@@ -246,23 +246,35 @@ export function GameTable({
 
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden">
-      {/* Top bar */}
-      <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <HomeButton />
-        <button
-          onClick={() => {
-            const next = !muted;
-            sfx.setMuted(next);
-            setMuted(next);
-          }}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-          aria-label="Mute"
-        >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </button>
+      {/* Top-left: Home + Mute, with SCORE label below in tournament */}
+      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-1.5">
+        <div className="flex items-center gap-2">
+          <HomeButton />
+          <button
+            onClick={() => {
+              const next = !muted;
+              sfx.setMuted(next);
+              setMuted(next);
+            }}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+            aria-label="Mute"
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        </div>
+        {isTournament && state.pointLimit !== null && (
+          <div className="pl-1 pt-0.5">
+            <ScoreDisplay limit={state.pointLimit} />
+          </div>
+        )}
       </div>
-      <div className="absolute right-2 top-2 z-30 flex items-center gap-2">
+
+      {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
+      <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
         <HowToPlayButton />
+        {isTournament && (
+          <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+        )}
       </div>
 
       {/* Invite (lobby only) — show 4-digit code */}
