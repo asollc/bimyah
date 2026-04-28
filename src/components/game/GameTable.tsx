@@ -158,6 +158,17 @@ export function GameTable({
     if (slot.heldBy) return;
     if (me.openPileIndex === null) return;
     if (me.hand.length >= 5) return;
+    // If the player has already pre-selected a hand card, perform the swap
+    // immediately: hold + swap in one tap. We dispatch hold then swap so the
+    // engine sees a consistent transition.
+    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+      const cardId = selectedHandCardId;
+      sfx.swap();
+      dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
+      dispatch({ kind: "swap", playerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
     sfx.flip();
     dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
   };
