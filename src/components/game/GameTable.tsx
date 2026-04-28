@@ -224,6 +224,18 @@ export function GameTable({
     setShowPlayAgain(false);
   };
 
+  const onNextMatch = () => {
+    dispatch({ kind: "nextMatch" });
+    setShowPlayAgain(false);
+  };
+
+  const onNewTournament = (limit: number | null) => {
+    dispatch({ kind: "newTournament", pointLimit: limit });
+    setShowPlayAgain(false);
+    setShowNewTournyPicker(false);
+    setNewLimitInput("");
+  };
+
 
   const copyInvite = () => {
     if (!inviteUrl) return;
