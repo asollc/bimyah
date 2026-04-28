@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Home } from "lucide-react";
+import { Home, Trophy, Crown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import bimyahLogo from "@/assets/bimyah-logo.png";
+import type { GameState, PlayerColor } from "@/game/types";
 import {
   AlertDialog,
   AlertDialogAction,
