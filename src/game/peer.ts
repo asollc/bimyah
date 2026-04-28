@@ -5,7 +5,10 @@ import {
   declareBimyah,
   declareSet,
   holdCenterCard,
+  newTournament,
+  nextMatch,
   openPile,
+  resetToLobby,
   setReady,
   swapCard,
 } from "./engine";
@@ -35,6 +38,8 @@ export type Intent =
   | { kind: "declareSet"; playerId: string }
   | { kind: "declareBimyah"; playerId: string }
   | { kind: "playAgain" }
+  | { kind: "nextMatch" }
+  | { kind: "newTournament"; pointLimit: number | null }
   /** Fallback: full-state replace (only used by host->client broadcasts and
    *  rare client-side resets like Play Again that don't fit a named intent). */
   | { kind: "replaceState"; state: GameState };
@@ -56,21 +61,11 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
     case "declareBimyah":
       return declareBimyah(state, intent.playerId);
     case "playAgain":
-      return {
-        ...state,
-        status: "lobby",
-        winnerId: null,
-        countdownEndsAt: null,
-        center: [],
-        players: state.players.map((p) => ({
-          ...p,
-          ready: p.isBot,
-          piles: [],
-          pileLocked: [],
-          hand: [],
-          openPileIndex: null,
-        })),
-      };
+      return resetToLobby(state);
+    case "nextMatch":
+      return nextMatch(state);
+    case "newTournament":
+      return newTournament(state, intent.pointLimit);
     case "replaceState":
       return intent.state;
   }
