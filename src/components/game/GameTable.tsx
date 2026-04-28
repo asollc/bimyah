@@ -103,7 +103,11 @@ export function GameTable({
       wonAnnouncedRef.current = true;
       sfx.win();
       const winner = state.players.find((p) => p.id === state.winnerId);
-      if (winner) recordWin(winner.name);
+      // Only record to history when the game is fully decided:
+      // standard mode = every win; tournament = only the champion.
+      const decided =
+        state.mode !== "tournament" || state.championId === state.winnerId;
+      if (winner && decided) recordWin(winner.name);
       setTimeout(() => setShowPlayAgain(true), 2000);
     }
     if (state.status !== "won") {
