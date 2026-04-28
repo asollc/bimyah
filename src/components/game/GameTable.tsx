@@ -349,7 +349,7 @@ export function GameTable({
             onSet={isMe ? handleSet : undefined}
             onSort={isMe ? handleSort : undefined}
             selectedHandCardId={isMe ? selectedHandCardId : null}
-            handOrder={isMe ? handOrder : undefined}
+            sortEnabled={isMe ? sortEnabled : false}
           />
         );
       })}
