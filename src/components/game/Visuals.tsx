@@ -170,3 +170,181 @@ export function HomeButton({ className }: { className?: string }) {
     </>
   );
 }
+
+/* ============================ Tournament UI ============================ */
+
+const PLAYER_COLOR_HEX_LOCAL: Record<PlayerColor, string> = {
+  green: "#22c55e",
+  red: "#ef4444",
+  blue: "#3b82f6",
+  yellow: "#eab308",
+};
+
+/** Compact "SCORE: 100" 3D label shown under the home button in tournament mode. */
+export function ScoreDisplay({ limit }: { limit: number }) {
+  return (
+    <div
+      className="font-display text-3d-yellow whitespace-nowrap text-[11px] font-black uppercase tracking-widest"
+      style={{ letterSpacing: "0.12em" }}
+    >
+      SCORE: {limit}
+    </div>
+  );
+}
+
+/** Small banner shown above the table reading "MATCH 3". */
+export function MatchBadge({ n }: { n: number }) {
+  return (
+    <div
+      className="font-display text-3d-mint whitespace-nowrap text-[13px] font-black uppercase tracking-widest"
+      style={{ letterSpacing: "0.16em" }}
+    >
+      MATCH {n}
+    </div>
+  );
+}
+
+export function ScoreboardButton({
+  onClick,
+  className,
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "grid h-9 w-9 place-items-center rounded-full bg-black/30 text-[var(--gold)] backdrop-blur transition active:scale-90",
+        className,
+      )}
+      aria-label="Scoreboard"
+    >
+      <Trophy className="h-4 w-4" />
+    </button>
+  );
+}
+
+/**
+ * Scoreboard overlay. Header row (Match # | name1 | name2 | …) is sticky.
+ * Champion's column is highlighted in their player color and gets a 3D crown.
+ */
+export function Scoreboard({
+  state,
+  open,
+  onClose,
+}: {
+  state: GameState;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  const players = state.players;
+  const championId = state.championId;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)]">
+        <div className="flex items-center justify-between border-b border-white/10 bg-black/30 px-3 py-2">
+          <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+            <Trophy className="mr-1.5 inline h-4 w-4" /> Scoreboard
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/80 hover:bg-white/20"
+          >
+            Close
+          </button>
+        </div>
+
+        {state.pointLimit !== null && (
+          <div className="border-b border-white/10 bg-black/20 px-3 py-1.5 text-center text-[10px] uppercase tracking-widest text-white/60">
+            First to {state.pointLimit} wins
+          </div>
+        )}
+
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="w-full border-collapse text-center text-xs text-white">
+            <thead className="sticky top-0 z-10 bg-[oklch(0.22_0.06_165)] shadow-[0_2px_0_rgba(0,0,0,0.4)]">
+              <tr>
+                <th className="px-2 py-2 font-display text-[10px] uppercase tracking-widest text-white/70">
+                  Match #
+                </th>
+                {players.map((p) => {
+                  const isChamp = p.id === championId;
+                  const colorHex = PLAYER_COLOR_HEX_LOCAL[p.color];
+                  return (
+                    <th
+                      key={p.id}
+                      className="relative px-2 py-2 font-display text-[11px] uppercase tracking-wide"
+                      style={{
+                        background: isChamp ? `${colorHex}33` : undefined,
+                        borderLeft: `3px solid ${colorHex}`,
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {isChamp && (
+                          <Crown
+                            className="h-4 w-4 text-[var(--gold)]"
+                            style={{ filter: "drop-shadow(0 1px 0 #854d0e) drop-shadow(0 2px 2px rgba(0,0,0,0.6))" }}
+                          />
+                        )}
+                        <span className="truncate" style={{ color: colorHex }}>
+                          {p.name}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[9px] font-normal text-white/60">
+                        {state.scores[p.id] ?? 0} pts
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {state.matchHistory.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={1 + players.length}
+                    className="px-2 py-6 text-white/50"
+                  >
+                    No matches yet.
+                  </td>
+                </tr>
+              ) : (
+                state.matchHistory.map((m) => (
+                  <tr key={m.matchNumber} className="border-t border-white/5">
+                    <td className="px-2 py-1.5 font-mono text-[11px] text-white/80">
+                      {m.matchNumber}
+                    </td>
+                    {players.map((p) => {
+                      const pts = m.perPlayer[p.id] ?? 0;
+                      const isChamp = p.id === championId;
+                      const colorHex = PLAYER_COLOR_HEX_LOCAL[p.color];
+                      return (
+                        <td
+                          key={p.id}
+                          className="px-2 py-1.5"
+                          style={{
+                            background: isChamp ? `${colorHex}22` : undefined,
+                          }}
+                        >
+                          {pts > 0 ? (
+                            <span className="font-bold text-[var(--mint)]">+{pts}</span>
+                          ) : (
+                            <span className="text-white/30">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
