@@ -49,9 +49,11 @@ export function GameTable({
   // with a held center card. Cleared whenever the swap completes, the hold
   // expires, or the card is no longer in hand.
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
-  // Local-only display order for the hand (array of card ids). Empty = use the
-  // engine's order. Reset whenever the underlying hand contents change.
-  const [handOrder, setHandOrder] = useState<string[]>([]);
+  // Whether the player has enabled "sort" mode for their hand. While true,
+  // the hand is always displayed grouped by rank — including after swaps,
+  // so the player doesn't need to re-tap SORT every turn. Reset when the
+  // pile is closed.
+  const [sortEnabled, setSortEnabled] = useState(false);
 
   // Clear selection if the selected card is no longer in our hand.
   useEffect(() => {
@@ -61,17 +63,13 @@ export function GameTable({
     }
   }, [me, selectedHandCardId]);
 
-  // Reset the local hand order whenever the hand contents change (so we
-  // never reference a card id that no longer exists).
+  // Reset sort mode when the player closes their pile (no open pile).
   useEffect(() => {
     if (!me) return;
-    if (handOrder.length === 0) return;
-    const handIds = me.hand.map((c) => c.id).sort().join("|");
-    const orderIds = handOrder.slice().sort().join("|");
-    if (handIds !== orderIds) {
-      setHandOrder([]);
+    if (me.openPileIndex === null && sortEnabled) {
+      setSortEnabled(false);
     }
-  }, [me, handOrder]);
+  }, [me, sortEnabled]);
 
   // Helper: route an action either through the structured intent (preferred,
   // joiner→host) or fall back to local setState (host / solo).
