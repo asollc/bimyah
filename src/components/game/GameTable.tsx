@@ -8,7 +8,15 @@ import {
   COUNTDOWN_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
-import { Confetti, Countdown, HomeButton } from "./Visuals";
+import {
+  Confetti,
+  Countdown,
+  HomeButton,
+  MatchBadge,
+  ScoreDisplay,
+  Scoreboard,
+  ScoreboardButton,
+} from "./Visuals";
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
