@@ -296,6 +296,16 @@ export function GameTable({
         </div>
       )}
 
+      {/* Match # banner above the table (tournament only) */}
+      {isTournament && (
+        <div
+          className="absolute left-1/2 z-20 -translate-x-1/2"
+          style={{ top: "calc(50% - min(19vw, 16vh, 140px) - 32px)" }}
+        >
+          <MatchBadge n={state.matchNumber} />
+        </div>
+      )}
+
       {/* Round table */}
       <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
         <div
