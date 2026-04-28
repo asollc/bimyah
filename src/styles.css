@@ -391,6 +391,25 @@
     0 0 18px rgba(253, 224, 71, 0.35);
 }
 
+/* 3D mint text (smaller variant for in-game labels like SCORE) */
+.text-3d-mint {
+  color: #6ee7b7;
+  text-shadow:
+    0 1px 0 #10b981,
+    0 2px 0 #047857,
+    0 3px 0 #064e3b,
+    0 3px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Continuous flash (used for "Tap Ready" lobby prompt) */
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+.animate-flash {
+  animation: flash 0.9s ease-in-out infinite;
+}
+
 /* Utility — mobile lock */
 .no-select {
   -webkit-user-select: none;
