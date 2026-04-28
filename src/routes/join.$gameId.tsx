@@ -56,7 +56,11 @@ function JoinGame() {
         hand: [],
         openPileIndex: null,
       };
-      session.setState((s) => ({ ...s, players: [...s.players, newPlayer] }));
+      session.setState((s) => ({
+        ...s,
+        players: [...s.players, newPlayer],
+        scores: { ...s.scores, [myId]: 0 },
+      }));
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${gameId}`, myId);
       sessionStorage.setItem(`bimyah_name_${gameId}`, newPlayer.name);

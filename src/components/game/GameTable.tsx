@@ -8,7 +8,15 @@ import {
   COUNTDOWN_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
-import { Confetti, Countdown, HomeButton } from "./Visuals";
+import {
+  Confetti,
+  Countdown,
+  HomeButton,
+  MatchBadge,
+  ScoreDisplay,
+  Scoreboard,
+  ScoreboardButton,
+} from "./Visuals";
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
@@ -45,15 +53,12 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
-  // Card the local player has tapped in their hand, ready to be swapped
-  // with a held center card. Cleared whenever the swap completes, the hold
-  // expires, or the card is no longer in hand.
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
+  const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
-  // Whether the player has enabled "sort" mode for their hand. While true,
-  // the hand is always displayed grouped by rank — including after swaps,
-  // so the player doesn't need to re-tap SORT every turn. Reset when the
-  // pile is closed.
   const [sortEnabled, setSortEnabled] = useState(false);
+  const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in our hand.
   useEffect(() => {
@@ -98,7 +103,11 @@ export function GameTable({
       wonAnnouncedRef.current = true;
       sfx.win();
       const winner = state.players.find((p) => p.id === state.winnerId);
-      if (winner) recordWin(winner.name);
+      // Only record to history when the game is fully decided:
+      // standard mode = every win; tournament = only the champion.
+      const decided =
+        state.mode !== "tournament" || state.championId === state.winnerId;
+      if (winner && decided) recordWin(winner.name);
       setTimeout(() => setShowPlayAgain(true), 2000);
     }
     if (state.status !== "won") {
@@ -219,6 +228,18 @@ export function GameTable({
     setShowPlayAgain(false);
   };
 
+  const onNextMatch = () => {
+    dispatch({ kind: "nextMatch" });
+    setShowPlayAgain(false);
+  };
+
+  const onNewTournament = (limit: number | null) => {
+    dispatch({ kind: "newTournament", pointLimit: limit });
+    setShowPlayAgain(false);
+    setShowNewTournyPicker(false);
+    setNewLimitInput("");
+  };
+
 
   const copyInvite = () => {
     if (!inviteUrl) return;
@@ -229,23 +250,35 @@ export function GameTable({
 
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden">
-      {/* Top bar */}
-      <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <HomeButton />
-        <button
-          onClick={() => {
-            const next = !muted;
-            sfx.setMuted(next);
-            setMuted(next);
-          }}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-          aria-label="Mute"
-        >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </button>
+      {/* Top-left: Home + Mute, with SCORE label below in tournament */}
+      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-1.5">
+        <div className="flex items-center gap-2">
+          <HomeButton />
+          <button
+            onClick={() => {
+              const next = !muted;
+              sfx.setMuted(next);
+              setMuted(next);
+            }}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+            aria-label="Mute"
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        </div>
+        {isTournament && state.pointLimit !== null && (
+          <div className="pl-1 pt-0.5">
+            <ScoreDisplay limit={state.pointLimit} />
+          </div>
+        )}
       </div>
-      <div className="absolute right-2 top-2 z-30 flex items-center gap-2">
+
+      {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
+      <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
         <HowToPlayButton />
+        {isTournament && (
+          <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+        )}
       </div>
 
       {/* Invite (lobby only) — show 4-digit code */}
@@ -267,6 +300,16 @@ export function GameTable({
         </div>
       )}
 
+      {/* Match # banner above the table (tournament only) */}
+      {isTournament && (
+        <div
+          className="absolute left-1/2 z-20 -translate-x-1/2"
+          style={{ top: "calc(50% - min(19vw, 16vh, 140px) - 32px)" }}
+        >
+          <MatchBadge n={state.matchNumber} />
+        </div>
+      )}
+
       {/* Round table */}
       <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
         <div
@@ -278,9 +321,11 @@ export function GameTable({
             <div className="flex items-center gap-1.5">
               {state.status === "lobby" && (
                 <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
-                  {state.players.length < 2
-                    ? "Waiting for players…"
-                    : "Tap Ready!"}
+                  {state.players.length < 2 ? (
+                    "Waiting for players…"
+                  ) : (
+                    <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
+                  )}
                 </div>
               )}
               {state.status !== "lobby" &&
@@ -355,26 +400,122 @@ export function GameTable({
       })}
 
       {/* Win overlay */}
-      {state.status === "won" && (
-        <>
-          <Confetti />
-          <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4">
-            <div className="pow-burst" style={{ width: 240, height: 200 }}>
-              <div className="flex flex-col items-center text-[oklch(0.18_0.04_165)]">
-                <div className="font-display text-sm font-bold">WINNER</div>
-                <div className="font-display text-3xl font-black">
-                  {state.players.find((p) => p.id === state.winnerId)?.name ?? "?"}
+      {state.status === "won" && (() => {
+        const winner = state.players.find((p) => p.id === state.winnerId);
+        const winnerName = winner?.name ?? "?";
+        const isChampion = isTournament && state.championId === state.winnerId;
+        const headline = !isTournament
+          ? "WINNER"
+          : isChampion
+          ? "Game Champion"
+          : "Match Winner";
+        const subline = !isTournament
+          ? "BIMYAH!"
+          : isChampion
+          ? `${state.scores[state.winnerId ?? ""] ?? 0} pts total`
+          : `+${state.lastMatchPoints ?? 0} pts`;
+        return (
+          <>
+            <Confetti />
+            <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4">
+              <div className="pow-burst" style={{ width: 260, height: 220 }}>
+                <div className="flex flex-col items-center text-[oklch(0.18_0.04_165)]">
+                  <div className="font-display text-xs font-bold uppercase tracking-widest">
+                    {headline}
+                  </div>
+                  <div className="font-display text-3xl font-black leading-tight">
+                    {winnerName}
+                  </div>
+                  <div className="mt-1 font-display text-lg font-black">
+                    {subline}
+                  </div>
                 </div>
-                <div className="font-display text-2xl font-black">BIMYAH!</div>
               </div>
+              {showPlayAgain && !isTournament && (
+                <button
+                  onClick={onPlayAgain}
+                  className="btn-3d btn-3d-mint pointer-events-auto animate-float-up"
+                >
+                  Play Again?
+                </button>
+              )}
+              {showPlayAgain && isTournament && !isChampion && (
+                <button
+                  onClick={onNextMatch}
+                  className="btn-3d btn-3d-mint pointer-events-auto animate-float-up"
+                >
+                  Next Match?
+                </button>
+              )}
+              {showPlayAgain && isTournament && isChampion && (
+                <button
+                  onClick={() => setShowNewTournyPicker(true)}
+                  className="btn-3d btn-3d-gold pointer-events-auto animate-float-up"
+                >
+                  New Tournament?
+                </button>
+              )}
             </div>
-            {showPlayAgain && (
-              <button onClick={onPlayAgain} className="btn-3d btn-3d-mint pointer-events-auto animate-float-up">
-                Play Again?
+          </>
+        );
+      })()}
+
+      {/* Scoreboard overlay */}
+      <Scoreboard
+        state={state}
+        open={showScoreboard}
+        onClose={() => setShowScoreboard(false)}
+      />
+
+      {/* New tournament point-limit picker */}
+      {showNewTournyPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-xs rounded-2xl border border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-gold)]">
+            <div className="mb-3 text-center font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+              New Tournament
+            </div>
+            <div className="mb-2 text-center text-[11px] uppercase tracking-widest text-white/60">
+              Point limit
+            </div>
+            <input
+              autoFocus
+              inputMode="numeric"
+              value={newLimitInput}
+              onChange={(e) =>
+                setNewLimitInput(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
+              placeholder={state.pointLimit?.toString() ?? "100"}
+              className="mb-2 w-full rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-2xl text-white placeholder:text-white/30"
+            />
+            <div className="mb-3 text-center text-[10px] text-white/50">
+              1 – 1000. Leave blank to keep {state.pointLimit ?? "—"}.
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  const n = parseInt(newLimitInput, 10);
+                  const limit =
+                    Number.isFinite(n) && n >= 1 && n <= 1000
+                      ? n
+                      : state.pointLimit;
+                  onNewTournament(limit);
+                }}
+                className="btn-3d btn-3d-gold w-full text-sm"
+              >
+                Start
               </button>
-            )}
+              <button
+                onClick={() => {
+                  setShowNewTournyPicker(false);
+                  setNewLimitInput("");
+                }}
+                className="text-xs text-white/50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

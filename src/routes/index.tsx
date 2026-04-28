@@ -4,11 +4,12 @@ import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx, getWinCounts } from "@/game/sfx";
-import { Bot, Users, Plus } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
+import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,15 +38,12 @@ function HomePage() {
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Win history lives in localStorage, so it's only available on the client.
-  // Reading it during render would cause a hydration mismatch (SSR sees an
-  // empty list, client sees real wins). Defer to an effect.
   const [wins, setWins] = useState<Array<{ name: string; wins: number }>>([]);
   useEffect(() => {
     setWins(getWinCounts().slice(0, 5));
   }, []);
 
-  async function hostMultiplayer(rawName: string) {
+  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
     setHosting(true);
     setHostErr(null);
     try {
@@ -53,10 +51,14 @@ function HomePage() {
       try {
         localStorage.setItem("bimyah_last_name", myName);
       } catch {
-        /* ignore quota / private mode */
+        /* ignore */
       }
       const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
-      const initial = createInitialGame("temp", [{ id: hostId, name: myName, isBot: false }]);
+      const initial = createInitialGame(
+        "temp",
+        [{ id: hostId, name: myName, isBot: false }],
+        { mode, pointLimit },
+      );
       const session = await hostGame(initial, hostId);
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
@@ -72,16 +74,13 @@ function HomePage() {
 
   return (
     <div className="relative flex h-[100dvh] w-screen flex-col items-center justify-between overflow-hidden px-4 py-3">
-      {/* floating background cards */}
       <FloatingCards />
 
-      {/* top bar */}
       <div className="relative z-10 flex w-full items-center justify-between">
         <div className="h-9 w-9" />
         <HowToPlayButton />
       </div>
 
-      {/* hero */}
       <div className="relative z-10 flex flex-col items-center gap-3">
         <PowLogo size={330} />
         <div
@@ -94,7 +93,6 @@ function HomePage() {
         </div>
       </div>
 
-      {/* buttons */}
       <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
         {!showSolo && !showJoin && !showHost && (
           <>
@@ -118,22 +116,21 @@ function HomePage() {
           </>
         )}
 
-        {showSolo && <SoloPicker onCancel={() => setShowSolo(false)} />}
+        {showSolo && <SoloFlow onCancel={() => setShowSolo(false)} />}
         {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
         {showHost && (
-          <HostNamePicker
+          <HostFlow
             hosting={hosting}
             error={hostErr}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
             }}
-            onStart={(name) => hostMultiplayer(name)}
+            onStart={(name, mode, limit) => hostMultiplayer(name, mode, limit)}
           />
         )}
       </div>
 
-      {/* footer history */}
       <div className="relative z-10 w-full max-w-xs text-center">
         <div className="mb-1 font-display text-[10px] uppercase tracking-widest text-white/40">
           Win History
@@ -158,7 +155,6 @@ function HomePage() {
 }
 
 function FloatingCards() {
-  // deterministic spread of small floating card backs across the screen
   const cards = [
     { top: "8%", left: "6%", size: 38, rot: -14, dx: 12, dy: -10, dur: 9 },
     { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11 },
@@ -194,21 +190,209 @@ function FloatingCards() {
   );
 }
 
-function SoloPicker({ onCancel }: { onCancel: () => void }) {
+/* ============================ Shared step UIs ============================ */
+
+function ModeStep({
+  onPick,
+  onCancel,
+}: {
+  onPick: (mode: GameMode) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Choose mode
+      </div>
+      <button onClick={() => onPick("standard")} className="btn-3d btn-3d-mint w-full text-sm">
+        <Swords className="mr-2 h-4 w-4" /> Standard
+      </button>
+      <button onClick={() => onPick("tournament")} className="btn-3d btn-3d-gold w-full text-sm">
+        <Trophy className="mr-2 h-4 w-4" /> Tournament
+      </button>
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
+    </>
+  );
+}
+
+function NameStep({
+  initial,
+  accent,
+  ctaLabel,
+  ctaClass,
+  onSubmit,
+  onCancel,
+  busy,
+}: {
+  initial: string;
+  accent: "mint" | "gold";
+  ctaLabel: string;
+  ctaClass: string;
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+  busy?: boolean;
+}) {
+  const [name, setName] = useState(initial);
+  const trimmed = name.trim();
+  const canGo = trimmed.length >= 1 && !busy;
+  const borderClr = accent === "gold" ? "var(--gold)" : "var(--mint)";
+  return (
+    <>
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Your name
+      </div>
+      <input
+        autoFocus
+        value={name}
+        maxLength={14}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && canGo) onSubmit(trimmed);
+        }}
+        placeholder="Enter your name"
+        className="rounded-lg border bg-black/40 px-4 py-3 text-center font-display text-xl tracking-wider text-white placeholder:text-white/30"
+        style={{ borderColor: `${borderClr}80` }}
+      />
+      <button
+        onClick={() => onSubmit(trimmed)}
+        disabled={!canGo}
+        className={`btn-3d ${ctaClass} w-full text-sm disabled:opacity-40`}
+      >
+        {busy ? "Starting…" : ctaLabel}
+      </button>
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
+    </>
+  );
+}
+
+function PointLimitStep({
+  initial,
+  onSubmit,
+  onCancel,
+  ctaClass,
+  ctaLabel,
+  busy,
+}: {
+  initial: string;
+  onSubmit: (limit: number) => void;
+  onCancel: () => void;
+  ctaClass: string;
+  ctaLabel: string;
+  busy?: boolean;
+}) {
+  const [val, setVal] = useState(initial);
+  const num = parseInt(val, 10);
+  const valid = Number.isFinite(num) && num >= 1 && num <= 1000 && !busy;
+  return (
+    <>
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Point limit
+      </div>
+      <input
+        autoFocus
+        inputMode="numeric"
+        value={val}
+        onChange={(e) => setVal(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && valid) onSubmit(num);
+        }}
+        placeholder="e.g. 100"
+        className="rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-2xl tracking-wider text-white placeholder:text-white/30"
+      />
+      <div className="text-center text-[10px] text-white/50">1 – 1000 points</div>
+      <button
+        onClick={() => onSubmit(num)}
+        disabled={!valid}
+        className={`btn-3d ${ctaClass} w-full text-sm disabled:opacity-40`}
+      >
+        {busy ? "Starting…" : ctaLabel}
+      </button>
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
+    </>
+  );
+}
+
+/* ============================ Solo flow ============================ */
+
+type SoloStep = "mode" | "name" | "points" | "bots";
+
+function SoloFlow({ onCancel }: { onCancel: () => void }) {
   const navigate = useNavigate();
+  const [step, setStep] = useState<SoloStep>("mode");
+  const [mode, setMode] = useState<GameMode>("standard");
+  const [name, setName] = useState<string>(() => {
+    try {
+      return localStorage.getItem("bimyah_last_name") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [pointLimit, setPointLimit] = useState<number | null>(null);
+
   function start(botCount: 1 | 2 | 3) {
     const myId = "me";
+    const finalName = name.trim().slice(0, 14) || "You";
+    try {
+      localStorage.setItem("bimyah_last_name", finalName);
+    } catch {
+      /* ignore */
+    }
     const players = [
-      { id: myId, name: "You", isBot: false },
+      { id: myId, name: finalName, isBot: false },
       ...Array.from({ length: botCount }, (_, i) => ({
         id: `bot_${i}`,
         name: `Bot ${i + 1}`,
         isBot: true,
       })),
     ];
-    sessionStorage.setItem("bimyah_solo_setup", JSON.stringify(players));
+    sessionStorage.setItem(
+      "bimyah_solo_setup",
+      JSON.stringify({ players, mode, pointLimit }),
+    );
     void navigate({ to: "/solo" });
   }
+
+  if (step === "mode") {
+    return (
+      <ModeStep
+        onPick={(m) => {
+          setMode(m);
+          setStep("name");
+        }}
+        onCancel={onCancel}
+      />
+    );
+  }
+  if (step === "name") {
+    return (
+      <NameStep
+        initial={name}
+        accent="mint"
+        ctaLabel="Next"
+        ctaClass="btn-3d-mint"
+        onSubmit={(n) => {
+          setName(n);
+          setStep(mode === "tournament" ? "points" : "bots");
+        }}
+        onCancel={onCancel}
+      />
+    );
+  }
+  if (step === "points") {
+    return (
+      <PointLimitStep
+        initial=""
+        ctaLabel="Next"
+        ctaClass="btn-3d-gold"
+        onSubmit={(n) => {
+          setPointLimit(n);
+          setStep("bots");
+        }}
+        onCancel={onCancel}
+      />
+    );
+  }
+  // bots
   return (
     <>
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
@@ -221,6 +405,8 @@ function SoloPicker({ onCancel }: { onCancel: () => void }) {
     </>
   );
 }
+
+/* ============================ Join flow ============================ */
 
 function JoinPicker({ onCancel }: { onCancel: () => void }) {
   const [code, setCode] = useState("");
@@ -253,7 +439,11 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-function HostNamePicker({
+/* ============================ Host flow ============================ */
+
+type HostStep = "mode" | "name" | "points";
+
+function HostFlow({
   hosting,
   error,
   onCancel,
@@ -262,8 +452,10 @@ function HostNamePicker({
   hosting: boolean;
   error: string | null;
   onCancel: () => void;
-  onStart: (name: string) => void;
+  onStart: (name: string, mode: GameMode, pointLimit: number | null) => void;
 }) {
+  const [step, setStep] = useState<HostStep>("mode");
+  const [mode, setMode] = useState<GameMode>("standard");
   const [name, setName] = useState<string>(() => {
     try {
       return localStorage.getItem("bimyah_last_name") ?? "";
@@ -271,35 +463,58 @@ function HostNamePicker({
       return "";
     }
   });
-  const trimmed = name.trim();
-  const canStart = trimmed.length >= 1 && !hosting;
+
+  if (step === "mode") {
+    return (
+      <ModeStep
+        onPick={(m) => {
+          setMode(m);
+          setStep("name");
+        }}
+        onCancel={onCancel}
+      />
+    );
+  }
+  if (step === "name") {
+    const isTourney = mode === "tournament";
+    return (
+      <>
+        <NameStep
+          initial={name}
+          accent="gold"
+          ctaLabel={isTourney ? "Next" : hosting ? "Starting…" : "Start Hosting"}
+          ctaClass="btn-3d-gold"
+          busy={hosting}
+          onSubmit={(n) => {
+            setName(n);
+            if (isTourney) {
+              setStep("points");
+            } else {
+              onStart(n, "standard", null);
+            }
+          }}
+          onCancel={onCancel}
+        />
+        {error && (
+          <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
+        )}
+      </>
+    );
+  }
+  // points
   return (
     <>
-      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
-        Your name
-      </div>
-      <input
-        autoFocus
-        value={name}
-        maxLength={14}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && canStart) onStart(trimmed);
-        }}
-        placeholder="Enter your name"
-        className="rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-xl tracking-wider text-white placeholder:text-white/30"
+      <PointLimitStep
+        initial=""
+        ctaLabel={hosting ? "Starting…" : "Start Hosting"}
+        ctaClass="btn-3d-gold"
+        busy={hosting}
+        onSubmit={(limit) => onStart(name, "tournament", limit)}
+        onCancel={onCancel}
       />
-      <button
-        onClick={() => onStart(trimmed)}
-        disabled={!canStart}
-        className="btn-3d btn-3d-gold w-full text-sm disabled:opacity-40"
-      >
-        {hosting ? "Starting…" : "Start Hosting"}
-      </button>
       {error && (
         <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
       )}
-      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
 }

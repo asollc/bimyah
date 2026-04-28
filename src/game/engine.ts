@@ -1,4 +1,4 @@
-import type { GameState, Player, PlayerColor, Card } from "./types";
+import type { GameState, Player, PlayerColor, Card, Rank, GameMode, MatchRecord } from "./types";
 import { deal, isFourOfAKind, pilesPerPlayer } from "./deck";
 
 export const PLAYER_COLORS: PlayerColor[] = ["green", "red", "blue", "yellow"];
@@ -6,9 +6,21 @@ export const HOLD_DURATION_MS = 5000;
 export const COUNTDOWN_MS = 3000;
 export const MAX_HAND = 5;
 
+/** Point value per card rank. Aces = 1, face cards = 11/12/13. */
+export const RANK_POINTS: Record<Rank, number> = {
+  A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+  "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+};
+
+export type CreateGameOptions = {
+  mode?: GameMode;
+  pointLimit?: number | null;
+};
+
 export function createInitialGame(
   id: string,
   playerSpecs: Array<{ id: string; name: string; isBot: boolean }>,
+  opts: CreateGameOptions = {},
 ): GameState {
   const players: Player[] = playerSpecs.map((p, i) => ({
     id: p.id,
@@ -21,6 +33,7 @@ export function createInitialGame(
     hand: [],
     openPileIndex: null,
   }));
+  const mode: GameMode = opts.mode ?? "standard";
   return {
     id,
     status: "lobby",
@@ -29,6 +42,13 @@ export function createInitialGame(
     countdownEndsAt: null,
     winnerId: null,
     startedAt: null,
+    mode,
+    pointLimit: mode === "tournament" ? (opts.pointLimit ?? null) : null,
+    matchNumber: 1,
+    scores: Object.fromEntries(players.map((p) => [p.id, 0])),
+    matchHistory: [],
+    lastMatchPoints: null,
+    championId: null,
   };
 }
 
@@ -63,24 +83,19 @@ export function tickCountdown(state: GameState): GameState {
   return state;
 }
 
-/**
- * Open a pile: cards from pile go into hand, pile becomes empty (still face-down slot).
- * If another pile is open, close it first.
- */
 export function openPile(state: GameState, playerId: string, pileIndex: number): GameState {
   if (state.status !== "playing") return state;
   const players = state.players.map((p) => {
     if (p.id !== playerId) return p;
     if (p.pileLocked[pileIndex]) return p;
     let next = p;
-    // close any currently open pile
     if (next.openPileIndex !== null && next.openPileIndex !== pileIndex) {
       const newPiles = next.piles.map((pile, i) =>
         i === next.openPileIndex ? [...next.hand] : pile,
       );
       next = { ...next, piles: newPiles, hand: [], openPileIndex: null };
     }
-    if (next.openPileIndex === pileIndex) return next; // already open
+    if (next.openPileIndex === pileIndex) return next;
     const taken = next.piles[pileIndex];
     if (!taken || taken.length === 0) return next;
     const newPiles = next.piles.map((pile, i) => (i === pileIndex ? [] : pile));
@@ -99,12 +114,6 @@ export function closePile(state: GameState, playerId: string): GameState {
   return { ...state, players };
 }
 
-/**
- * Player taps a center card to "hold" it. The card visually stays in the
- * center slot — it is NOT added to the hand. The slot is marked with the
- * player's id and a 5s expiry. The player must complete the swap by tapping
- * one of their hand cards before the timer expires.
- */
 export function holdCenterCard(
   state: GameState,
   playerId: string,
@@ -113,12 +122,10 @@ export function holdCenterCard(
   if (state.status !== "playing") return state;
   const slot = state.center[centerIndex];
   if (!slot || !slot.card || slot.heldBy) return state;
-  // player must be examining a pile (have hand)
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.openPileIndex === null) return state;
-  if (player.hand.length === 0) return state; // need at least one card to swap with
+  if (player.hand.length === 0) return state;
   if (player.hand.length > MAX_HAND) return state;
-  // also one hold at a time per player
   const holdsByPlayer = state.center.some((s) => s.heldBy === playerId);
   if (holdsByPlayer) return state;
   const center = state.center.map((s, i) =>
@@ -129,10 +136,6 @@ export function holdCenterCard(
   return { ...state, center };
 }
 
-/**
- * Player completes the swap: their chosen hand card replaces the held center
- * card, and the previously-held center card is added to their hand.
- */
 export function swapCard(
   state: GameState,
   playerId: string,
@@ -147,8 +150,6 @@ export function swapCard(
   const handCard = player.hand.find((c) => c.id === cardId);
   if (!handCard) return state;
   const centerCard = slot.card;
-  // Replace the chosen hand card with the previously-held center card,
-  // preserving the slot order in the hand.
   const newHand = player.hand.map((c) => (c.id === cardId ? centerCard : c));
   const players = state.players.map((p) => (p.id === playerId ? { ...p, hand: newHand } : p));
   const center = state.center.map((s, i) =>
@@ -157,10 +158,6 @@ export function swapCard(
   return { ...state, players, center };
 }
 
-/**
- * Release a hold (timeout): the card never left the slot, so we just clear
- * the hold markers and let anyone tap it again.
- */
 export function releaseHold(state: GameState, centerIndex: number): GameState {
   const slot = state.center[centerIndex];
   if (!slot.heldBy) return state;
@@ -170,9 +167,6 @@ export function releaseHold(state: GameState, centerIndex: number): GameState {
   return { ...state, center };
 }
 
-/**
- * Tick: process expired holds.
- */
 export function tickHolds(state: GameState): GameState {
   let next = state;
   const now = Date.now();
@@ -185,9 +179,6 @@ export function tickHolds(state: GameState): GameState {
   return next;
 }
 
-/**
- * SET: lock the currently open pile if hand has 4-of-a-kind.
- */
 export function declareSet(state: GameState, playerId: string): GameState {
   const player = state.players.find((p) => p.id === playerId);
   if (!player) return state;
@@ -211,7 +202,131 @@ export function canDeclareBimyah(state: GameState, playerId: string): boolean {
   return player.pileLocked.length > 0 && player.pileLocked.every((v) => v);
 }
 
+/**
+ * Compute the tournament points earned by a player at the end of a match.
+ * One rank-value award per locked four-of-a-kind set (NOT per card).
+ */
+export function computeMatchPoints(player: Player): number {
+  let total = 0;
+  player.piles.forEach((pile, i) => {
+    if (!player.pileLocked[i]) return;
+    const card = pile[0];
+    if (!card) return;
+    total += RANK_POINTS[card.rank] ?? 0;
+  });
+  return total;
+}
+
 export function declareBimyah(state: GameState, playerId: string): GameState {
   if (!canDeclareBimyah(state, playerId)) return state;
-  return { ...state, status: "won", winnerId: playerId };
+  const winner = state.players.find((p) => p.id === playerId);
+  if (!winner) return state;
+
+  if (state.mode !== "tournament") {
+    return { ...state, status: "won", winnerId: playerId };
+  }
+
+  const earned = computeMatchPoints(winner);
+  const newTotal = (state.scores[playerId] ?? 0) + earned;
+  const scores = { ...state.scores, [playerId]: newTotal };
+  const perPlayer: Record<string, number> = Object.fromEntries(
+    state.players.map((p) => [p.id, p.id === playerId ? earned : 0]),
+  );
+  const record: MatchRecord = {
+    matchNumber: state.matchNumber,
+    winnerId: playerId,
+    winnerName: winner.name,
+    points: earned,
+    perPlayer,
+  };
+  const limitReached =
+    state.pointLimit !== null && newTotal >= state.pointLimit;
+  return {
+    ...state,
+    status: "won",
+    winnerId: playerId,
+    scores,
+    matchHistory: [...state.matchHistory, record],
+    lastMatchPoints: earned,
+    championId: limitReached ? playerId : null,
+  };
+}
+
+/**
+ * Standard mode "Play Again" — wipes scores too (they were never used).
+ * Resets to lobby with the same players.
+ */
+export function resetToLobby(state: GameState): GameState {
+  return {
+    ...state,
+    status: "lobby",
+    winnerId: null,
+    countdownEndsAt: null,
+    center: [],
+    matchNumber: 1,
+    scores: Object.fromEntries(state.players.map((p) => [p.id, 0])),
+    matchHistory: [],
+    lastMatchPoints: null,
+    championId: null,
+    players: state.players.map((p) => ({
+      ...p,
+      ready: p.isBot,
+      piles: [],
+      pileLocked: [],
+      hand: [],
+      openPileIndex: null,
+    })),
+  };
+}
+
+/**
+ * Tournament "Next Match" — preserves scores, history, mode, pointLimit.
+ * Increments match number; players must ready up again.
+ */
+export function nextMatch(state: GameState): GameState {
+  return {
+    ...state,
+    status: "lobby",
+    winnerId: null,
+    countdownEndsAt: null,
+    center: [],
+    matchNumber: state.matchNumber + 1,
+    lastMatchPoints: null,
+    players: state.players.map((p) => ({
+      ...p,
+      ready: p.isBot,
+      piles: [],
+      pileLocked: [],
+      hand: [],
+      openPileIndex: null,
+    })),
+  };
+}
+
+/**
+ * Tournament "New Tournament" — wipes scores/history but keeps players,
+ * mode, and (optionally) updates the point limit.
+ */
+export function newTournament(state: GameState, pointLimit: number | null): GameState {
+  return {
+    ...state,
+    status: "lobby",
+    winnerId: null,
+    countdownEndsAt: null,
+    center: [],
+    matchNumber: 1,
+    pointLimit,
+    scores: Object.fromEntries(state.players.map((p) => [p.id, 0])),
+    matchHistory: [],
+    lastMatchPoints: null,
+    championId: null,
+    players: state.players.map((p) => ({
+      ...p,
+      ready: p.isBot,
+      piles: [],
+      pileLocked: [],
+      hand: [],
+      openPileIndex: null,
+    })),
+  };
 }

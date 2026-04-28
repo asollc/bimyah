@@ -25,17 +25,24 @@ export type Player = {
 };
 
 export type CenterSlot = {
-  // The card currently resting face-up in the center slot. While a player has
-  // tapped it ("holding"), the card stays here visually — it is NOT moved into
-  // their hand until they complete the swap by picking a hand card.
   card: Card | null;
-  // playerId currently holding (after tapping). The slot's `card` is still the
-  // held card; we just block other players from grabbing it.
   heldBy: string | null;
-  heldUntil: number | null; // ms timestamp when 5s expires
+  heldUntil: number | null;
 };
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "won";
+
+export type GameMode = "standard" | "tournament";
+
+/** A single completed match within a tournament. */
+export type MatchRecord = {
+  matchNumber: number;
+  winnerId: string;
+  winnerName: string;
+  points: number;
+  /** Map of playerId → points awarded this match (only winner > 0). */
+  perPlayer: Record<string, number>;
+};
 
 export type GameState = {
   id: string;
@@ -45,4 +52,19 @@ export type GameState = {
   countdownEndsAt: number | null;
   winnerId: string | null;
   startedAt: number | null;
+
+  // ===== Tournament fields (always present; ignored in standard mode) =====
+  mode: GameMode;
+  /** Points needed to be declared champion. Null in standard mode. */
+  pointLimit: number | null;
+  /** 1-based current match number. */
+  matchNumber: number;
+  /** Total cumulative points per playerId across the tournament. */
+  scores: Record<string, number>;
+  /** Completed match results, oldest first. */
+  matchHistory: MatchRecord[];
+  /** Points the most recent match's winner earned (for the win overlay). */
+  lastMatchPoints: number | null;
+  /** PlayerId of tournament champion once pointLimit is reached. */
+  championId: string | null;
 };
