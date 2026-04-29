@@ -73,21 +73,6 @@ function AuthPage() {
     }
   }
 
-  async function google() {
-    setErr(null);
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/` },
-      });
-      if (error) throw error;
-    } catch (e) {
-      setErr((e as Error).message ?? "Google sign-in failed.");
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center justify-center px-4 py-6">
       <Link to="/" className="mb-4">
@@ -150,16 +135,6 @@ function AuthPage() {
             {busy ? "Please wait…" : mode === "signup" ? "Create Account" : "Sign In"}
           </button>
         </form>
-
-        <div className="my-3 text-center text-[10px] uppercase tracking-widest text-white/40">or</div>
-
-        <button
-          onClick={google}
-          disabled={busy}
-          className="btn-3d btn-3d-dark w-full text-sm disabled:opacity-50"
-        >
-          Continue with Google
-        </button>
 
         <Link
           to="/"
