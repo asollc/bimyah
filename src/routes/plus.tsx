@@ -47,19 +47,24 @@ function PlusPage() {
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const refreshEntitlement = async () => {
+    try {
+      const nextEntitlement = await getMyEntitlement();
+      setEntitlement(nextEntitlement);
+      return nextEntitlement;
+    } catch (e) {
+      console.warn("getMyEntitlement failed:", e);
+      setEntitlement(null);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setEntitlement(null);
       return;
     }
-    getMyEntitlement()
-      .then((e) => setEntitlement(e))
-      .catch((e) => {
-        // Swallow auth/transport errors (e.g. session not yet attached) to
-        // avoid bubbling a Response into the global error boundary.
-        console.warn("getMyEntitlement failed:", e);
-        setEntitlement(null);
-      });
+    void refreshEntitlement();
   }, [user]);
 
   const remaining = status.lifetime_remaining;
@@ -208,7 +213,7 @@ function PlusPage() {
                       setSuccess(true);
                       // Refresh entitlement + session.
                       void supabase.auth.refreshSession();
-                      void getMyEntitlement().then(setEntitlement);
+                      void refreshEntitlement();
                     } catch (e) {
                       setErr((e as Error).message);
                     } finally {
