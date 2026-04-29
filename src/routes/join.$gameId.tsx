@@ -3,7 +3,8 @@ import { useState } from "react";
 import { joinGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
-import { PLAYER_COLORS } from "@/game/engine";
+import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
+import { saveReentryCode } from "@/game/reentry";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 
