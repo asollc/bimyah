@@ -79,7 +79,7 @@ function AuthPage() {
         <PowLogo size={140} />
       </Link>
 
-      <p className="mb-3 text-center text-sm font-display uppercase tracking-widest text-white/70">
+      <p className="mb-3 text-center text-sm font-display uppercase tracking-widest text-amber-300">
         Sign in or create a free account to play!
       </p>
 
