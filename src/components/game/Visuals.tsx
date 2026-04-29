@@ -215,9 +215,9 @@ export function ScoreboardButton({
     <button
       type="button"
       onClick={onClick}
-      className={cn("btn-3d btn-3d-gold !px-3 !py-1.5 text-xs", className)}
+      className={cn("btn-3d btn-3d-gold !px-1.5 !py-0.5 text-[9px]", className)}
       aria-label="Scoreboard"
-      style={{ borderRadius: 10 }}
+      style={{ borderRadius: 6 }}
     >
       Scoreboard
     </button>
