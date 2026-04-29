@@ -73,21 +73,6 @@ function AuthPage() {
     }
   }
 
-  async function google() {
-    setErr(null);
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/` },
-      });
-      if (error) throw error;
-    } catch (e) {
-      setErr((e as Error).message ?? "Google sign-in failed.");
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center justify-center px-4 py-6">
       <Link to="/" className="mb-4">
