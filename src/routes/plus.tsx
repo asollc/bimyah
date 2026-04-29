@@ -232,8 +232,8 @@ function PlusPage() {
                   </div>
                 )}
 
-                {/* PayPal — only for lifetime preorder */}
-                {status.preorder_open && PAYPAL_CLIENT_ID && (
+                {/* PayPal — hidden for now */}
+                {false && status.preorder_open && PAYPAL_CLIENT_ID && (
                   <div className="space-y-2">
                     <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
                       Or pay with PayPal (lifetime only)
@@ -253,7 +253,7 @@ function PlusPage() {
                           label: "paypal",
                         }}
                         disabled={paying}
-                        forceReRender={[user.id, dollars]}
+                        forceReRender={[user?.id ?? "", dollars]}
                         createOrder={async () => {
                           setErr(null);
                           setPaying(true);
