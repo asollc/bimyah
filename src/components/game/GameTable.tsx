@@ -321,57 +321,73 @@ export function GameTable({
           style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
         >
           {/* Inner content: center cards + BIMYAH */}
-          <div className="flex flex-col items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5">
-              {state.status === "lobby" && (
-                <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
-                  {state.players.length < 2 ? (
-                    "Waiting for players…"
-                  ) : (
-                    <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
-                  )}
-                </div>
-              )}
-              {state.status !== "lobby" &&
-                state.center.map((slot, i) => {
-                  const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
-                  const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
-                  if (slot.card) {
-                    const isMine = slot.heldBy === meId;
-                    const readyToComplete = isMine && !!selectedHandCardId;
-                    return (
-                      <div
-                        key={i}
-                        onClick={() => handleCenterTap(i)}
-                        className={cn(
-                          "cursor-pointer",
-                          outline && "rounded-lg p-0.5",
-                          readyToComplete && "animate-pulse-ring",
-                        )}
-                        style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
-                        aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
-                      >
-                        <PlayingCard card={slot.card} width={36} />
-                      </div>
-                    );
-                  }
-                  return <EmptySlot key={i} width={36} outlineColor={outline} />;
-                })}
-            </div>
-
-            {/* BIMYAH button under center cards, inside table */}
-            {state.status === "playing" && (
-              <button
-                onClick={handleBimyah}
-                disabled={!canDeclareBimyah(state, meId)}
-                className={cn(
-                  "btn-3d btn-3d-red mt-1 px-3 py-1.5 text-[11px]",
-                  canDeclareBimyah(state, meId) && "animate-pulse-ring",
+          <div className="flex flex-col items-center justify-center gap-1.5">
+            {state.status === "lobby" && (
+              <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
+                {state.players.length < 2 ? (
+                  "Waiting for players…"
+                ) : (
+                  <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
                 )}
-              >
-                BIMYAH!
-              </button>
+              </div>
             )}
+            {state.status !== "lobby" && (() => {
+              const centerSlots = state.center;
+              const splitCenter = centerSlots.length >= 8;
+              const renderSlot = (slot: typeof centerSlots[number], i: number) => {
+                const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
+                const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
+                if (slot.card) {
+                  const isMine = slot.heldBy === meId;
+                  const readyToComplete = isMine && !!selectedHandCardId;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => handleCenterTap(i)}
+                      className={cn(
+                        "cursor-pointer",
+                        outline && "rounded-lg p-0.5",
+                        readyToComplete && "animate-pulse-ring",
+                      )}
+                      style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
+                      aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
+                    >
+                      <PlayingCard card={slot.card} width={36} />
+                    </div>
+                  );
+                }
+                return <EmptySlot key={i} width={36} outlineColor={outline} />;
+              };
+              const bimyahBtn = state.status === "playing" && (
+                <button
+                  onClick={handleBimyah}
+                  disabled={!canDeclareBimyah(state, meId)}
+                  className={cn(
+                    "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
+                    canDeclareBimyah(state, meId) && "animate-pulse-ring",
+                  )}
+                >
+                  BIMYAH!
+                </button>
+              );
+              if (splitCenter) {
+                const top = centerSlots.slice(0, 4);
+                const bottom = centerSlots.slice(4, 8);
+                return (
+                  <>
+                    <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                    {bimyahBtn}
+                    <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
+                  {bimyahBtn}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -570,10 +586,10 @@ function getSeatPositions(n: number): SeatPos[] {
     // S, SE, NE (top-right area), NW, SW
     return [
       { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-2 right-2", pileLayout: "row", compact: true },
-      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "bottom-2 left-2", pileLayout: "row", compact: true },
+      { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
+      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
     ];
   }
   if (n === 6) {
@@ -581,9 +597,9 @@ function getSeatPositions(n: number): SeatPos[] {
     return [
       { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
       { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     ];
   }
@@ -591,24 +607,24 @@ function getSeatPositions(n: number): SeatPos[] {
     // S, SE, E, NE, NW, W, SW
     return [
       { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-2 right-2", pileLayout: "row", compact: true },
+      { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
       { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-2 left-2", pileLayout: "row", compact: true },
+      { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
     ];
   }
   // 8: S, SE, E, NE, N, NW, W, SW
   return [
     { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-2 right-2", pileLayout: "row", compact: true },
+    { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
     { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+    { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+    { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-2 left-2", pileLayout: "row", compact: true },
+    { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
   ];
 }
 
