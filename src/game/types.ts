@@ -15,6 +15,10 @@ export type Player = {
   color: PlayerColor;
   isBot: boolean;
   ready: boolean;
+  /** Optional avatar image URL (Bimyah!+ only). */
+  avatarUrl?: string | null;
+  /** Optional custom card-back image URL (Bimyah!+ only). */
+  cardBackUrl?: string | null;
   /** 4-digit personal reentry code, used to rejoin this seat after disconnect. */
   reentryCode?: string;
   // piles[i] is array of cards still face-down. If completed (4-of-a-kind set), it's locked.
