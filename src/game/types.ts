@@ -7,7 +7,15 @@ export type Card = {
   suit: Suit;
 };
 
-export type PlayerColor = "red" | "blue" | "yellow" | "green";
+export type PlayerColor =
+  | "red"
+  | "blue"
+  | "yellow"
+  | "green"
+  | "purple"
+  | "orange"
+  | "cyan"
+  | "pink";
 
 export type Player = {
   id: string;
