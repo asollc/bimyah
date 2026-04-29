@@ -12,6 +12,7 @@ import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { getMyEntitlement } from "@/server/bplus.functions";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
@@ -52,7 +53,7 @@ function HomePage() {
   }
 
 
-  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
+  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number) {
     setHosting(true);
     setHostErr(null);
     try {
@@ -83,7 +84,7 @@ function HomePage() {
             cardBackUrl: cosmetics.cardBackUrl,
           },
         ],
-        { mode, pointLimit },
+        { mode, pointLimit, maxSeats },
       );
       const session = await hostGame(initial, hostId);
       const hostPlayer = session.getState()?.players.find((p) => p.id === hostId);
@@ -197,7 +198,9 @@ function HomePage() {
               setShowHost(false);
               setHostErr(null);
             }}
-            onStart={(name, mode, limit) => hostMultiplayer(name, mode, limit)}
+            onStart={(name, mode, limit, seats) => {
+              void hostMultiplayer(name, mode, limit, seats);
+            }}
           />
         )}
       </div>
@@ -381,8 +384,24 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
     }
   });
   const [pointLimit, setPointLimit] = useState<number | null>(null);
+  const [isPlus, setIsPlus] = useState(false);
 
-  function start(botCount: 1 | 2 | 3) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ent = await getMyEntitlement();
+        if (!cancelled) setIsPlus(!!ent?.is_plus);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function start(botCount: number) {
     const myId = "me";
     const finalName = name.trim().slice(0, 14) || "You";
     try {
@@ -446,14 +465,55 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
     );
   }
   // bots
+  const freeOptions: Array<{ count: number; label: string }> = [
+    { count: 1, label: "1 Bot (2P)" },
+    { count: 2, label: "2 Bots (3P)" },
+    { count: 3, label: "3 Bots (4P)" },
+  ];
+  const plusOptions: Array<{ count: number; label: string }> = [
+    { count: 4, label: "4 Bots (5P)" },
+    { count: 5, label: "5 Bots (6P)" },
+    { count: 6, label: "6 Bots (7P)" },
+    { count: 7, label: "7 Bots (8P)" },
+  ];
   return (
     <>
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
         Choose opponents
       </div>
-      <button onClick={() => start(1)} className="btn-3d btn-3d-mint w-full text-sm">1 Bot (2P)</button>
-      <button onClick={() => start(2)} className="btn-3d btn-3d-mint w-full text-sm">2 Bots (3P)</button>
-      <button onClick={() => start(3)} className="btn-3d btn-3d-mint w-full text-sm">3 Bots (4P)</button>
+      {freeOptions.map((o) => (
+        <button
+          key={o.count}
+          onClick={() => start(o.count)}
+          className="btn-3d btn-3d-mint w-full text-sm"
+        >
+          {o.label}
+        </button>
+      ))}
+      <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+        Bimyah!+
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+      </div>
+      {plusOptions.map((o) =>
+        isPlus ? (
+          <button
+            key={o.count}
+            onClick={() => start(o.count)}
+            className="btn-3d btn-3d-gold w-full text-sm"
+          >
+            {o.label}
+          </button>
+        ) : (
+          <Link
+            key={o.count}
+            to="/plus"
+            className="btn-3d btn-3d-dark w-full text-sm opacity-80"
+          >
+            🔒 {o.label}
+          </Link>
+        ),
+      )}
       <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
@@ -605,7 +665,7 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
 
 /* ============================ Host flow ============================ */
 
-type HostStep = "mode" | "name" | "points";
+type HostStep = "mode" | "name" | "points" | "seats";
 
 function HostFlow({
   hosting,
@@ -616,7 +676,12 @@ function HostFlow({
   hosting: boolean;
   error: string | null;
   onCancel: () => void;
-  onStart: (name: string, mode: GameMode, pointLimit: number | null) => void;
+  onStart: (
+    name: string,
+    mode: GameMode,
+    pointLimit: number | null,
+    maxSeats: number,
+  ) => void;
 }) {
   const [step, setStep] = useState<HostStep>("mode");
   const [mode, setMode] = useState<GameMode>("standard");
@@ -627,6 +692,23 @@ function HostFlow({
       return "";
     }
   });
+  const [pointLimit, setPointLimit] = useState<number | null>(null);
+  const [isPlus, setIsPlus] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ent = await getMyEntitlement();
+        if (!cancelled) setIsPlus(!!ent?.is_plus);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (step === "mode") {
     return (
@@ -646,16 +728,12 @@ function HostFlow({
         <NameStep
           initial={name}
           accent="gold"
-          ctaLabel={isTourney ? "Next" : hosting ? "Starting…" : "Start Hosting"}
+          ctaLabel="Next"
           ctaClass="btn-3d-gold"
-          busy={hosting}
+          busy={false}
           onSubmit={(n) => {
             setName(n);
-            if (isTourney) {
-              setStep("points");
-            } else {
-              onStart(n, "standard", null);
-            }
+            setStep(isTourney ? "points" : "seats");
           }}
           onCancel={onCancel}
         />
@@ -665,20 +743,82 @@ function HostFlow({
       </>
     );
   }
-  // points
+  if (step === "points") {
+    return (
+      <>
+        <PointLimitStep
+          initial=""
+          ctaLabel="Next"
+          ctaClass="btn-3d-gold"
+          busy={false}
+          onSubmit={(limit) => {
+            setPointLimit(limit);
+            setStep("seats");
+          }}
+          onCancel={onCancel}
+        />
+        {error && (
+          <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
+        )}
+      </>
+    );
+  }
+  // seats
+  const freeSeats = [2, 3, 4];
+  const plusSeats = [5, 6, 7, 8];
+  const startWith = (seats: number) =>
+    onStart(name, mode, pointLimit, seats);
   return (
     <>
-      <PointLimitStep
-        initial=""
-        ctaLabel={hosting ? "Starting…" : "Start Hosting"}
-        ctaClass="btn-3d-gold"
-        busy={hosting}
-        onSubmit={(limit) => onStart(name, "tournament", limit)}
-        onCancel={onCancel}
-      />
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Max players
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {freeSeats.map((s) => (
+          <button
+            key={s}
+            onClick={() => startWith(s)}
+            disabled={hosting}
+            className="btn-3d btn-3d-mint text-sm disabled:opacity-50"
+          >
+            {s}P
+          </button>
+        ))}
+      </div>
+      <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+        Bimyah!+
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {plusSeats.map((s) =>
+          isPlus ? (
+            <button
+              key={s}
+              onClick={() => startWith(s)}
+              disabled={hosting}
+              className="btn-3d btn-3d-gold text-sm disabled:opacity-50"
+            >
+              {s}P
+            </button>
+          ) : (
+            <Link
+              key={s}
+              to="/plus"
+              className="btn-3d btn-3d-dark text-sm opacity-80"
+            >
+              🔒{s}P
+            </Link>
+          ),
+        )}
+      </div>
+      {hosting && (
+        <div className="text-center text-xs text-white/60">Starting…</div>
+      )}
       {error && (
         <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
       )}
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
 }

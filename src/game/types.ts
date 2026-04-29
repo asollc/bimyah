@@ -7,7 +7,15 @@ export type Card = {
   suit: Suit;
 };
 
-export type PlayerColor = "red" | "blue" | "yellow" | "green";
+export type PlayerColor =
+  | "red"
+  | "blue"
+  | "yellow"
+  | "green"
+  | "purple"
+  | "orange"
+  | "cyan"
+  | "pink";
 
 export type Player = {
   id: string;
@@ -73,4 +81,6 @@ export type GameState = {
   lastMatchPoints: number | null;
   /** PlayerId of tournament champion once pointLimit is reached. */
   championId: string | null;
+  /** Maximum number of seats this lobby allows (2-8). Defaults to 4. */
+  maxSeats?: number;
 };
