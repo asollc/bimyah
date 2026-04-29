@@ -6,6 +6,16 @@ export const HOLD_DURATION_MS = 5000;
 export const COUNTDOWN_MS = 3000;
 export const MAX_HAND = 5;
 
+/** Generate a unique 4-digit reentry code, avoiding any provided existing codes. */
+export function generateReentryCode(existing: Iterable<string> = []): string {
+  const used = new Set(existing);
+  for (let i = 0; i < 200; i++) {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    if (!used.has(code)) return code;
+  }
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 /** Point value per card rank. Aces = 1, face cards = 11/12/13. */
 export const RANK_POINTS: Record<Rank, number> = {
   A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
@@ -28,6 +38,7 @@ export function createInitialGame(
     color: PLAYER_COLORS[i],
     isBot: p.isBot,
     ready: false,
+    reentryCode: p.isBot ? undefined : generateReentryCode(),
     piles: [],
     pileLocked: [],
     hand: [],

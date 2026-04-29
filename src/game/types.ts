@@ -15,6 +15,8 @@ export type Player = {
   color: PlayerColor;
   isBot: boolean;
   ready: boolean;
+  /** 4-digit personal reentry code, used to rejoin this seat after disconnect. */
+  reentryCode?: string;
   // piles[i] is array of cards still face-down. If completed (4-of-a-kind set), it's locked.
   piles: Card[][];
   // pileLocked[i] true once the player has SET that pile.
