@@ -382,8 +382,24 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
     }
   });
   const [pointLimit, setPointLimit] = useState<number | null>(null);
+  const [isPlus, setIsPlus] = useState(false);
 
-  function start(botCount: 1 | 2 | 3) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ent = await getMyEntitlement();
+        if (!cancelled) setIsPlus(!!ent?.is_plus);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function start(botCount: number) {
     const myId = "me";
     const finalName = name.trim().slice(0, 14) || "You";
     try {
@@ -447,14 +463,55 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
     );
   }
   // bots
+  const freeOptions: Array<{ count: number; label: string }> = [
+    { count: 1, label: "1 Bot (2P)" },
+    { count: 2, label: "2 Bots (3P)" },
+    { count: 3, label: "3 Bots (4P)" },
+  ];
+  const plusOptions: Array<{ count: number; label: string }> = [
+    { count: 4, label: "4 Bots (5P)" },
+    { count: 5, label: "5 Bots (6P)" },
+    { count: 6, label: "6 Bots (7P)" },
+    { count: 7, label: "7 Bots (8P)" },
+  ];
   return (
     <>
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
         Choose opponents
       </div>
-      <button onClick={() => start(1)} className="btn-3d btn-3d-mint w-full text-sm">1 Bot (2P)</button>
-      <button onClick={() => start(2)} className="btn-3d btn-3d-mint w-full text-sm">2 Bots (3P)</button>
-      <button onClick={() => start(3)} className="btn-3d btn-3d-mint w-full text-sm">3 Bots (4P)</button>
+      {freeOptions.map((o) => (
+        <button
+          key={o.count}
+          onClick={() => start(o.count)}
+          className="btn-3d btn-3d-mint w-full text-sm"
+        >
+          {o.label}
+        </button>
+      ))}
+      <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+        Bimyah!+
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+      </div>
+      {plusOptions.map((o) =>
+        isPlus ? (
+          <button
+            key={o.count}
+            onClick={() => start(o.count)}
+            className="btn-3d btn-3d-gold w-full text-sm"
+          >
+            {o.label}
+          </button>
+        ) : (
+          <Link
+            key={o.count}
+            to="/plus"
+            className="btn-3d btn-3d-dark w-full text-sm opacity-80"
+          >
+            🔒 {o.label}
+          </Link>
+        ),
+      )}
       <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
