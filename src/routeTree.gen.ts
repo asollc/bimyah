@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SoloRouteImport } from './routes/solo'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PlusRouteImport } from './routes/plus'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
 import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
+import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
 
 const SoloRoute = SoloRouteImport.update({
   id: '/solo',
@@ -24,6 +26,11 @@ const SoloRoute = SoloRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlusRoute = PlusRouteImport.update({
+  id: '/plus',
+  path: '/plus',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -46,60 +53,85 @@ const GameGameIdRoute = GameGameIdRouteImport.update({
   path: '/game/$gameId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
+  id: '/api/public/paypal-webhook',
+  path: '/api/public/paypal-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/plus': typeof PlusRoute
   '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/plus': typeof PlusRoute
   '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/plus': typeof PlusRoute
   '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
+  '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/plus'
     | '/profile'
     | '/solo'
     | '/game/$gameId'
     | '/join/$gameId'
+    | '/api/public/paypal-webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/profile' | '/solo' | '/game/$gameId' | '/join/$gameId'
+  to:
+    | '/'
+    | '/auth'
+    | '/plus'
+    | '/profile'
+    | '/solo'
+    | '/game/$gameId'
+    | '/join/$gameId'
+    | '/api/public/paypal-webhook'
   id:
     | '__root__'
     | '/'
     | '/auth'
+    | '/plus'
     | '/profile'
     | '/solo'
     | '/game/$gameId'
     | '/join/$gameId'
+    | '/api/public/paypal-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  PlusRoute: typeof PlusRoute
   ProfileRoute: typeof ProfileRoute
   SoloRoute: typeof SoloRoute
   GameGameIdRoute: typeof GameGameIdRoute
   JoinGameIdRoute: typeof JoinGameIdRoute
+  ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plus': {
+      id: '/plus'
+      path: '/plus'
+      fullPath: '/plus'
+      preLoaderRoute: typeof PlusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -146,17 +185,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGameIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/paypal-webhook': {
+      id: '/api/public/paypal-webhook'
+      path: '/api/public/paypal-webhook'
+      fullPath: '/api/public/paypal-webhook'
+      preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  PlusRoute: PlusRoute,
   ProfileRoute: ProfileRoute,
   SoloRoute: SoloRoute,
   GameGameIdRoute: GameGameIdRoute,
   JoinGameIdRoute: JoinGameIdRoute,
+  ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
