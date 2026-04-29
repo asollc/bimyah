@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      bplus_config: {
+        Row: {
+          annual_price_cents: number
+          id: number
+          lifetime_price_cents: number
+          lifetime_quota: number
+          lifetime_sold: number
+          monthly_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          annual_price_cents?: number
+          id?: number
+          lifetime_price_cents?: number
+          lifetime_quota?: number
+          lifetime_sold?: number
+          monthly_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          annual_price_cents?: number
+          id?: number
+          lifetime_price_cents?: number
+          lifetime_quota?: number
+          lifetime_sold?: number
+          monthly_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      founding_members: {
+        Row: {
+          granted_at: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           created_at: string
@@ -41,6 +86,59 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          id: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          paypal_subscription_id: string | null
+          plan: Database["public"]["Enums"]["bplus_plan"]
+          raw: Json | null
+          status: Database["public"]["Enums"]["payment_status"]
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          id?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          paypal_subscription_id?: string | null
+          plan: Database["public"]["Enums"]["bplus_plan"]
+          raw?: Json | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          paypal_subscription_id?: string | null
+          plan?: Database["public"]["Enums"]["bplus_plan"]
+          raw?: Json | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -62,6 +160,45 @@ export type Database = {
           display_name?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          id: string
+          paypal_subscription_id: string | null
+          plan: Database["public"]["Enums"]["bplus_plan"]
+          source: string
+          status: Database["public"]["Enums"]["bplus_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paypal_subscription_id?: string | null
+          plan: Database["public"]["Enums"]["bplus_plan"]
+          source?: string
+          status?: Database["public"]["Enums"]["bplus_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paypal_subscription_id?: string | null
+          plan?: Database["public"]["Enums"]["bplus_plan"]
+          source?: string
+          status?: Database["public"]["Enums"]["bplus_status"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -91,6 +228,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_lifetime_slot: { Args: never; Returns: boolean }
+      has_bimyah_plus: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -98,9 +237,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      release_lifetime_slot: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "user" | "admin"
+      bplus_plan: "lifetime" | "monthly" | "annual"
+      bplus_status: "active" | "past_due" | "cancelled"
+      payment_status: "completed" | "refunded" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -229,6 +372,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "admin"],
+      bplus_plan: ["lifetime", "monthly", "annual"],
+      bplus_status: ["active", "past_due", "cancelled"],
+      payment_status: ["completed", "refunded", "failed"],
     },
   },
 } as const
