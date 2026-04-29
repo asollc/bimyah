@@ -57,6 +57,10 @@ function HomePage() {
         { mode, pointLimit },
       );
       const session = await hostGame(initial, hostId);
+      const hostPlayer = session.getState()?.players.find((p) => p.id === hostId);
+      if (hostPlayer?.reentryCode) {
+        saveReentryCode(session.code, hostPlayer.reentryCode);
+      }
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
