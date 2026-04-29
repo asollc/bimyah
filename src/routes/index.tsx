@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
-import { sfx, getWinCounts } from "@/game/sfx";
+import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
@@ -38,10 +38,6 @@ function HomePage() {
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const [wins, setWins] = useState<Array<{ name: string; wins: number }>>([]);
-  useEffect(() => {
-    setWins(getWinCounts().slice(0, 5));
-  }, []);
 
   async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
     setHosting(true);
@@ -131,25 +127,6 @@ function HomePage() {
         )}
       </div>
 
-      <div className="relative z-10 w-full max-w-xs text-center">
-        <div className="mb-1 font-display text-[10px] uppercase tracking-widest text-white/40">
-          Win History
-        </div>
-        {wins.length === 0 ? (
-          <div className="text-xs text-white/40">Nothing yet — play a round!</div>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {wins.map((w) => (
-              <span
-                key={w.name}
-                className="rounded-full bg-black/40 px-2 py-0.5 text-[10px] text-white/80"
-              >
-                <b>{w.name}</b> · {w.wins}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
