@@ -684,27 +684,16 @@ function PlayerSeat({
 
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
-      {/* Hand row (only for me, when pile open) — centered over piles. SET/SORT
-          buttons are absolutely positioned so they don't shift the hand off-center. */}
+      {/* SET/SORT buttons + hand row (only for me, when pile open). Buttons sit
+          above the hand so they don't crowd the side of the cards. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
-        <div className="relative mb-1 flex items-end justify-center gap-1.5">
-          {orderedHand.map((c) => (
-            <PlayingCard
-              key={c.id}
-              card={c}
-              width={42}
-              selected={selectedHandCardId === c.id}
-              onClick={() => onHandCardTap?.(c.id)}
-            />
-          ))}
-          <div
-            className="absolute left-full top-0 ml-1 flex flex-col items-stretch gap-1"
-          >
+        <>
+          <div className="mb-1 flex items-center justify-center gap-2">
             <button
               onClick={onSet}
               disabled={!handReady}
               className={cn(
-                "rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition",
                 handReady
                   ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
                   : "bg-white/10 text-white/40",
@@ -716,7 +705,7 @@ function PlayerSeat({
               onClick={onSort}
               disabled={player.hand.length < 2}
               className={cn(
-                "flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                "flex items-center justify-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition",
                 sortEnabled
                   ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
                   : player.hand.length >= 2
@@ -729,7 +718,18 @@ function PlayerSeat({
               SORT
             </button>
           </div>
-        </div>
+          <div className="mb-1 flex items-end justify-center gap-1.5">
+            {orderedHand.map((c) => (
+              <PlayingCard
+                key={c.id}
+                card={c}
+                width={42}
+                selected={selectedHandCardId === c.id}
+                onClick={() => onHandCardTap?.(c.id)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Name tag */}
