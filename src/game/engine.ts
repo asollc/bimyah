@@ -1,7 +1,16 @@
 import type { GameState, Player, PlayerColor, Card, Rank, GameMode, MatchRecord } from "./types";
 import { deal, isFourOfAKind, pilesPerPlayer } from "./deck";
 
-export const PLAYER_COLORS: PlayerColor[] = ["green", "red", "blue", "yellow"];
+export const PLAYER_COLORS: PlayerColor[] = [
+  "green",
+  "red",
+  "blue",
+  "yellow",
+  "purple",
+  "orange",
+  "cyan",
+  "pink",
+];
 export const HOLD_DURATION_MS = 5000;
 export const COUNTDOWN_MS = 3000;
 export const MAX_HAND = 5;
