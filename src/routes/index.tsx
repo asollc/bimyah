@@ -69,7 +69,7 @@ function HomePage() {
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center justify-between overflow-x-hidden px-4 py-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:py-3">
+    <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center overflow-x-hidden px-4 pt-2 pb-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:pt-3 lg:pb-3">
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
@@ -77,8 +77,8 @@ function HomePage() {
         <HowToPlayButton />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3">
-        <PowLogo size={180} />
+      <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
+        <PowLogo size={207} />
         <div
           className="text-3d-yellow font-display text-center text-xs font-black uppercase leading-tight sm:text-sm md:text-base"
           style={{ letterSpacing: "0.08em" }}
@@ -89,7 +89,7 @@ function HomePage() {
         </div>
       </div>
 
-      <div className="relative z-10 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
+      <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
         {!showSolo && !showJoin && !showHost && (
           <>
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
