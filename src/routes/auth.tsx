@@ -79,6 +79,10 @@ function AuthPage() {
         <PowLogo size={140} />
       </Link>
 
+      <p className="mb-3 text-center text-sm font-display uppercase tracking-widest text-white/70">
+        Sign in or create a free account to play!
+      </p>
+
       <div className="w-full max-w-xs rounded-2xl border border-[var(--mint)]/30 bg-black/40 p-5 backdrop-blur">
         <div className="mb-4 flex justify-center gap-2 text-xs font-display uppercase tracking-widest">
           <button
@@ -87,7 +91,7 @@ function AuthPage() {
           >
             Sign In
           </button>
-          <span className="text-white/30">/</span>
+          <span className="text-white/30">or</span>
           <button
             onClick={() => setMode("signup")}
             className={mode === "signup" ? "text-[var(--gold)]" : "text-white/50"}
