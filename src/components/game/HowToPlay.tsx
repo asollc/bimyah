@@ -15,14 +15,11 @@ export function HowToPlayButton({ floating = true }: { floating?: boolean }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
-          className={
-            floating
-              ? "grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur transition active:scale-90"
-              : "inline-flex items-center gap-2 rounded-full bg-black/30 px-3 py-1.5 text-xs text-white/80"
-          }
+          className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90"
           aria-label="How to play"
         >
-          <HelpCircle className="h-5 w-5" />
+          <HelpCircle className="h-4 w-4" />
+          How to Play
         </button>
       </DialogTrigger>
       <DialogContent className="max-h-[88vh] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
