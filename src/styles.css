@@ -114,12 +114,16 @@
   }
 
   html,
-  body,
-  #root {
+  body {
     height: 100%;
   }
 
-  html, body {
+  #root {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     overflow: hidden;
   }
 
@@ -127,6 +131,12 @@
   @media (min-width: 1024px) {
     html, body {
       overflow: auto;
+      height: auto;
+    }
+    #root {
+      position: absolute;
+      overflow: auto;
+      min-height: calc(100vh - 50px);
     }
   }
 
@@ -137,8 +147,6 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     touch-action: manipulation;
-    /* Reserve space at top for a 320x50 banner ad */
-    padding-top: 50px;
     /* Disable text selection / highlighting on all devices */
     -webkit-user-select: none;
     -moz-user-select: none;
