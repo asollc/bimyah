@@ -91,6 +91,7 @@ export type Database = {
           amount_cents: number
           created_at: string
           currency: string
+          environment: string
           id: string
           paypal_capture_id: string | null
           paypal_order_id: string | null
@@ -98,6 +99,8 @@ export type Database = {
           plan: Database["public"]["Enums"]["bplus_plan"]
           raw: Json | null
           status: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           subscription_id: string | null
           user_id: string
         }
@@ -105,6 +108,7 @@ export type Database = {
           amount_cents: number
           created_at?: string
           currency?: string
+          environment?: string
           id?: string
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
@@ -112,6 +116,8 @@ export type Database = {
           plan: Database["public"]["Enums"]["bplus_plan"]
           raw?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           subscription_id?: string | null
           user_id: string
         }
@@ -119,6 +125,7 @@ export type Database = {
           amount_cents?: number
           created_at?: string
           currency?: string
+          environment?: string
           id?: string
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
@@ -126,6 +133,8 @@ export type Database = {
           plan?: Database["public"]["Enums"]["bplus_plan"]
           raw?: Json | null
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           subscription_id?: string | null
           user_id?: string
         }
@@ -165,38 +174,53 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           cancelled_at: string | null
           created_at: string
           current_period_end: string | null
+          environment: string
           id: string
           paypal_subscription_id: string | null
           plan: Database["public"]["Enums"]["bplus_plan"]
+          price_id: string | null
           source: string
           status: Database["public"]["Enums"]["bplus_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          environment?: string
           id?: string
           paypal_subscription_id?: string | null
           plan: Database["public"]["Enums"]["bplus_plan"]
+          price_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["bplus_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          environment?: string
           id?: string
           paypal_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["bplus_plan"]
+          price_id?: string | null
           source?: string
           status?: Database["public"]["Enums"]["bplus_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
         }
