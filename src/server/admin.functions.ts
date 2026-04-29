@@ -16,24 +16,10 @@ async function assertAdmin(userId: string) {
 }
 
 // ---------- Lightweight: am I admin? (used by header) ----------
-export const getMyAdminStatus = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { getRequest } = await import("@tanstack/react-start/server");
-    const { createClient } = await import("@supabase/supabase-js");
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return { is_admin: false };
-
-    const request = getRequest();
-    const authHeader = request?.headers?.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return { is_admin: false };
-    const token = authHeader.slice("Bearer ".length);
-    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: claims } = await supabase.auth.getClaims(token);
-    const userId = claims?.claims?.sub;
-    if (!userId) return { is_admin: false };
+export const getMyAdminStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
     const { data } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -41,8 +27,7 @@ export const getMyAdminStatus = createServerFn({ method: "GET" }).handler(
       .eq("role", "admin")
       .maybeSingle();
     return { is_admin: !!data };
-  }
-);
+  });
 
 // ---------- Overview metrics ----------
 export const getAdminOverview = createServerFn({ method: "GET" })
