@@ -109,7 +109,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 // ---------- Subscriptions list ----------
 const listSubsSchema = z.object({
   search: z.string().max(120).optional(),
-  status: z.enum(["all", "active", "canceled"]).default("all"),
+  status: z.enum(["all", "active", "cancelled"]).default("all"),
   limit: z.number().int().min(1).max(200).default(50),
 });
 
@@ -203,7 +203,7 @@ export const revokeBplus = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin
       .from("subscriptions")
       .update({
-        status: "canceled",
+        status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancel_at_period_end: false,
       })
