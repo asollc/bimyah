@@ -139,8 +139,9 @@ function FloatingCards() {
     { top: "55%", left: "90%", size: 40, rot: -22, dx: -10, dy: -12, dur: 12 },
     { top: "72%", left: "10%", size: 36, rot: 14, dx: 14, dy: -8, dur: 9.5 },
     { top: "80%", left: "78%", size: 42, rot: -10, dx: -12, dy: 10, dur: 10.5 },
-    { top: "30%", left: "48%", size: 30, rot: 22, dx: 8, dy: -10, dur: 13 },
-    { top: "88%", left: "45%", size: 32, rot: -16, dx: -8, dy: -12, dur: 11.5 },
+    { top: "92%", left: "4%", size: 32, rot: 20, dx: 10, dy: -10, dur: 11 },
+    { top: "92%", left: "88%", size: 34, rot: -18, dx: -10, dy: -8, dur: 10 },
+    { top: "30%", left: "94%", size: 30, rot: 12, dx: -8, dy: 10, dur: 12.5 },
   ];
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
