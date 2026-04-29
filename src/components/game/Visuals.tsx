@@ -178,6 +178,10 @@ const PLAYER_COLOR_HEX_LOCAL: Record<PlayerColor, string> = {
   red: "#ef4444",
   blue: "#3b82f6",
   yellow: "#eab308",
+  purple: "#a855f7",
+  orange: "#fb923c",
+  cyan: "#22d3ee",
+  pink: "#ec4899",
 };
 
 /** Compact "SCORE: 100" 3D label shown under the home button in tournament mode. */
