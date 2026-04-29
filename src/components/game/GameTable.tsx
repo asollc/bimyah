@@ -586,10 +586,10 @@ function getSeatPositions(n: number): SeatPos[] {
     // S, SE, NE (top-right area), NW, SW
     return [
       { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
+      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
       { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
+      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
     ];
   }
   if (n === 6) {
@@ -607,24 +607,24 @@ function getSeatPositions(n: number): SeatPos[] {
     // S, SE, E, NE, NW, W, SW
     return [
       { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
+      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
       { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
       { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
       { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
+      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
     ];
   }
   // 8: S, SE, E, NE, N, NW, W, SW
   return [
     { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-14 right-[18%]", pileLayout: "row", compact: true },
+    { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
     { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
+    { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
   ];
 }
 
