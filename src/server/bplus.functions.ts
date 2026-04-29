@@ -57,10 +57,38 @@ export const getBplusStatus = createServerFn({ method: "GET" }).handler(
 );
 
 // ---------- Authed: am I a B+ member? ----------
-export const getMyEntitlement = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { userId } = context;
+// Returns a safe "not plus" default for unauthenticated callers instead of
+// throwing a 401 Response (which surfaces as "[object Response]" in the
+// browser's global error handler and triggers the blank-screen detector).
+export const getMyEntitlement = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { createClient } = await import("@supabase/supabase-js");
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    const empty = {
+      is_plus: false,
+      plan: null as string | null,
+      current_period_end: null as string | null,
+      founding_member: false,
+    };
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return empty;
+
+    const request = getRequest();
+    const authHeader = request?.headers?.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) return empty;
+    const token = authHeader.slice("Bearer ".length);
+    if (!token) return empty;
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: claimsData, error: claimsErr } =
+      await supabase.auth.getClaims(token);
+    const userId = claimsData?.claims?.sub;
+    if (claimsErr || !userId) return empty;
+
     const { data: subs } = await supabaseAdmin
       .from("subscriptions")
       .select("id, plan, status, current_period_end, created_at")
@@ -79,7 +107,8 @@ export const getMyEntitlement = createServerFn({ method: "GET" })
       current_period_end: sub?.current_period_end ?? null,
       founding_member: !!founder,
     };
-  });
+  }
+);
 
 // ---------- Create the PayPal order for $5 lifetime ----------
 export const createLifetimeOrder = createServerFn({ method: "POST" })
