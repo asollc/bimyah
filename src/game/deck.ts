@@ -63,7 +63,20 @@ export function pilesPerPlayer(playerCount: number): number {
 }
 
 export function deal(playerCount: number): DealResult {
-  const deck = shuffle(buildDeck(deckCountFor(playerCount)));
+  const baseDeck = buildDeck(deckCountFor(playerCount));
+  // 7P needs 7×4×4 + 8 center = 120 cards; two decks only give 104.
+  // Per plan, add a 3rd-deck copy of A/J/Q/K (16 extra cards = 120 total).
+  if (playerCount === 7) {
+    const extras: Card[] = [];
+    const extraRanks: Rank[] = ["A", "J", "Q", "K"];
+    for (const r of extraRanks) {
+      for (const s of SUITS) {
+        extras.push({ id: `${r}${s}#2`, rank: r, suit: s });
+      }
+    }
+    baseDeck.push(...extras);
+  }
+  const deck = shuffle(baseDeck);
   const ppp = pilesPerPlayer(playerCount);
   const centerCount = centerCountFor(playerCount);
 
