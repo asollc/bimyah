@@ -19,7 +19,7 @@ export function PowLogo({ size = 220 }: { size?: number }) {
   return (
     <div
       className="animate-pop-in flex items-center justify-center"
-      style={{ width: size, height: size * 0.95 }}
+      style={{ width: size, height: size * (1158 / 1215) }}
     >
       <img
         src={bimyahLogo}
