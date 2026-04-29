@@ -110,7 +110,16 @@ function HomePage() {
             <LogIn className="h-3 w-3" /> Sign In
           </Link>
         )}
-        <HowToPlayButton />
+        <div className="flex items-center gap-2">
+          <Link
+            to="/plus"
+            aria-label="Bimyah Plus"
+            className="flex h-9 items-center gap-1 rounded-full bg-gradient-to-r from-[var(--gold)]/30 to-[var(--gold)]/10 px-3 font-display text-[10px] font-black uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50 transition hover:scale-105"
+          >
+            Bimyah!<span className="text-white">+</span>
+          </Link>
+          <HowToPlayButton />
+        </div>
       </div>
 
       <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
