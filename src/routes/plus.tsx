@@ -52,7 +52,14 @@ function PlusPage() {
       setEntitlement(null);
       return;
     }
-    void getMyEntitlement().then(setEntitlement).catch(() => setEntitlement(null));
+    getMyEntitlement()
+      .then((e) => setEntitlement(e))
+      .catch((e) => {
+        // Swallow auth/transport errors (e.g. session not yet attached) to
+        // avoid bubbling a Response into the global error boundary.
+        console.warn("getMyEntitlement failed:", e);
+        setEntitlement(null);
+      });
   }, [user]);
 
   const remaining = status.lifetime_remaining;
