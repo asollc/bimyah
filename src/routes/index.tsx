@@ -82,7 +82,7 @@ function HomePage() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center gap-3">
-        <PowLogo size={330} />
+        <PowLogo size={248} />
         <div
           className="text-3d-yellow font-display text-center text-sm font-black uppercase leading-tight sm:text-base"
           style={{ letterSpacing: "0.08em" }}
