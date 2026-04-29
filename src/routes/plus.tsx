@@ -208,7 +208,7 @@ function PlusPage() {
                     setPaying(false);
                   }}
                   onError={(e) => {
-                    setErr((e as Error).message ?? "Payment error");
+                    setErr((e as { message?: string })?.message ?? "Payment error");
                     setPaying(false);
                   }}
                 />
