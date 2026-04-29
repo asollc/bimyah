@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      card_backs: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       founding_members: {
         Row: {
           granted_at: string
