@@ -539,21 +539,21 @@ type SeatPos = {
 function getSeatPositions(n: number): SeatPos[] {
   if (n === 2) {
     return [
-      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
       { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
     ];
   }
   if (n === 3) {
     // West, South, East — me at bottom (south); other two at side seats.
     return [
-      { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
       { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
       { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     ];
   }
   // 4
   return [
-    { className: "bottom-3 left-1/2 -translate-x-1/2", pileLayout: "row" },
+    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
     { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
     { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
