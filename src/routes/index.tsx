@@ -73,7 +73,7 @@ function HomePage() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] w-screen flex-col items-center justify-between overflow-hidden px-4 py-3">
+    <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center justify-between overflow-x-hidden px-4 py-3">
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
