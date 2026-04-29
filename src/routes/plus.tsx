@@ -9,6 +9,7 @@ import {
   getMyEntitlement,
   createLifetimeOrder,
   captureLifetimeOrder,
+  getPaypalClientConfig,
 } from "@/server/bplus.functions";
 
 export const Route = createFileRoute("/plus")({
@@ -22,7 +23,13 @@ export const Route = createFileRoute("/plus")({
       },
     ],
   }),
-  loader: () => getBplusStatus(),
+  loader: async () => {
+    const [status, paypal] = await Promise.all([
+      getBplusStatus(),
+      getPaypalClientConfig(),
+    ]);
+    return { status, paypal };
+  },
   component: PlusPage,
 });
 
