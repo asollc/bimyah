@@ -229,11 +229,11 @@ export const captureLifetimeOrder = createServerFn({ method: "POST" })
       subscription_id: subRow.id,
       amount_cents: amountCents,
       currency,
-      plan: "lifetime",
-      status: "completed",
+      plan: "lifetime" as const,
+      status: "completed" as const,
       paypal_order_id: orderId,
       paypal_capture_id: capture.id,
-      raw: cap as unknown as Record<string, unknown>,
+      raw: JSON.parse(JSON.stringify(cap)),
     });
 
     // Founding member badge.
