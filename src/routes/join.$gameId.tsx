@@ -46,12 +46,17 @@ function JoinGame() {
         session.destroy();
         return;
       }
+      const existingCodes = state.players
+        .map((p) => p.reentryCode)
+        .filter((c): c is string => !!c);
+      const reentryCode = generateReentryCode(existingCodes);
       const newPlayer = {
         id: myId,
         name: name.trim().slice(0, 14),
         color: PLAYER_COLORS[state.players.length],
         isBot: false,
         ready: false,
+        reentryCode,
         piles: [],
         pileLocked: [],
         hand: [],
@@ -66,6 +71,7 @@ function JoinGame() {
       sessionStorage.setItem(`bimyah_me_${gameId}`, myId);
       sessionStorage.setItem(`bimyah_name_${gameId}`, newPlayer.name);
       saveIdentity(gameId, { meId: myId, name: newPlayer.name, role: "joiner" });
+      saveReentryCode(gameId, reentryCode);
       void navigate({ to: "/game/$gameId", params: { gameId } });
     } catch (e) {
       console.error(e);
