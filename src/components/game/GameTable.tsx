@@ -627,18 +627,6 @@ function getSeatPositions(n: number): SeatPos[] {
     { className: "bottom-14 left-[18%]", pileLayout: "row", compact: true },
   ];
 }
-  // 8: S, SE, E, NE, N, NW, W, SW
-  return [
-    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-2 right-2", pileLayout: "row", compact: true },
-    { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-2 left-2", pileLayout: "row", compact: true },
-  ];
-}
 
 function PlayerSeat({
   player,
