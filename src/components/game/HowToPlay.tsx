@@ -20,7 +20,7 @@ export function HowToPlayButton({ floating = true }: { floating?: boolean }) {
           How to Play
         </button>
       </DialogTrigger>
-      <DialogContent className="max-h-[88vh] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
+      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] pt-8 text-white">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-[var(--mint)]">
             How to Play BIMYAH!
