@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SoloRouteImport } from './routes/solo'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
 import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
@@ -17,6 +19,16 @@ import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
 const SoloRoute = SoloRouteImport.update({
   id: '/solo',
   path: '/solo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,12 +49,16 @@ const GameGameIdRoute = GameGameIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
@@ -50,20 +66,37 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/profile': typeof ProfileRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/profile'
+    | '/solo'
+    | '/game/$gameId'
+    | '/join/$gameId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
-  id: '__root__' | '/' | '/solo' | '/game/$gameId' | '/join/$gameId'
+  to: '/' | '/auth' | '/profile' | '/solo' | '/game/$gameId' | '/join/$gameId'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/profile'
+    | '/solo'
+    | '/game/$gameId'
+    | '/join/$gameId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  ProfileRoute: typeof ProfileRoute
   SoloRoute: typeof SoloRoute
   GameGameIdRoute: typeof GameGameIdRoute
   JoinGameIdRoute: typeof JoinGameIdRoute
@@ -76,6 +109,20 @@ declare module '@tanstack/react-router' {
       path: '/solo'
       fullPath: '/solo'
       preLoaderRoute: typeof SoloRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -104,6 +151,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  ProfileRoute: ProfileRoute,
   SoloRoute: SoloRoute,
   GameGameIdRoute: GameGameIdRoute,
   JoinGameIdRoute: JoinGameIdRoute,

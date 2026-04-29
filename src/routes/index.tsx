@@ -4,12 +4,13 @@ import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx } from "@/game/sfx";
-import { Bot, Users, Plus, Trophy, Swords } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords, LogIn } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode, loadReentryCode } from "@/game/reentry";
+import { useAuth } from "@/auth/AuthProvider";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
@@ -38,6 +39,16 @@ function HomePage() {
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user, profile, loading: authLoading } = useAuth();
+  const isAuthed = !!user;
+
+  function requireAuth(action: () => void) {
+    if (!isAuthed) {
+      void navigate({ to: "/auth" });
+      return;
+    }
+    action();
+  }
 
 
   async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
@@ -73,12 +84,32 @@ function HomePage() {
     }
   }
 
+  const initial = (profile?.display_name ?? user?.email ?? "?").slice(0, 1).toUpperCase();
+
   return (
     <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center overflow-x-hidden px-4 pt-2 pb-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:pt-3 lg:pb-3">
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
-        <div className="h-9 w-9" />
+        {authLoading ? (
+          <div className="h-9 w-9" />
+        ) : isAuthed ? (
+          <Link
+            to="/profile"
+            aria-label="Open profile"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--mint)]/20 font-display text-sm font-black text-[var(--mint)] ring-2 ring-[var(--mint)]/40 transition hover:scale-105"
+          >
+            {initial}
+          </Link>
+        ) : (
+          <Link
+            to="/auth"
+            aria-label="Sign in"
+            className="flex h-9 items-center gap-1 rounded-full bg-black/40 px-3 font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
+          >
+            <LogIn className="h-3 w-3" /> Sign In
+          </Link>
+        )}
         <HowToPlayButton />
       </div>
 
@@ -97,25 +128,37 @@ function HomePage() {
       <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
         {!showSolo && !showJoin && !showHost && (
           <>
-            <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
+            <button
+              onClick={() => requireAuth(() => setShowSolo(true))}
+              className="btn-3d btn-3d-mint w-full text-base"
+            >
               <Bot className="mr-2 h-5 w-5" /> Solo vs Bots
             </button>
             <button
-              onClick={() => setShowHost(true)}
+              onClick={() => requireAuth(() => setShowHost(true))}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
               <Plus className="mr-2 h-5 w-5" />
               Host Multiplayer
             </button>
-            <button onClick={() => setShowJoin(true)} className="btn-3d btn-3d-dark w-full text-base">
+            <button
+              onClick={() => requireAuth(() => setShowJoin(true))}
+              className="btn-3d btn-3d-dark w-full text-base"
+            >
               <Users className="mr-2 h-5 w-5" /> Join with Code
             </button>
+            {!isAuthed && !authLoading && (
+              <div className="text-center text-[10px] uppercase tracking-widest text-white/40">
+                Free account required to play
+              </div>
+            )}
             {hostErr && (
               <div className="text-center text-xs text-[var(--player-red)]">{hostErr}</div>
             )}
           </>
         )}
+
 
         {showSolo && <SoloFlow onCancel={() => setShowSolo(false)} />}
         {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
