@@ -34,6 +34,7 @@ export const RANK_POINTS: Record<Rank, number> = {
 export type CreateGameOptions = {
   mode?: GameMode;
   pointLimit?: number | null;
+  maxSeats?: number;
 };
 
 export function createInitialGame(
