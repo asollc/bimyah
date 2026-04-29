@@ -61,6 +61,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <div id="ad-slot" aria-label="Advertisement" />
         {children}
         <Scripts />
       </body>

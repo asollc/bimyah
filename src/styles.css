@@ -117,7 +117,17 @@
   body,
   #root {
     height: 100%;
+  }
+
+  html, body {
     overflow: hidden;
+  }
+
+  /* Allow scrolling on desktop */
+  @media (min-width: 1024px) {
+    html, body {
+      overflow: auto;
+    }
   }
 
   body {
@@ -127,6 +137,42 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     touch-action: manipulation;
+    /* Reserve space at top for a 320x50 banner ad */
+    padding-top: 50px;
+    /* Disable text selection / highlighting on all devices */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow selection only inside inputs / textareas */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Top ad slot — fixed 320x50 black bar, centered */
+  #ad-slot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #ad-slot::after {
+    content: "";
+    display: block;
+    width: 320px;
+    height: 50px;
+    background: #000;
   }
 
   h1,
