@@ -43,7 +43,8 @@ function JoinGame() {
         session.destroy();
         return;
       }
-      if (state.players.length >= 4) {
+      const cap = state.maxSeats ?? 4;
+      if (state.players.length >= cap) {
         setErr("Game is full");
         setBusy(false);
         session.destroy();
