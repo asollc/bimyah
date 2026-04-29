@@ -38,6 +38,7 @@ export function createInitialGame(
     color: PLAYER_COLORS[i],
     isBot: p.isBot,
     ready: false,
+    reentryCode: p.isBot ? undefined : generateReentryCode(),
     piles: [],
     pileLocked: [],
     hand: [],
