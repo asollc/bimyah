@@ -12,6 +12,7 @@ import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { getMyEntitlement } from "@/server/bplus.functions";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
