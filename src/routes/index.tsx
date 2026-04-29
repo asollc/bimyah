@@ -38,10 +38,6 @@ function HomePage() {
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const [wins, setWins] = useState<Array<{ name: string; wins: number }>>([]);
-  useEffect(() => {
-    setWins(getWinCounts().slice(0, 5));
-  }, []);
 
   async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
     setHosting(true);
