@@ -53,7 +53,7 @@ function HomePage() {
   }
 
 
-  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null) {
+  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number) {
     setHosting(true);
     setHostErr(null);
     try {
