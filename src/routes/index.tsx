@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
-import { sfx, getWinCounts } from "@/game/sfx";
+import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
