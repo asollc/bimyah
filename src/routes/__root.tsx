@@ -62,7 +62,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <div id="ad-slot" aria-label="Advertisement" />
-        {children}
+        <div id="app-shell">{children}</div>
         <Scripts />
       </body>
     </html>

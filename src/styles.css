@@ -116,9 +116,10 @@
   html,
   body {
     height: 100%;
+    overflow: hidden;
   }
 
-  #root {
+  #app-shell {
     position: fixed;
     top: 50px;
     left: 0;
@@ -132,10 +133,11 @@
     html, body {
       overflow: auto;
       height: auto;
+      min-height: 100%;
     }
-    #root {
-      position: absolute;
-      overflow: auto;
+    #app-shell {
+      position: static;
+      overflow: visible;
       min-height: calc(100vh - 50px);
     }
   }
