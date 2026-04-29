@@ -29,6 +29,10 @@ export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   red: "#ef4444",
   blue: "#3b82f6",
   yellow: "#eab308",
+  purple: "#a855f7",
+  orange: "#fb923c",
+  cyan: "#22d3ee",
+  pink: "#ec4899",
 };
 
 export function GameTable({
