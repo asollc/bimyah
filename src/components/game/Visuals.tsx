@@ -215,13 +215,11 @@ export function ScoreboardButton({
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "grid h-9 w-9 place-items-center rounded-full bg-black/30 text-[var(--gold)] backdrop-blur transition active:scale-90",
-        className,
-      )}
+      className={cn("btn-3d btn-3d-gold !px-3 !py-1.5 text-xs", className)}
       aria-label="Scoreboard"
+      style={{ borderRadius: 10 }}
     >
-      <Trophy className="h-4 w-4" />
+      Scoreboard
     </button>
   );
 }
