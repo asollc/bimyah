@@ -34,6 +34,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as Profile | null) ?? null);
   }
 
+  // Install a fetch interceptor that attaches the current Supabase access token
+  // to all server-fn calls (so requireSupabaseAuth middleware works).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { __serverFnFetchPatched?: boolean };
+    if (w.__serverFnFetchPatched) return;
+    w.__serverFnFetchPatched = true;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      try {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : (input as Request).url;
+        if (url && url.includes("/_serverFn/")) {
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token;
+          if (token) {
+            const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+            if (!headers.has("authorization")) {
+              headers.set("authorization", `Bearer ${token}`);
+            }
+            return originalFetch(input, { ...init, headers });
+          }
+        }
+      } catch {
+        /* fall through to default fetch */
+      }
+      return originalFetch(input, init);
+    };
+  }, []);
+
   useEffect(() => {
     // CRITICAL: subscribe before fetching session.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
