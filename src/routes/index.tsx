@@ -663,7 +663,7 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
 
 /* ============================ Host flow ============================ */
 
-type HostStep = "mode" | "name" | "points";
+type HostStep = "mode" | "name" | "points" | "seats";
 
 function HostFlow({
   hosting,
@@ -674,7 +674,12 @@ function HostFlow({
   hosting: boolean;
   error: string | null;
   onCancel: () => void;
-  onStart: (name: string, mode: GameMode, pointLimit: number | null) => void;
+  onStart: (
+    name: string,
+    mode: GameMode,
+    pointLimit: number | null,
+    maxSeats: number,
+  ) => void;
 }) {
   const [step, setStep] = useState<HostStep>("mode");
   const [mode, setMode] = useState<GameMode>("standard");
@@ -685,6 +690,23 @@ function HostFlow({
       return "";
     }
   });
+  const [pointLimit, setPointLimit] = useState<number | null>(null);
+  const [isPlus, setIsPlus] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ent = await getMyEntitlement();
+        if (!cancelled) setIsPlus(!!ent?.is_plus);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (step === "mode") {
     return (
@@ -704,16 +726,12 @@ function HostFlow({
         <NameStep
           initial={name}
           accent="gold"
-          ctaLabel={isTourney ? "Next" : hosting ? "Starting…" : "Start Hosting"}
+          ctaLabel="Next"
           ctaClass="btn-3d-gold"
-          busy={hosting}
+          busy={false}
           onSubmit={(n) => {
             setName(n);
-            if (isTourney) {
-              setStep("points");
-            } else {
-              onStart(n, "standard", null);
-            }
+            setStep(isTourney ? "points" : "seats");
           }}
           onCancel={onCancel}
         />
@@ -723,20 +741,82 @@ function HostFlow({
       </>
     );
   }
-  // points
+  if (step === "points") {
+    return (
+      <>
+        <PointLimitStep
+          initial=""
+          ctaLabel="Next"
+          ctaClass="btn-3d-gold"
+          busy={false}
+          onSubmit={(limit) => {
+            setPointLimit(limit);
+            setStep("seats");
+          }}
+          onCancel={onCancel}
+        />
+        {error && (
+          <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
+        )}
+      </>
+    );
+  }
+  // seats
+  const freeSeats = [2, 3, 4];
+  const plusSeats = [5, 6, 7, 8];
+  const startWith = (seats: number) =>
+    onStart(name, mode, pointLimit, seats);
   return (
     <>
-      <PointLimitStep
-        initial=""
-        ctaLabel={hosting ? "Starting…" : "Start Hosting"}
-        ctaClass="btn-3d-gold"
-        busy={hosting}
-        onSubmit={(limit) => onStart(name, "tournament", limit)}
-        onCancel={onCancel}
-      />
+      <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+        Max players
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {freeSeats.map((s) => (
+          <button
+            key={s}
+            onClick={() => startWith(s)}
+            disabled={hosting}
+            className="btn-3d btn-3d-mint text-sm disabled:opacity-50"
+          >
+            {s}P
+          </button>
+        ))}
+      </div>
+      <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+        Bimyah!+
+        <span className="h-px flex-1 bg-[var(--gold)]/30" />
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {plusSeats.map((s) =>
+          isPlus ? (
+            <button
+              key={s}
+              onClick={() => startWith(s)}
+              disabled={hosting}
+              className="btn-3d btn-3d-gold text-sm disabled:opacity-50"
+            >
+              {s}P
+            </button>
+          ) : (
+            <Link
+              key={s}
+              to="/plus"
+              className="btn-3d btn-3d-dark text-sm opacity-80"
+            >
+              🔒{s}P
+            </Link>
+          ),
+        )}
+      </div>
+      {hosting && (
+        <div className="text-center text-xs text-white/60">Starting…</div>
+      )}
       {error && (
         <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
       )}
+      <button onClick={onCancel} className="text-xs text-white/50">Cancel</button>
     </>
   );
 }
