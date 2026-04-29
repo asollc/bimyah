@@ -253,7 +253,7 @@ function PlusPage() {
                           label: "paypal",
                         }}
                         disabled={paying}
-                        forceReRender={[user.id, dollars]}
+                        forceReRender={[user?.id ?? "", dollars]}
                         createOrder={async () => {
                           setErr(null);
                           setPaying(true);
