@@ -127,8 +127,8 @@ function PlusPage() {
               </span>
             )}
           </div>
-          <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-white/40">
-            After preorder: ${monthly}/mo or ${annual}/yr
+          <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-yellow-400">
+            After preorder expires: ${monthly}/mo or ${annual}/yr
           </div>
 
           <ul className="mt-4 space-y-2 text-sm text-white/80">
