@@ -36,7 +36,7 @@ export const getBplusStatus = createServerFn({ method: "GET" }).handler(
     if (error || !data) {
       return {
         lifetime_remaining: 0,
-        lifetime_quota: 500,
+        lifetime_quota: 76,
         lifetime_sold: 0,
         lifetime_price_cents: 500,
         monthly_price_cents: 200,
