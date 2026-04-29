@@ -4,12 +4,13 @@ import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { sfx } from "@/game/sfx";
-import { Bot, Users, Plus, Trophy, Swords } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords, LogIn } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode, loadReentryCode } from "@/game/reentry";
+import { useAuth } from "@/auth/AuthProvider";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
