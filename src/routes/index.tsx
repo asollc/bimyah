@@ -84,7 +84,7 @@ function HomePage() {
             cardBackUrl: cosmetics.cardBackUrl,
           },
         ],
-        { mode, pointLimit },
+        { mode, pointLimit, maxSeats },
       );
       const session = await hostGame(initial, hostId);
       const hostPlayer = session.getState()?.players.find((p) => p.id === hostId);
