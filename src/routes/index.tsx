@@ -198,7 +198,9 @@ function HomePage() {
               setShowHost(false);
               setHostErr(null);
             }}
-            onStart={(name, mode, limit, seats) => hostMultiplayer(name, mode, limit, seats)}
+            onStart={(name, mode, limit, seats) => {
+              void hostMultiplayer(name, mode, limit, seats);
+            }}
           />
         )}
       </div>
