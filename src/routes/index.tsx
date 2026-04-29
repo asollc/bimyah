@@ -11,6 +11,7 @@ import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
+import { getMyCosmetics } from "@/server/cosmetics.functions";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
@@ -62,9 +63,26 @@ function HomePage() {
         /* ignore */
       }
       const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
+      let cosmetics: { avatarUrl: string | null; cardBackUrl: string | null } = {
+        avatarUrl: null,
+        cardBackUrl: null,
+      };
+      try {
+        cosmetics = await getMyCosmetics();
+      } catch {
+        /* not signed in or no cosmetics */
+      }
       const initial = createInitialGame(
         "temp",
-        [{ id: hostId, name: myName, isBot: false }],
+        [
+          {
+            id: hostId,
+            name: myName,
+            isBot: false,
+            avatarUrl: cosmetics.avatarUrl,
+            cardBackUrl: cosmetics.cardBackUrl,
+          },
+        ],
         { mode, pointLimit },
       );
       const session = await hostGame(initial, hostId);
