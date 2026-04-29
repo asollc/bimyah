@@ -78,6 +78,7 @@ export function createInitialGame(
     matchHistory: [],
     lastMatchPoints: null,
     championId: null,
+    maxSeats: opts.maxSeats ?? 4,
   };
 }
 
