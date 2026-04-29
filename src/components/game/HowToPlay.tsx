@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { HelpCircle } from "lucide-react";
 
 export function HowToPlayButton({ floating = true }: { floating?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -15,10 +14,9 @@ export function HowToPlayButton({ floating = true }: { floating?: boolean }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
-          className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90"
+          className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90"
           aria-label="How to play"
         >
-          <HelpCircle className="h-4 w-4" />
           How to Play
         </button>
       </DialogTrigger>
