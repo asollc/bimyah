@@ -114,10 +114,30 @@
   }
 
   html,
-  body,
-  #root {
+  body {
     height: 100%;
+  }
+
+  #root {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     overflow: hidden;
+  }
+
+  /* Allow scrolling on desktop */
+  @media (min-width: 1024px) {
+    html, body {
+      overflow: auto;
+      height: auto;
+    }
+    #root {
+      position: absolute;
+      overflow: auto;
+      min-height: calc(100vh - 50px);
+    }
   }
 
   body {
@@ -127,6 +147,40 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     touch-action: manipulation;
+    /* Disable text selection / highlighting on all devices */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow selection only inside inputs / textareas */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Top ad slot — fixed 320x50 black bar, centered */
+  #ad-slot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #ad-slot::after {
+    content: "";
+    display: block;
+    width: 320px;
+    height: 50px;
+    background: #000;
   }
 
   h1,
