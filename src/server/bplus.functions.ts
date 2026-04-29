@@ -4,6 +4,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { paypalFetch } from "./paypal.server";
 
+// Expose only the client id (publishable, safe in browser) to the SPA so it
+// can mount PayPal Smart Buttons.
+export const getPaypalClientConfig = createServerFn({ method: "GET" }).handler(
+  async () => {
+    return {
+      clientId: process.env.PAYPAL_CLIENT_ID ?? "",
+      env: (process.env.PAYPAL_ENV ?? "sandbox").toLowerCase(),
+    };
+  }
+);
+
 type BplusConfigRow = {
   lifetime_quota: number;
   lifetime_sold: number;
