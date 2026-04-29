@@ -151,16 +151,6 @@ function AuthPage() {
           </button>
         </form>
 
-        <div className="my-3 text-center text-[10px] uppercase tracking-widest text-white/40">or</div>
-
-        <button
-          onClick={google}
-          disabled={busy}
-          className="btn-3d btn-3d-dark w-full text-sm disabled:opacity-50"
-        >
-          Continue with Google
-        </button>
-
         <Link
           to="/"
           className="mt-3 block text-center text-xs text-white/50 hover:text-white"
