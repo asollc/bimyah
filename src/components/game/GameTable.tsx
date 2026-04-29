@@ -249,7 +249,7 @@ export function GameTable({
   };
 
   return (
-    <div className="relative h-[100dvh] w-screen overflow-hidden">
+    <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
       {/* Top-left: Home + Mute, with SCORE label below in tournament */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-1.5">
         <div className="flex items-center gap-2">
