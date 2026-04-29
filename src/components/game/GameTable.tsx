@@ -673,6 +673,21 @@ function PlayerSeat({
         )}
         style={{ borderLeft: `3px solid ${colorHex}` }}
       >
+        {player.avatarUrl ? (
+          <img
+            src={player.avatarUrl}
+            alt=""
+            draggable={false}
+            className="h-4 w-4 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+            style={{ backgroundColor: colorHex }}
+          >
+            {player.name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
         <span>{player.name}</span>
         {player.isBot && <span className="opacity-60">🤖</span>}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
@@ -723,6 +738,7 @@ function PlayerSeat({
                 count={isOpen ? 0 : pile.length}
                 onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
                 highlight={isOpen}
+                imageUrl={player.cardBackUrl}
               />
             );
           })}

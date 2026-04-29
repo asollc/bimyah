@@ -66,12 +66,14 @@ export function CardBack({
   count = 1,
   onClick,
   highlight,
+  imageUrl,
 }: {
   width?: number;
   className?: string;
   count?: number;
   onClick?: () => void;
   highlight?: boolean;
+  imageUrl?: string | null;
 }) {
   const height = Math.round(width * 1.4);
   return (
@@ -89,7 +91,7 @@ export function CardBack({
         )}
       >
         <img
-          src={cardBackImg}
+          src={imageUrl || cardBackImg}
           alt=""
           draggable={false}
           className="absolute inset-0 h-full w-full object-cover"

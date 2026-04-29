@@ -29,7 +29,13 @@ export type CreateGameOptions = {
 
 export function createInitialGame(
   id: string,
-  playerSpecs: Array<{ id: string; name: string; isBot: boolean }>,
+  playerSpecs: Array<{
+    id: string;
+    name: string;
+    isBot: boolean;
+    avatarUrl?: string | null;
+    cardBackUrl?: string | null;
+  }>,
   opts: CreateGameOptions = {},
 ): GameState {
   const players: Player[] = playerSpecs.map((p, i) => ({
@@ -38,6 +44,8 @@ export function createInitialGame(
     color: PLAYER_COLORS[i],
     isBot: p.isBot,
     ready: false,
+    avatarUrl: p.avatarUrl ?? null,
+    cardBackUrl: p.cardBackUrl ?? null,
     reentryCode: p.isBot ? undefined : generateReentryCode(),
     piles: [],
     pileLocked: [],

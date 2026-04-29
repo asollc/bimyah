@@ -7,6 +7,8 @@ import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
 import { saveReentryCode } from "@/game/reentry";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
+import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { useAuth } from "@/auth/AuthProvider";
 
 export const Route = createFileRoute("/join/$gameId")({
   component: JoinGame,
@@ -15,6 +17,7 @@ export const Route = createFileRoute("/join/$gameId")({
 function JoinGame() {
   const { gameId } = Route.useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -50,12 +53,25 @@ function JoinGame() {
         .map((p) => p.reentryCode)
         .filter((c): c is string => !!c);
       const reentryCode = generateReentryCode(existingCodes);
+      let cosmetics: { avatarUrl: string | null; cardBackUrl: string | null } = {
+        avatarUrl: null,
+        cardBackUrl: null,
+      };
+      if (user) {
+        try {
+          cosmetics = await getMyCosmetics();
+        } catch {
+          /* ignore */
+        }
+      }
       const newPlayer = {
         id: myId,
         name: name.trim().slice(0, 14),
         color: PLAYER_COLORS[state.players.length],
         isBot: false,
         ready: false,
+        avatarUrl: cosmetics.avatarUrl,
+        cardBackUrl: cosmetics.cardBackUrl,
         reentryCode,
         piles: [],
         pileLocked: [],
