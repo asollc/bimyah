@@ -33,12 +33,9 @@ export const Route = createFileRoute("/plus")({
   component: PlusPage,
 });
 
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID as
-  | string
-  | undefined;
-
 function PlusPage() {
-  const status = Route.useLoaderData();
+  const { status, paypal } = Route.useLoaderData();
+  const PAYPAL_CLIENT_ID = paypal.clientId;
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [entitlement, setEntitlement] = useState<{
