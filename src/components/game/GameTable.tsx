@@ -684,52 +684,20 @@ function PlayerSeat({
 
   return (
     <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
-      {/* SET/SORT buttons + hand row (only for me, when pile open). Buttons sit
-          above the hand so they don't crowd the side of the cards. */}
+      {/* Hand row (only for me, when pile open). SET/SORT buttons render below
+          the piles further down so they sit under the card stacks. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
-        <>
-          <div className="mb-1 flex items-center justify-center gap-2">
-            <button
-              onClick={onSet}
-              disabled={!handReady}
-              className={cn(
-                "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition",
-                handReady
-                  ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
-                  : "bg-white/10 text-white/40",
-              )}
-            >
-              SET
-            </button>
-            <button
-              onClick={onSort}
-              disabled={player.hand.length < 2}
-              className={cn(
-                "flex items-center justify-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition",
-                sortEnabled
-                  ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
-                  : player.hand.length >= 2
-                  ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
-                  : "bg-white/5 text-white/30",
-              )}
-              aria-label="Sort hand by rank"
-            >
-              <ArrowDownUp className="h-2.5 w-2.5" />
-              SORT
-            </button>
-          </div>
-          <div className="mb-1 flex items-end justify-center gap-1.5">
-            {orderedHand.map((c) => (
-              <PlayingCard
-                key={c.id}
-                card={c}
-                width={42}
-                selected={selectedHandCardId === c.id}
-                onClick={() => onHandCardTap?.(c.id)}
-              />
-            ))}
-          </div>
-        </>
+        <div className="mb-1 flex items-end justify-center gap-1.5">
+          {orderedHand.map((c) => (
+            <PlayingCard
+              key={c.id}
+              card={c}
+              width={42}
+              selected={selectedHandCardId === c.id}
+              onClick={() => onHandCardTap?.(c.id)}
+            />
+          ))}
+        </div>
       )}
 
       {/* Name tag */}
@@ -810,6 +778,40 @@ function PlayerSeat({
               />
             );
           })}
+        </div>
+      )}
+
+      {/* SET/SORT buttons — under the piles, side by side */}
+      {isMe && player.openPileIndex !== null && status === "playing" && (
+        <div className="mt-1 flex items-center justify-center gap-1.5">
+          <button
+            onClick={onSet}
+            disabled={!handReady}
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+              handReady
+                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                : "bg-white/10 text-white/40",
+            )}
+          >
+            SET
+          </button>
+          <button
+            onClick={onSort}
+            disabled={player.hand.length < 2}
+            className={cn(
+              "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+              sortEnabled
+                ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                : player.hand.length >= 2
+                ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                : "bg-white/5 text-white/30",
+            )}
+            aria-label="Sort hand by rank"
+          >
+            <ArrowDownUp className="h-2 w-2" />
+            SORT
+          </button>
         </div>
       )}
 
