@@ -555,12 +555,60 @@ function getSeatPositions(n: number): SeatPos[] {
       { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
     ];
   }
-  // 4
+  if (n === 4) {
+    return [
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
+      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+    ];
+  }
+  // ===== 5-8 player layouts =====
+  // Seats are placed clockwise from South. Extras are inserted between the
+  // four cardinal seats (SE, NE, NW, SW corners).
+  if (n === 5) {
+    // S, SE, NE (top-right area), NW, SW
+    return [
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
+      { className: "bottom-2 right-2", pileLayout: "row", compact: true },
+      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "bottom-2 left-2", pileLayout: "row", compact: true },
+    ];
+  }
+  if (n === 6) {
+    // S, E, NE, N, NW, W
+    return [
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
+      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+    ];
+  }
+  if (n === 7) {
+    // S, SE, E, NE, NW, W, SW
+    return [
+      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
+      { className: "bottom-2 right-2", pileLayout: "row", compact: true },
+      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+      { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+      { className: "bottom-2 left-2", pileLayout: "row", compact: true },
+    ];
+  }
+  // 8: S, SE, E, NE, N, NW, W, SW
   return [
-    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
+    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
+    { className: "bottom-2 right-2", pileLayout: "row", compact: true },
     { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
+    { className: "top-3 right-2", pileLayout: "row", rotate: "rotate-180", compact: true },
+    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
+    { className: "top-3 left-2", pileLayout: "row", rotate: "rotate-180", compact: true },
     { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
+    { className: "bottom-2 left-2", pileLayout: "row", compact: true },
   ];
 }
 
