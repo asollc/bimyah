@@ -781,6 +781,40 @@ function PlayerSeat({
         </div>
       )}
 
+      {/* SET/SORT buttons — under the piles, side by side */}
+      {isMe && player.openPileIndex !== null && status === "playing" && (
+        <div className="mt-1 flex items-center justify-center gap-1.5">
+          <button
+            onClick={onSet}
+            disabled={!handReady}
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+              handReady
+                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                : "bg-white/10 text-white/40",
+            )}
+          >
+            SET
+          </button>
+          <button
+            onClick={onSort}
+            disabled={player.hand.length < 2}
+            className={cn(
+              "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+              sortEnabled
+                ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                : player.hand.length >= 2
+                ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                : "bg-white/5 text-white/30",
+            )}
+            aria-label="Sort hand by rank"
+          >
+            <ArrowDownUp className="h-2 w-2" />
+            SORT
+          </button>
+        </div>
+      )}
+
       {/* Ready button (lobby) */}
       {status === "lobby" && isMe && !player.ready && onReady && (
         <button onClick={onReady} className="btn-3d btn-3d-mint mt-2 text-base">
