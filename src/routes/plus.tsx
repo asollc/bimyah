@@ -71,7 +71,7 @@ function PlusPage() {
       <div className="text-3d-yellow font-display text-center text-2xl font-black uppercase tracking-widest sm:text-3xl">
         Bimyah!<span className="text-[var(--gold)]">+</span>
       </div>
-      <div className="mt-1 text-center text-[10px] uppercase tracking-[0.3em] text-white/50">
+      <div className="mt-1 text-center text-[10px] uppercase tracking-[0.3em] text-stone-950">
         Founding Member Preorder
       </div>
 
@@ -135,7 +135,7 @@ function PlusPage() {
             <li>✦ Custom avatar in every game</li>
             <li>✦ Upload your own card backs</li>
             <li>✦ Host games up to 8 players (5–8 seat rooms)</li>
-            <li>✦ Founding Member badge — yours forever</li>
+            <li>✦ Founding Member title — yours forever</li>
             <li>✦ All future Bimyah!+ features included for life</li>
           </ul>
 
