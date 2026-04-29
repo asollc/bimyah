@@ -69,7 +69,7 @@ function HomePage() {
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center justify-between overflow-x-hidden px-4 py-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:py-3">
+    <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center overflow-x-hidden px-4 pt-2 pb-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:pt-3 lg:pb-3">
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
@@ -77,8 +77,8 @@ function HomePage() {
         <HowToPlayButton />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-3">
-        <PowLogo size={180} />
+      <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
+        <PowLogo size={207} />
         <div
           className="text-3d-yellow font-display text-center text-xs font-black uppercase leading-tight sm:text-sm md:text-base"
           style={{ letterSpacing: "0.08em" }}
@@ -89,7 +89,7 @@ function HomePage() {
         </div>
       </div>
 
-      <div className="relative z-10 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
+      <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
         {!showSolo && !showJoin && !showHost && (
           <>
             <button onClick={() => setShowSolo(true)} className="btn-3d btn-3d-mint w-full text-base">
@@ -139,8 +139,9 @@ function FloatingCards() {
     { top: "55%", left: "90%", size: 40, rot: -22, dx: -10, dy: -12, dur: 12 },
     { top: "72%", left: "10%", size: 36, rot: 14, dx: 14, dy: -8, dur: 9.5 },
     { top: "80%", left: "78%", size: 42, rot: -10, dx: -12, dy: 10, dur: 10.5 },
-    { top: "30%", left: "48%", size: 30, rot: 22, dx: 8, dy: -10, dur: 13 },
-    { top: "88%", left: "45%", size: 32, rot: -16, dx: -8, dy: -12, dur: 11.5 },
+    { top: "92%", left: "4%", size: 32, rot: 20, dx: 10, dy: -10, dur: 11 },
+    { top: "92%", left: "88%", size: 34, rot: -18, dx: -10, dy: -8, dur: 10 },
+    { top: "30%", left: "94%", size: 30, rot: 12, dx: -8, dy: 10, dur: 12.5 },
   ];
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
