@@ -404,31 +404,36 @@ export function GameTable({
         const winner = state.players.find((p) => p.id === state.winnerId);
         const winnerName = winner?.name ?? "?";
         const isChampion = isTournament && state.championId === state.winnerId;
-        const headline = !isTournament
-          ? "WINNER"
-          : isChampion
-          ? "Game Champion"
-          : "Match Winner";
+        const borderColor = winner ? PLAYER_COLOR_HEX[winner.color] : "#fbbf24";
+        const isMeWinner = state.winnerId === meId;
         const subline = !isTournament
-          ? "BIMYAH!"
+          ? (isMeWinner ? "You Win!" : `${winnerName} Wins!`)
           : isChampion
-          ? `${state.scores[state.winnerId ?? ""] ?? 0} pts total`
-          : `+${state.lastMatchPoints ?? 0} pts`;
+          ? (isMeWinner
+              ? `You Win! ${state.scores[state.winnerId ?? ""] ?? 0} pts`
+              : `${winnerName} Wins! ${state.scores[state.winnerId ?? ""] ?? 0} pts`)
+          : (isMeWinner
+              ? `You Win! +${state.lastMatchPoints ?? 0} pts`
+              : `${winnerName} Wins! +${state.lastMatchPoints ?? 0} pts`);
         return (
           <>
             <Confetti />
-            <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4">
-              <div className="pow-burst" style={{ width: 260, height: 220 }}>
-                <div className="flex flex-col items-center text-[oklch(0.18_0.04_165)]">
-                  <div className="font-display text-xs font-bold uppercase tracking-widest">
-                    {headline}
-                  </div>
-                  <div className="font-display text-3xl font-black leading-tight">
-                    {winnerName}
-                  </div>
-                  <div className="mt-1 font-display text-lg font-black">
-                    {subline}
-                  </div>
+            <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
+              <div
+                className="win-popup animate-float-up"
+                style={{
+                  borderColor,
+                  boxShadow: `0 0 0 2px ${borderColor}55, 0 18px 50px -10px ${borderColor}aa, 0 8px 24px rgba(0,0,0,0.6)`,
+                }}
+              >
+                <div className="win-popup-inner">
+                  <div className="win-popup-title">BIMYAH!</div>
+                  <div className="win-popup-sub">{subline}</div>
+                  {isTournament && (
+                    <div className="win-popup-tag" style={{ color: borderColor }}>
+                      {isChampion ? "Game Champion" : "Match Winner"}
+                    </div>
+                  )}
                 </div>
               </div>
               {showPlayAgain && !isTournament && (
