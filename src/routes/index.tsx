@@ -13,6 +13,7 @@ import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
+import { getMyAdminStatus } from "@/server/admin.functions";
 import type { GameMode } from "@/game/types";
 
 export const Route = createFileRoute("/")({
@@ -104,6 +105,16 @@ function HomePage() {
   }
 
   const initial = (profile?.display_name ?? user?.email ?? "?").slice(0, 1).toUpperCase();
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!isAuthed) {
+      setIsAdmin(false);
+      return;
+    }
+    void getMyAdminStatus()
+      .then((r) => setIsAdmin(r.is_admin))
+      .catch(() => setIsAdmin(false));
+  }, [isAuthed]);
 
   return (
     <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center overflow-x-hidden px-4 pt-2 pb-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:pt-3 lg:pb-3">
@@ -130,6 +141,15 @@ function HomePage() {
           </Link>
         )}
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              to="/admin"
+              aria-label="Admin"
+              className="flex h-9 items-center gap-1 rounded-full bg-black/40 px-3 font-display text-[10px] font-black uppercase tracking-widest text-white ring-1 ring-white/30 transition hover:scale-105"
+            >
+              Admin
+            </Link>
+          )}
           <Link
             to="/plus"
             aria-label="Bimyah Plus"
