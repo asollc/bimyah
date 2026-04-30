@@ -32,6 +32,7 @@ import {
 
 export type Intent =
   | { kind: "addPlayer"; player: Player }
+  | { kind: "addBot" }
   | { kind: "ready"; playerId: string; ready: boolean }
   | { kind: "openPile"; playerId: string; stackIndex: number }
   | { kind: "closePile"; playerId: string }
