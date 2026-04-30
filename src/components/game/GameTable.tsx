@@ -20,7 +20,7 @@ import {
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX, ArrowDownUp } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 
@@ -55,6 +55,8 @@ export function GameTable({
   const botMemory = useRef(createBotMemory());
   const [muted, setMuted] = useState(sfx.isMuted());
   const [copied, setCopied] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
   const [showScoreboard, setShowScoreboard] = useState(false);
@@ -254,26 +256,17 @@ export function GameTable({
 
   return (
     <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
-      {/* Top-left: Home + Mute, with SCORE label below in tournament */}
-      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-1.5">
-        <div className="flex items-center gap-2">
-          <HomeButton />
-          <button
-            onClick={() => {
-              const next = !muted;
-              sfx.setMuted(next);
-              setMuted(next);
-            }}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-            aria-label="Mute"
-          >
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
-        </div>
+      {/* Top-left: Settings cog (with Score to its right in tournament) */}
+      <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
+        <button
+          onClick={() => setShowSettings(true)}
+          className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+          aria-label="Settings"
+        >
+          <Settings className="h-4 w-4" />
+        </button>
         {isTournament && state.pointLimit !== null && (
-          <div className="pl-1 pt-0.5">
-            <ScoreDisplay limit={state.pointLimit} />
-          </div>
+          <ScoreDisplay limit={state.pointLimit} />
         )}
       </div>
 
@@ -507,6 +500,67 @@ export function GameTable({
         onClose={() => setShowScoreboard(false)}
       />
 
+      {/* Settings popup */}
+      {showSettings && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowSettings(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+                Settings
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close settings"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {inviteUrl && (
+              <div className="mb-4">
+                <div className="mb-1 text-center text-[10px] uppercase tracking-widest text-white/50">
+                  Room code
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(inviteUrl);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 1500);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--mint)]/40 bg-black/40 px-3 py-2 font-mono text-xl font-bold tracking-[0.3em] text-[var(--mint)] active:scale-95"
+                  aria-label="Copy room code"
+                >
+                  <span>{inviteUrl}</span>
+                  {codeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-3">
+              <HomeButton />
+              <button
+                onClick={() => {
+                  const next = !muted;
+                  sfx.setMuted(next);
+                  setMuted(next);
+                }}
+                className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/80 ring-1 ring-white/15 active:scale-90"
+                aria-label="Mute"
+              >
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New tournament point-limit picker */}
       {showNewTournyPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -731,6 +785,13 @@ function PlayerSeat({
             draggable={false}
             className="h-4 w-4 rounded-full object-cover"
           />
+        ) : player.isBot ? (
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full bg-black/40 text-[10px] leading-none"
+            aria-label="Bot"
+          >
+            🤖
+          </span>
         ) : (
           <span
             className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
@@ -740,7 +801,6 @@ function PlayerSeat({
           </span>
         )}
         <span>{player.name}</span>
-        {player.isBot && <span className="opacity-60">🤖</span>}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 

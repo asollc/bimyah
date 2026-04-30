@@ -134,9 +134,18 @@ function HomePage() {
           <Link
             to="/profile"
             aria-label="Open profile"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--mint)]/20 font-display text-sm font-black text-[var(--mint)] ring-2 ring-[var(--mint)]/40 transition hover:scale-105"
+            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--mint)]/20 font-display text-sm font-black text-[var(--mint)] ring-2 ring-[var(--mint)]/40 transition hover:scale-105"
           >
-            {initial}
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                draggable={false}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initial
+            )}
           </Link>
         ) : (
           <Link
