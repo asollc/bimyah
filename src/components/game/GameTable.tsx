@@ -500,7 +500,7 @@ export function GameTable({
             player={player}
             position={pos}
             offset={offset}
-            draggable={!isMe}
+            draggable
             onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
             isMe={isMe}
             status={state.status}
