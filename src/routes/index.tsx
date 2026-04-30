@@ -178,6 +178,11 @@ function HomePage() {
           <br />
           With No Turns!
         </div>
+        {!isAuthed && !authLoading && (
+          <div className="text-center text-[10px] uppercase tracking-widest text-[var(--player-mint,#22c55e)]">
+            Free account required to play
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
