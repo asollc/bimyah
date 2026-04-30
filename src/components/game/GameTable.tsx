@@ -379,11 +379,11 @@ export function GameTable({
                       style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
                       aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
                     >
-                      <PlayingCard card={slot.card} width={36} />
+                      <PlayingCard card={slot.card} width={31} />
                     </div>
                   );
                 }
-                return <EmptySlot key={i} width={36} outlineColor={outline} />;
+                return <EmptySlot key={i} width={31} outlineColor={outline} />;
               };
               const bimyahBtn = state.status === "playing" && (
                 <button
