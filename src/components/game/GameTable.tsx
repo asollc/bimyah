@@ -865,10 +865,10 @@ function PlayerSeat({
       )}
       style={wrapperStyle}
     >
-      {/* Hand row (only for me, when pile open). SET/SORT buttons render below
-          the piles further down so they sit under the card stacks. */}
+      {/* Hand row (only for me, when pile open). Absolutely positioned ABOVE
+          the seat content so opening a pile does NOT shift the piles upward. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
-        <div className="mb-1 flex items-end justify-center gap-1.5">
+        <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
           {orderedHand.map((c) => (
             <PlayingCard
               key={c.id}
