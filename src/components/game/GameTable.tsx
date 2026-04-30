@@ -730,7 +730,7 @@ function PlayerSeat({
   const handReady =
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
-  const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
+  const pileWidth = isMe ? 37 : position.compact ? 20 : 26;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
   // ===== Drag state (other players only) =====
@@ -808,7 +808,7 @@ function PlayerSeat({
             <PlayingCard
               key={c.id}
               card={c}
-              width={42}
+              width={36}
               selected={selectedHandCardId === c.id}
               onClick={() => onHandCardTap?.(c.id)}
             />
