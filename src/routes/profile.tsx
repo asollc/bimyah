@@ -9,6 +9,7 @@ import {
   clearMyActiveCardBack,
 } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
+import { BplusIcon } from "@/components/BplusIcon";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -240,9 +241,9 @@ function ProfilePage() {
         {!isPlus && (
           <Link
             to="/plus"
-            className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
           >
-            Custom avatars unlock with Bimyah!+
+            Custom avatars unlock with <BplusIcon size={14} /> Bimyah!+
           </Link>
         )}
       </div>
@@ -321,9 +322,9 @@ function ProfilePage() {
         {!isPlus && (
           <Link
             to="/plus"
-            className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
           >
-            Custom card backs unlock with Bimyah!+
+            Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
           </Link>
         )}
       </div>
