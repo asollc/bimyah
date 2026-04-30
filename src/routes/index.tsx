@@ -5,7 +5,8 @@ import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import foundingMemberCard from "@/assets/founding-member-card.jpg";
 import { sfx } from "@/game/sfx";
-import { Bot, Users, Plus, Trophy, Swords, LogIn } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
@@ -137,34 +138,62 @@ function HomePage() {
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
-        {authLoading ? (
-          <div className="h-9 w-9" />
-        ) : isAuthed ? (
-          <Link
-            to="/profile"
-            aria-label="Open profile"
-            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--mint)]/20 font-display text-sm font-black text-[var(--mint)] ring-2 ring-[var(--mint)]/40 transition hover:scale-105"
+        <div className="flex items-center gap-2">
+          {authLoading ? (
+            <div className="h-9 w-9" />
+          ) : isAuthed ? (
+            <Link
+              to="/profile"
+              aria-label="Open profile"
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--mint)]/20 font-display text-sm font-black text-[var(--mint)] ring-2 ring-[var(--mint)]/40 transition hover:scale-105"
+            >
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt=""
+                  draggable={false}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initial
+              )}
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              aria-label="Sign in"
+              className="flex h-9 items-center gap-1 rounded-full bg-black/40 px-3 font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
+            >
+              <LogIn className="h-3 w-3" /> Sign In
+            </Link>
+          )}
+          <button
+            type="button"
+            aria-label="Share Bimyah!"
+            onClick={async () => {
+              const shareText = "I found a fun fast-paced card game called Bimyah! You should try it.";
+              const shareUrl = "https://playbimyah.com";
+              const shareData = { title: "Bimyah!", text: shareText, url: shareUrl };
+              try {
+                if (typeof navigator !== "undefined" && navigator.share) {
+                  await navigator.share(shareData);
+                  return;
+                }
+              } catch {
+                /* user cancelled or share failed — fall through to clipboard */
+              }
+              try {
+                await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                toast.success("Share link copied!");
+              } catch {
+                toast.error("Couldn't copy link");
+              }
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
           >
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                draggable={false}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              initial
-            )}
-          </Link>
-        ) : (
-          <Link
-            to="/auth"
-            aria-label="Sign in"
-            className="flex h-9 items-center gap-1 rounded-full bg-black/40 px-3 font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
-          >
-            <LogIn className="h-3 w-3" /> Sign In
-          </Link>
-        )}
+            <Share2 className="h-4 w-4" />
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
             <Link
