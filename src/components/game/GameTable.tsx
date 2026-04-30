@@ -698,6 +698,9 @@ function anchorTransform(anchor: SeatPos["anchor"]): string {
 function PlayerSeat({
   player,
   position,
+  offset,
+  draggable = false,
+  onDragEnd,
   isMe,
   status,
   onReady,
@@ -710,6 +713,9 @@ function PlayerSeat({
 }: {
   player: Player;
   position: SeatPos;
+  offset?: { dx: number; dy: number };
+  draggable?: boolean;
+  onDragEnd?: (dx: number, dy: number) => void;
   isMe: boolean;
   status: GameState["status"];
   onReady?: () => void;
@@ -724,12 +730,41 @@ function PlayerSeat({
   const handReady =
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
-  // Determine pile width based on player count and seat
   const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
-  // When sort mode is enabled, group identical ranks together (frequency desc,
-  // then rank asc). Recomputed every render so swaps stay grouped automatically.
+  // ===== Drag state (other players only) =====
+  const [dragDelta, setDragDelta] = useState<{ dx: number; dy: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; baseDx: number; baseDy: number; moved: boolean } | null>(null);
+  const baseDx = offset?.dx ?? 0;
+  const baseDy = offset?.dy ?? 0;
+  const liveDx = dragDelta ? dragDelta.dx : baseDx;
+  const liveDy = dragDelta ? dragDelta.dy : baseDy;
+
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    if (!draggable) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, baseDx, baseDy, moved: false };
+    setDragDelta({ dx: baseDx, dy: baseDy });
+  };
+  const onHandlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const { startX, startY, baseDx: bdx, baseDy: bdy } = dragRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true;
+    setDragDelta({ dx: bdx + dx, dy: bdy + dy });
+  };
+  const onHandlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    const final = dragDelta;
+    const moved = dragRef.current.moved;
+    dragRef.current = null;
+    setDragDelta(null);
+    if (moved && final && onDragEnd) onDragEnd(final.dx, final.dy);
+  };
+
   const orderedHand = (() => {
     if (!sortEnabled || player.hand.length < 2) return player.hand;
     const counts = new Map<string, number>();
@@ -749,8 +784,22 @@ function PlayerSeat({
     });
   })();
 
+  const wrapperStyle: React.CSSProperties = {
+    left: `${position.x}%`,
+    top: `${position.y}%`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)`,
+    transition: dragRef.current ? "none" : "transform 160ms ease-out",
+    touchAction: draggable ? "none" : undefined,
+  };
+
   return (
-    <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
+    <div
+      className={cn(
+        "absolute z-10 flex flex-col items-center gap-1",
+        dragRef.current && "z-30 opacity-95",
+      )}
+      style={wrapperStyle}
+    >
       {/* Hand row (only for me, when pile open). SET/SORT buttons render below
           the piles further down so they sit under the card stacks. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
