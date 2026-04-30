@@ -12,7 +12,11 @@ import { getMyEntitlement } from "@/server/bplus.functions";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
-    meta: [{ title: "Profile — BIMYAH!" }],
+    meta: [
+      { title: "Profile — Bimyah!" },
+      { name: "description", content: "Manage your Bimyah! profile, avatar, and card backs." },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   component: ProfilePage,
 });

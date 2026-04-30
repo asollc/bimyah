@@ -7,6 +7,13 @@ import { useAuth } from "@/auth/AuthProvider";
 import type { GameMode, GameState } from "@/game/types";
 
 export const Route = createFileRoute("/solo")({
+  head: () => ({
+    meta: [
+      { title: "Solo Game — Bimyah!" },
+      { name: "description", content: "Play Bimyah! solo against bots. Practice the fast-paced card race anytime." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: SoloGame,
 });
 

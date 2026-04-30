@@ -5,12 +5,19 @@ import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — BIMYAH!" },
-      { name: "description", content: "Sign in or create your free Bimyah! account." },
-    ],
-  }),
+  head: () => {
+    const title = "Sign in — Bimyah!";
+    const description = "Sign in or create your free Bimyah! account to play online with friends.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { name: "robots", content: "noindex" },
+      ],
+    };
+  },
   component: AuthPage,
 });
 

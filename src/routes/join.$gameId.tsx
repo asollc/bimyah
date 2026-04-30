@@ -11,6 +11,24 @@ import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { useAuth } from "@/auth/AuthProvider";
 
 export const Route = createFileRoute("/join/$gameId")({
+  head: () => {
+    const title = "Join a Bimyah! game";
+    const description = "You've been invited to a Bimyah! game. Jump in — it's fast, free, and no turns!";
+    const image = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:image", content: image },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+        { name: "robots", content: "noindex" },
+      ],
+    };
+  },
   component: JoinGame,
 });
 

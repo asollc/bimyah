@@ -12,6 +12,12 @@ import {
 } from "@/game/persistence";
 
 export const Route = createFileRoute("/game/$gameId")({
+  head: () => ({
+    meta: [
+      { title: "Game in progress — Bimyah!" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: OnlineGame,
 });
 

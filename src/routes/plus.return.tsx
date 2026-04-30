@@ -4,7 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/plus/return")({
   head: () => ({
-    meta: [{ title: "Bimyah!+ — Payment complete" }],
+    meta: [
+      { title: "Bimyah!+ — Payment complete" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   component: PlusReturn,
 });

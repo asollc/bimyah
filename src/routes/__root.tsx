@@ -32,18 +32,15 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Bimyah!" },
-      { name: "description", content: "Based on the James Bond card game. It is a fast-paced, simultaneous-play game where players race to collect four-of-a-kind in all their face-down piles." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Bimyah!" },
-      { property: "og:description", content: "Based on the James Bond card game. It is a fast-paced, simultaneous-play game where players race to collect four-of-a-kind in all their face-down piles." },
+      { name: "author", content: "Bimyah!" },
+      {
+        name: "keywords",
+        content:
+          "bimyah, bimyah!, cards, card game, online card game, family card game, easy card game, best card game, uno alternative, multiplayer card game",
+      },
+      { property: "og:site_name", content: "Bimyah!" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Bimyah!" },
-      { name: "twitter:description", content: "Based on the James Bond card game. It is a fast-paced, simultaneous-play game where players race to collect four-of-a-kind in all their face-down piles." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/40378d54-1b99-4ce4-860f-2bdf1d9a2201" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/40378d54-1b99-4ce4-860f-2bdf1d9a2201" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       {
