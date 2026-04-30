@@ -359,17 +359,9 @@ const recordShareSchema = z.object({
 });
 export const recordShareEvent = createServerFn({ method: "POST" })
   .inputValidator((d) => recordShareSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    // Optional auth: include user_id when present, otherwise anonymous.
-    const userId = (context as { userId?: string })?.userId ?? null;
-    let resolvedUserId: string | null = userId;
-    if (!resolvedUserId) {
-      // Try to read from the bearer token without forcing auth.
-      // If unavailable, store as anonymous.
-      resolvedUserId = null;
-    }
+  .handler(async ({ data }) => {
     const { error } = await supabaseAdmin.from("share_events").insert({
-      user_id: resolvedUserId,
+      user_id: null,
       method: data.method,
       source: data.source,
     });
