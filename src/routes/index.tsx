@@ -211,7 +211,7 @@ function HomePage() {
             </button>
             <Link
               to="/plus"
-              className="btn-3d btn-3d-gold w-full text-base"
+              className="btn-3d btn-3d-red w-full text-base text-white"
             >
               <span className="flex flex-col items-center leading-tight">
                 <span>Upgrade to BIMYAH!+</span>
