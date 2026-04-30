@@ -23,16 +23,26 @@ const STRIPE_PRICE_IDS: Record<StripePlan, string> = {
 };
 
 export const Route = createFileRoute("/plus")({
-  head: () => ({
-    meta: [
-      { title: "BIMYAH!+ — Lifetime Founding Member" },
-      {
-        name: "description",
-        content:
-          "Become a Bimyah!+ Founding Member. $5 lifetime — limited preorder. Custom avatars, card backs, 8-player rooms.",
-      },
-    ],
-  }),
+  head: () => {
+    const title = "Bimyah!+ — Lifetime Founding Member";
+    const description =
+      "Become a Bimyah!+ Founding Member. $5 lifetime — limited preorder. Custom avatars, card backs, and 8-player rooms.";
+    const image = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:image", content: image },
+        { property: "og:url", content: "https://playbimyah.com/plus" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+      ],
+      links: [{ rel: "canonical", href: "https://playbimyah.com/plus" }],
+    };
+  },
   loader: async () => {
     const [status, paypal] = await Promise.all([
       getBplusStatus(),

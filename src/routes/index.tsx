@@ -25,18 +25,26 @@ import {
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "BIMYAH! — Fast-paced card game" },
-      {
-        name: "description",
-        content:
-          "BIMYAH! A fast simultaneous card game inspired by James Bond. Race to four-of-a-kind in all your piles.",
-      },
-      { property: "og:title", content: "BIMYAH! Card Game" },
-      { property: "og:description", content: "Race to four-of-a-kind. Simultaneous, multiplayer." },
-    ],
-  }),
+  head: () => {
+    const title = "Bimyah! — A fast-paced card race with NO TURNS!";
+    const description =
+      "Bimyah! is a fast-paced card race with no turns. Play free online with friends, family, or bots. Easy to learn, impossible to put down.";
+    const image = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:image", content: image },
+        { property: "og:url", content: "https://playbimyah.com/" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+      ],
+      links: [{ rel: "canonical", href: "https://playbimyah.com/" }],
+    };
+  },
   component: HomePage,
 });
 
