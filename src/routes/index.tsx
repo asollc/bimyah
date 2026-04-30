@@ -251,7 +251,7 @@ function HomePage() {
 function FloatingCards() {
   const cards = [
     { top: "8%", left: "6%", size: 38, rot: -14, dx: 12, dy: -10, dur: 9 },
-    { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11 },
+    { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11, imageUrl: foundingMemberCard },
     { top: "42%", left: "3%", size: 34, rot: 8, dx: 10, dy: 14, dur: 10 },
     { top: "55%", left: "90%", size: 40, rot: -22, dx: -10, dy: -12, dur: 12 },
     { top: "72%", left: "10%", size: 36, rot: 14, dx: 14, dy: -8, dur: 9.5 },
@@ -278,7 +278,7 @@ function FloatingCards() {
             } as React.CSSProperties
           }
         >
-          <CardBack width={c.size} />
+          <CardBack width={c.size} imageUrl={c.imageUrl} />
         </div>
       ))}
     </div>
