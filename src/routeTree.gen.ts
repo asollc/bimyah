@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SoloRouteImport } from './routes/solo'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlusRouteImport } from './routes/plus'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -23,6 +25,16 @@ import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/
 const SoloRoute = SoloRouteImport.update({
   id: '/solo',
   path: '/solo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -77,6 +89,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
@@ -89,6 +103,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
@@ -102,6 +118,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
   '/game/$gameId': typeof GameGameIdRoute
   '/join/$gameId': typeof JoinGameIdRoute
@@ -116,6 +134,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/plus'
     | '/profile'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/solo'
     | '/game/$gameId'
     | '/join/$gameId'
@@ -128,6 +148,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/plus'
     | '/profile'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/solo'
     | '/game/$gameId'
     | '/join/$gameId'
@@ -140,6 +162,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/plus'
     | '/profile'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/solo'
     | '/game/$gameId'
     | '/join/$gameId'
@@ -153,6 +177,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PlusRoute: typeof PlusRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoloRoute: typeof SoloRoute
   GameGameIdRoute: typeof GameGameIdRoute
   JoinGameIdRoute: typeof JoinGameIdRoute
@@ -166,6 +192,20 @@ declare module '@tanstack/react-router' {
       path: '/solo'
       fullPath: '/solo'
       preLoaderRoute: typeof SoloRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -250,6 +290,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PlusRoute: PlusRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoloRoute: SoloRoute,
   GameGameIdRoute: GameGameIdRoute,
   JoinGameIdRoute: JoinGameIdRoute,
