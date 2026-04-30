@@ -15,7 +15,7 @@ import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
-import { getMyAdminStatus } from "@/server/admin.functions";
+import { getMyAdminStatus, recordShareEvent } from "@/server/admin.functions";
 import type { GameMode } from "@/game/types";
 import {
   Select,
