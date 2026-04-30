@@ -4,6 +4,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
+import { BplusIcon } from "@/components/BplusIcon";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
@@ -106,8 +107,9 @@ function PlusPage() {
         <PowLogo size={120} />
       </Link>
 
-      <div className="text-3d-yellow font-display text-center text-2xl font-black uppercase tracking-widest sm:text-3xl">
-        Bimyah!<span className="text-[var(--gold)]">+</span>
+      <div className="text-3d-yellow font-display flex items-center justify-center gap-2 text-center text-2xl font-black uppercase tracking-widest sm:text-3xl">
+        <span>Bimyah!<span className="text-[var(--gold)]">+</span></span>
+        <BplusIcon size={36} />
       </div>
       <div className="mt-1 text-center text-[10px] uppercase tracking-[0.3em] text-stone-950">
         Founding Member Preorder
@@ -129,8 +131,9 @@ function PlusPage() {
 
       {!success && isPlus && (
         <div className="mt-4 w-full max-w-md rounded-xl border border-[var(--gold)]/50 bg-black/40 p-4 text-center">
-          <div className="font-display text-base font-black text-[var(--gold)]">
-            You have Bimyah!+ ({entitlement?.plan})
+          <div className="font-display flex items-center justify-center gap-2 text-base font-black text-[var(--gold)]">
+            <BplusIcon size={22} />
+            <span>You have Bimyah!+ ({entitlement?.plan})</span>
           </div>
           {entitlement?.founding_member && (
             <div className="mt-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
