@@ -169,43 +169,8 @@ function HomePage() {
               <LogIn className="h-3 w-3" /> Sign In
             </Link>
           )}
-          <button
-            type="button"
-            aria-label="Share Bimyah!"
-            onClick={async () => {
-              const shareText = "I found a fun fast-paced card game called Bimyah! You should try it.";
-              const shareUrl = "https://playbimyah.com";
-              const shareData = { title: "Bimyah!", text: shareText, url: shareUrl };
-              let method: "web_share" | "clipboard" = "clipboard";
-              let success = false;
-              try {
-                if (typeof navigator !== "undefined" && navigator.share) {
-                  await navigator.share(shareData);
-                  method = "web_share";
-                  success = true;
-                }
-              } catch {
-                /* user cancelled or share failed — fall through to clipboard */
-              }
-              if (!success) {
-                try {
-                  await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-                  toast.success("Share link copied!");
-                  success = true;
-                } catch {
-                  toast.error("Couldn't copy link");
-                }
-              }
-              if (success) {
-                void recordShareEvent({
-                  data: { method, source: "home", user_id: user?.id ?? null },
-                }).catch(() => {});
-              }
-            }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
+          <SharePopover userId={user?.id ?? null} />
+
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
