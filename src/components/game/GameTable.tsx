@@ -169,6 +169,62 @@ export function GameTable({
     });
   };
 
+  // ===== Center zoom (pinch to enlarge/shrink table + center cards + Bimyah) =====
+  const zoomKey = `bimyah_center_zoom_${state.mode}_${seatOrder.length}`;
+  const [centerZoom, setCenterZoom] = useState<number>(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(zoomKey);
+      const n = raw ? parseFloat(raw) : 1;
+      setCenterZoom(Number.isFinite(n) && n > 0 ? n : 1);
+    } catch {
+      setCenterZoom(1);
+    }
+  }, [zoomKey]);
+  const persistZoom = (z: number) => {
+    try { localStorage.setItem(zoomKey, String(z)); } catch {}
+  };
+  // Pinch handling: track 2 active pointers on the center container.
+  const pinchRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    startDist: number;
+    startZoom: number;
+  }>({ startDist: 0, startZoom: 1 });
+  const centerPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    const p = pinchRef.current;
+    if (!p.a) {
+      p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    } else if (!p.b && e.pointerId !== p.a.id) {
+      p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      p.startDist = Math.hypot(dx, dy) || 1;
+      p.startZoom = centerZoom;
+    }
+  };
+  const centerPointerMove = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (!p.a || !p.b) return;
+    if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+    else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+    else return;
+    const dx = p.b.x - p.a.x;
+    const dy = p.b.y - p.a.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const next = Math.min(2, Math.max(0.6, p.startZoom * (dist / p.startDist)));
+    setCenterZoom(next);
+  };
+  const centerPointerUp = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (p.a?.id === e.pointerId) p.a = undefined;
+    if (p.b?.id === e.pointerId) p.b = undefined;
+    if (!p.a || !p.b) {
+      persistZoom(centerZoom);
+    }
+  };
+
   // helpers
   const handlePileTap = (pileIndex: number) => {
     if (!me || state.status !== "playing") return;
