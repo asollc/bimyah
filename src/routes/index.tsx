@@ -191,9 +191,9 @@ function HomePage() {
           <PowLogo size={207} />
           <span
             aria-label="beta"
-            className="absolute -bottom-2 -right-4 rotate-[-8deg] text-2xl sm:text-3xl"
+            className="absolute -bottom-2 -right-4 rotate-[-8deg] text-2xl sm:text-3xl font-black uppercase tracking-wider"
             style={{
-              fontFamily: "'Permanent Marker', 'Caveat', cursive",
+              fontFamily: "'Arial Black', 'Helvetica', sans-serif",
               color: "#fde047",
               textShadow: "0 0 6px rgba(253,224,71,0.6), 1px 1px 0 rgba(0,0,0,0.4)",
             }}
