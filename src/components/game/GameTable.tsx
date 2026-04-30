@@ -427,12 +427,16 @@ export function GameTable({
       {/* Player seats */}
       {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
-        const pos = positions[seatIdx];
+        const pos = basePositions[seatIdx];
+        const offset = seatOffsets[seatIdx];
         return (
           <PlayerSeat
             key={player.id}
             player={player}
             position={pos}
+            offset={offset}
+            draggable={!isMe}
+            onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
             isMe={isMe}
             status={state.status}
             onReady={isMe ? onReady : undefined}
