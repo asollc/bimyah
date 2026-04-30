@@ -22,6 +22,7 @@ import { Route as PlusReturnRouteImport } from './routes/plus.return'
 import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
 import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const SoloRoute = SoloRouteImport.update({
   id: '/solo',
@@ -88,6 +89,12 @@ const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   path: '/api/public/paypal-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/join/$gameId': typeof JoinGameIdRoute
   '/plus/return': typeof PlusReturnRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +126,7 @@ export interface FileRoutesByTo {
   '/join/$gameId': typeof JoinGameIdRoute
   '/plus/return': typeof PlusReturnRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +143,7 @@ export interface FileRoutesById {
   '/join/$gameId': typeof JoinGameIdRoute
   '/plus/return': typeof PlusReturnRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/join/$gameId'
     | '/plus/return'
     | '/api/public/paypal-webhook'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/join/$gameId'
     | '/plus/return'
     | '/api/public/paypal-webhook'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/join/$gameId'
     | '/plus/return'
     | '/api/public/paypal-webhook'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -196,6 +209,7 @@ export interface RootRouteChildren {
   GameGameIdRoute: typeof GameGameIdRoute
   JoinGameIdRoute: typeof JoinGameIdRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -291,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -317,6 +338,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameGameIdRoute: GameGameIdRoute,
   JoinGameIdRoute: JoinGameIdRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
