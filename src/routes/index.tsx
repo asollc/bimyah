@@ -266,6 +266,7 @@ function HomePage() {
 
 const SHARE_TEXT = "I found a fun fast-paced card game called Bimyah! You should try it.";
 const SHARE_URL = "https://playbimyah.com";
+const SHARE_IMAGE = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
 
 type ShareTarget = {
   key: string;
@@ -385,8 +386,24 @@ function SharePopover({ userId }: { userId: string | null }) {
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-64 border-[var(--mint)]/30 bg-black/95 p-3 text-white"
+        className="w-72 border-[var(--mint)]/30 bg-black/95 p-3 text-white"
       >
+        <div className="mb-3 overflow-hidden rounded-lg border border-[var(--mint)]/20 bg-black/60">
+          <img
+            src={SHARE_IMAGE}
+            alt="Bimyah! card game preview"
+            loading="lazy"
+            className="aspect-[1.91/1] w-full object-cover"
+          />
+          <div className="px-2 py-1.5">
+            <div className="text-[9px] uppercase tracking-widest text-white/50">
+              playbimyah.com
+            </div>
+            <div className="truncate text-[11px] font-medium text-white/90">
+              {SHARE_TEXT}
+            </div>
+          </div>
+        </div>
         <div className="mb-2 font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)]">
           Share Bimyah!
         </div>
