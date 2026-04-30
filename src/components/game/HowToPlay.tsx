@@ -52,12 +52,11 @@ export function HowToPlayButton({
             </Section>
             <Section title="Setup">
               <ul className="list-disc space-y-1 pl-5">
-                <li>2–4 humans, or up to 3 bots.</li>
+                <li>2–4 players standard. Up to <b>8 players</b> with Bimyah!+.</li>
+                <li>Mix humans and bots however you like.</li>
                 <li>Standard 52-card deck (no Jokers). Dealt entirely into face-down piles of 4.</li>
-                <li><b>2 players:</b> 6 piles each. Players sit opposite.</li>
-                <li><b>3 players:</b> 4 piles each. Triangle around the table.</li>
-                <li><b>4 players:</b> 3 piles each. Cross formation.</li>
-                <li>4 leftover cards go face-up in the middle.</li>
+                <li>Pile counts auto-adjust to the player count, with 4 leftover cards face-up in the middle.</li>
+                <li>A free account is required to play.</li>
               </ul>
             </Section>
             <Section title="Gameplay">
