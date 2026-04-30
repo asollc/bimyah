@@ -181,7 +181,7 @@ function PlusPage() {
                 onClick={() => navigate({ to: "/auth" })}
                 className="btn-3d btn-3d-gold w-full text-sm"
               >
-                Sign in to claim your spot
+                GIMME THESE PERKS!
               </button>
             ) : (
               <>
