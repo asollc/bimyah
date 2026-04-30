@@ -731,7 +731,8 @@ type SeatPos = {
  */
 function getSeatPositions(n: number): SeatPos[] {
   // South — local player. y is high (near bottom) so the hand row + piles fit.
-  const SOUTH: SeatPos = { x: 50, y: 92, anchor: "bottom-center", pileLayout: "row" };
+  // Leave ~12% below piles for the SET/SORT buttons that float under them.
+  const SOUTH: SeatPos = { x: 50, y: 86, anchor: "bottom-center", pileLayout: "row" };
   const NORTH: SeatPos = { x: 50, y: 6, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
   const EAST:  SeatPos = { x: 99, y: 50, anchor: "right-center", pileLayout: "row", compact: true };
   const WEST:  SeatPos = { x: 1,  y: 50, anchor: "left-center",  pileLayout: "row", compact: true };
