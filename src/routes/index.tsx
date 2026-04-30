@@ -15,6 +15,13 @@ import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { getMyAdminStatus } from "@/server/admin.functions";
 import type { GameMode } from "@/game/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -783,55 +790,104 @@ function HostFlow({
       </>
     );
   }
-  // seats
-  const freeSeats = [2, 3, 4];
-  const plusSeats = [5, 6, 7, 8];
-  const startWith = (seats: number) =>
-    onStart(name, mode, pointLimit, seats);
+  // seats — host picks additional seats (2-7), total players = additional + 1
+  return (
+    <SeatsStep
+      isPlus={isPlus}
+      hosting={hosting}
+      error={error}
+      onCancel={onCancel}
+      onStart={(additional) => onStart(name, mode, pointLimit, additional + 1)}
+    />
+  );
+}
+
+function SeatsStep({
+  isPlus,
+  hosting,
+  error,
+  onCancel,
+  onStart,
+}: {
+  isPlus: boolean;
+  hosting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onStart: (additionalSeats: number) => void;
+}) {
+  const navigate = useNavigate();
+  const [additional, setAdditional] = useState<number>(2);
+  const isPlusTier = additional >= 4; // 4 additional = 5 players total
+  const locked = isPlusTier && !isPlus;
+  const totalPlayers = additional + 1;
   return (
     <>
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
-        Max players
+        Opponent count
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        {freeSeats.map((s) => (
-          <button
-            key={s}
-            onClick={() => startWith(s)}
-            disabled={hosting}
-            className="btn-3d btn-3d-mint text-sm disabled:opacity-50"
-          >
-            {s}P
-          </button>
-        ))}
-      </div>
-      <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
-        <span className="h-px flex-1 bg-[var(--gold)]/30" />
-        Bimyah!+
-        <span className="h-px flex-1 bg-[var(--gold)]/30" />
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {plusSeats.map((s) =>
-          isPlus ? (
-            <button
-              key={s}
-              onClick={() => startWith(s)}
-              disabled={hosting}
-              className="btn-3d btn-3d-gold text-sm disabled:opacity-50"
-            >
-              {s}P
-            </button>
-          ) : (
-            <Link
-              key={s}
-              to="/plus"
-              className="btn-3d btn-3d-dark text-sm opacity-80"
-            >
-              🔒{s}P
-            </Link>
-          ),
+      <Select
+        value={String(additional)}
+        onValueChange={(v) => setAdditional(parseInt(v, 10))}
+      >
+        <SelectTrigger className="h-12 w-full rounded-lg border border-[var(--gold)]/50 bg-black/40 text-center font-display text-base text-white">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] text-white">
+          {[2, 3, 4, 5, 6, 7].map((n) => {
+            const plus = n >= 4;
+            return (
+              <SelectItem
+                key={n}
+                value={String(n)}
+                className={
+                  plus
+                    ? "text-[var(--gold)] focus:bg-[var(--gold)]/10 focus:text-[var(--gold)]"
+                    : "text-white focus:bg-white/10"
+                }
+              >
+                <span className="flex items-center gap-2">
+                  {n} opponents ({n + 1}P)
+                  {plus && (
+                    <span className="rounded bg-[var(--gold)]/20 px-1.5 py-0.5 font-display text-[9px] font-black uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+                      B!+
+                    </span>
+                  )}
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+      <div
+        className={
+          isPlusTier
+            ? "text-center font-display text-[10px] uppercase tracking-widest text-[var(--gold)]"
+            : "text-center text-[10px] uppercase tracking-widest text-white/50"
+        }
+      >
+        {totalPlayers} players total
+        {isPlusTier && (
+          <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-[var(--gold)]/20 px-1.5 py-0.5 text-[9px] font-black text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+            Bimyah!+
+          </span>
         )}
       </div>
+      {locked ? (
+        <button
+          onClick={() => void navigate({ to: "/plus" })}
+          className="btn-3d btn-3d-dark w-full text-sm"
+        >
+          🔒 Unlock with Bimyah!+
+        </button>
+      ) : (
+        <button
+          onClick={() => onStart(additional)}
+          disabled={hosting}
+          className={`btn-3d ${isPlusTier ? "btn-3d-gold" : "btn-3d-mint"} w-full text-sm disabled:opacity-50`}
+        >
+          {hosting ? "Starting…" : "Create Lobby"}
+        </button>
+      )}
       {hosting && (
         <div className="text-center text-xs text-white/60">Starting…</div>
       )}

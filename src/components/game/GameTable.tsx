@@ -304,6 +304,21 @@ export function GameTable({
         </div>
       )}
 
+      {/* Add Bot (host only, lobby only, seats available) */}
+      {state.status === "lobby" &&
+        isHost &&
+        state.players.length < (state.maxSeats ?? 4) && (
+          <div className="absolute left-1/2 top-12 z-30 -translate-x-1/2">
+            <button
+              onClick={() => dispatch({ kind: "addBot" })}
+              className="btn-3d btn-3d-dark flex items-center gap-1.5 px-3 py-1 text-[11px]"
+              aria-label="Add a bot to the lobby"
+            >
+              🤖 Add Bot
+            </button>
+          </div>
+        )}
+
       {/* Match # banner above the table (tournament only) */}
       {isTournament && (
         <div

@@ -8,6 +8,7 @@ import {
   newTournament,
   nextMatch,
   openPile,
+  PLAYER_COLORS,
   resetToLobby,
   setReady,
   swapCard,
@@ -31,6 +32,7 @@ import {
 
 export type Intent =
   | { kind: "addPlayer"; player: Player }
+  | { kind: "addBot" }
   | { kind: "ready"; playerId: string; ready: boolean }
   | { kind: "openPile"; playerId: string; stackIndex: number }
   | { kind: "closePile"; playerId: string }
@@ -55,6 +57,41 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         players: [...state.players, intent.player],
         scores: { ...state.scores, [intent.player.id]: state.scores[intent.player.id] ?? 0 },
       };
+    case "addBot": {
+      if (state.status !== "lobby") return state;
+      if (state.players.length >= (state.maxSeats ?? 4)) return state;
+      const usedColors = new Set(state.players.map((p) => p.color));
+      const color =
+        PLAYER_COLORS.find((c) => !usedColors.has(c)) ?? PLAYER_COLORS[0];
+      const usedNums = new Set(
+        state.players
+          .filter((p) => p.isBot)
+          .map((p) => {
+            const m = /^Bot\s+(\d+)$/.exec(p.name);
+            return m ? parseInt(m[1], 10) : 0;
+          }),
+      );
+      let n = 1;
+      while (usedNums.has(n)) n++;
+      const bot: Player = {
+        id: `bot_${Math.random().toString(36).slice(2, 8)}`,
+        name: `Bot ${n}`,
+        color,
+        isBot: true,
+        ready: true,
+        avatarUrl: null,
+        cardBackUrl: null,
+        piles: [],
+        pileLocked: [],
+        hand: [],
+        openPileIndex: null,
+      };
+      return {
+        ...state,
+        players: [...state.players, bot],
+        scores: { ...state.scores, [bot.id]: 0 },
+      };
+    }
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
