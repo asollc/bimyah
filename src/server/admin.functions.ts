@@ -356,12 +356,13 @@ export const getAdminBplusConfig = createServerFn({ method: "GET" })
 const recordShareSchema = z.object({
   method: z.enum(["web_share", "clipboard"]),
   source: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).default("home"),
+  user_id: z.string().uuid().nullable().optional(),
 });
 export const recordShareEvent = createServerFn({ method: "POST" })
   .inputValidator((d) => recordShareSchema.parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabaseAdmin.from("share_events").insert({
-      user_id: null,
+      user_id: data.user_id ?? null,
       method: data.method,
       source: data.source,
     });
