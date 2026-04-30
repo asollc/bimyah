@@ -179,7 +179,7 @@ function HomePage() {
           With No Turns!
         </div>
         {!isAuthed && !authLoading && (
-          <div className="text-center text-[10px] uppercase tracking-widest text-[var(--player-mint,#22c55e)]">
+          <div className="text-center text-[10px] uppercase tracking-widest text-[var(--player-mint,#22c55e)] border-stone-950 border-0 bg-transparent text-slate-50 font-sans">
             Free account required to play
           </div>
         )}
