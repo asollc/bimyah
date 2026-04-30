@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
+import { BplusIcon } from "@/components/BplusIcon";
 import foundingMemberCard from "@/assets/founding-member-card.jpg";
 import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2 } from "lucide-react";
@@ -580,6 +581,7 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
       ))}
       <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
         <span className="h-px flex-1 bg-[var(--gold)]/30" />
+        <BplusIcon size={16} />
         Bimyah!+
         <span className="h-px flex-1 bg-[var(--gold)]/30" />
       </div>
@@ -909,8 +911,8 @@ function SeatsStep({
                 <span className="flex items-center gap-2">
                   {n} opponents ({n + 1}P)
                   {plus && (
-                    <span className="rounded bg-[var(--gold)]/20 px-1.5 py-0.5 font-display text-[9px] font-black uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
-                      B!+
+                    <span className="inline-flex items-center rounded bg-[var(--gold)]/20 px-1 py-0.5 ring-1 ring-[var(--gold)]/40">
+                      <BplusIcon size={14} />
                     </span>
                   )}
                 </span>
@@ -929,6 +931,7 @@ function SeatsStep({
         {totalPlayers} players total
         {isPlusTier && (
           <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-[var(--gold)]/20 px-1.5 py-0.5 text-[9px] font-black text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+            <BplusIcon size={12} />
             Bimyah!+
           </span>
         )}
@@ -936,9 +939,9 @@ function SeatsStep({
       {locked ? (
         <button
           onClick={() => void navigate({ to: "/plus" })}
-          className="btn-3d btn-3d-dark w-full text-sm"
+          className="btn-3d btn-3d-dark inline-flex w-full items-center justify-center gap-2 text-sm"
         >
-          🔒 Unlock with Bimyah!+
+          🔒 Unlock with <BplusIcon size={18} /> Bimyah!+
         </button>
       ) : (
         <button

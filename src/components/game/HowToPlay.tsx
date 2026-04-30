@@ -7,6 +7,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BplusIcon } from "@/components/BplusIcon";
+
+function BPlus() {
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      <BplusIcon size={14} />
+      <b>Bimyah!+</b>
+    </span>
+  );
+}
 
 export function HowToPlayButton({
   floating = true,
@@ -52,7 +62,7 @@ export function HowToPlayButton({
             </Section>
             <Section title="Setup">
               <ul className="list-disc space-y-1 pl-5">
-                <li>2–4 players standard. Up to <b>8 players</b> with Bimyah!+.</li>
+                <li>2–4 players standard. Up to <b>8 players</b> with <BPlus />.</li>
                 <li>Mix humans and bots however you like.</li>
                 <li>Standard 52-card deck (no Jokers). Dealt entirely into face-down piles of 4.</li>
                 <li>Pile counts auto-adjust to the player count, with 4 leftover cards face-up in the middle.</li>
@@ -126,7 +136,7 @@ export function HowToPlayButton({
                 <li>From the home screen, tap <b>Create Game</b>.</li>
                 <li>Choose <b>Standard</b> or <b>Tournament</b> mode.</li>
                 <li>Enter your player name. For tournaments, set the point limit.</li>
-                <li>Pick the number of opponents (2–3 free, up to 7 with Bimyah!+).</li>
+                <li>Pick the number of opponents (2–3 free, up to 7 with <BPlus />).</li>
                 <li>You'll receive a <b>4-digit room code</b> — share it with friends.</li>
                 <li>Wait in the lobby until everyone joins. When all players have tapped <b>Ready</b>, the match begins.</li>
               </ol>
@@ -147,7 +157,7 @@ export function HowToPlayButton({
             </Section>
             <Section title="Lobby Tips">
               <ul className="list-disc space-y-1 pl-5">
-                <li>Up to 4 players free, up to 8 with Bimyah!+.</li>
+                <li>Up to 4 players free, up to 8 with <BPlus />.</li>
                 <li>The match starts only when all connected players are Ready.</li>
                 <li>The host's mode and point limit apply to everyone in the lobby.</li>
               </ul>
