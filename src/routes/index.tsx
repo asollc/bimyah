@@ -266,6 +266,7 @@ function HomePage() {
 
 const SHARE_TEXT = "I found a fun fast-paced card game called Bimyah! You should try it.";
 const SHARE_URL = "https://playbimyah.com";
+const SHARE_IMAGE = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
 
 type ShareTarget = {
   key: string;
