@@ -169,6 +169,62 @@ export function GameTable({
     });
   };
 
+  // ===== Center zoom (pinch to enlarge/shrink table + center cards + Bimyah) =====
+  const zoomKey = `bimyah_center_zoom_${state.mode}_${seatOrder.length}`;
+  const [centerZoom, setCenterZoom] = useState<number>(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(zoomKey);
+      const n = raw ? parseFloat(raw) : 1;
+      setCenterZoom(Number.isFinite(n) && n > 0 ? n : 1);
+    } catch {
+      setCenterZoom(1);
+    }
+  }, [zoomKey]);
+  const persistZoom = (z: number) => {
+    try { localStorage.setItem(zoomKey, String(z)); } catch {}
+  };
+  // Pinch handling: track 2 active pointers on the center container.
+  const pinchRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    startDist: number;
+    startZoom: number;
+  }>({ startDist: 0, startZoom: 1 });
+  const centerPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    const p = pinchRef.current;
+    if (!p.a) {
+      p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    } else if (!p.b && e.pointerId !== p.a.id) {
+      p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      p.startDist = Math.hypot(dx, dy) || 1;
+      p.startZoom = centerZoom;
+    }
+  };
+  const centerPointerMove = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (!p.a || !p.b) return;
+    if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+    else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+    else return;
+    const dx = p.b.x - p.a.x;
+    const dy = p.b.y - p.a.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const next = Math.min(2, Math.max(0.6, p.startZoom * (dist / p.startDist)));
+    setCenterZoom(next);
+  };
+  const centerPointerUp = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (p.a?.id === e.pointerId) p.a = undefined;
+    if (p.b?.id === e.pointerId) p.b = undefined;
+    if (!p.a || !p.b) {
+      persistZoom(centerZoom);
+    }
+  };
+
   // helpers
   const handlePileTap = (pileIndex: number) => {
     if (!me || state.status !== "playing") return;
@@ -341,80 +397,89 @@ export function GameTable({
         </div>
       )}
 
-      {/* Round table */}
-      <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
-        <div
-          className="wood-table grid place-items-center rounded-full"
-          style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
-        >
-          {/* Inner content: center cards + BIMYAH */}
-          <div className="flex flex-col items-center justify-center gap-1.5">
-            {state.status === "lobby" && (
-              <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
-                {state.players.length < 2 ? (
-                  "Waiting for players…"
-                ) : (
-                  <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
-                )}
-              </div>
-            )}
-            {state.status !== "lobby" && (() => {
-              const centerSlots = state.center;
-              const splitCenter = centerSlots.length >= 8;
-              const renderSlot = (slot: typeof centerSlots[number], i: number) => {
-                const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
-                const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
-                if (slot.card) {
-                  const isMine = slot.heldBy === meId;
-                  const readyToComplete = isMine && !!selectedHandCardId;
+      {/* Round table — pinch to zoom (scales table + center cards + Bimyah button together) */}
+      <div
+        className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
+        onPointerDown={centerPointerDown}
+        onPointerMove={centerPointerMove}
+        onPointerUp={centerPointerUp}
+        onPointerCancel={centerPointerUp}
+        style={{ touchAction: "none" }}
+      >
+        <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
+          <div
+            className="wood-table grid place-items-center rounded-full"
+            style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
+          >
+            {/* Inner content: center cards + BIMYAH */}
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              {state.status === "lobby" && (
+                <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
+                  {state.players.length < 2 ? (
+                    "Waiting for players…"
+                  ) : (
+                    <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
+                  )}
+                </div>
+              )}
+              {state.status !== "lobby" && (() => {
+                const centerSlots = state.center;
+                const splitCenter = centerSlots.length >= 8;
+                const renderSlot = (slot: typeof centerSlots[number], i: number) => {
+                  const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
+                  const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
+                  if (slot.card) {
+                    const isMine = slot.heldBy === meId;
+                    const readyToComplete = isMine && !!selectedHandCardId;
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => handleCenterTap(i)}
+                        className={cn(
+                          "cursor-pointer",
+                          outline && "rounded-lg p-0.5",
+                          readyToComplete && "animate-pulse-ring",
+                        )}
+                        style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
+                        aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
+                      >
+                        <PlayingCard card={slot.card} width={31} />
+                      </div>
+                    );
+                  }
+                  return <EmptySlot key={i} width={31} outlineColor={outline} />;
+                };
+                const bimyahBtn = state.status === "playing" && (
+                  <button
+                    onClick={handleBimyah}
+                    disabled={!canDeclareBimyah(state, meId)}
+                    className={cn(
+                      "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
+                      canDeclareBimyah(state, meId) && "animate-pulse-ring",
+                    )}
+                  >
+                    BIMYAH!
+                  </button>
+                );
+                if (splitCenter) {
+                  const top = centerSlots.slice(0, 4);
+                  const bottom = centerSlots.slice(4, 8);
                   return (
-                    <div
-                      key={i}
-                      onClick={() => handleCenterTap(i)}
-                      className={cn(
-                        "cursor-pointer",
-                        outline && "rounded-lg p-0.5",
-                        readyToComplete && "animate-pulse-ring",
-                      )}
-                      style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
-                      aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
-                    >
-                      <PlayingCard card={slot.card} width={31} />
-                    </div>
+                    <>
+                      <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                      {bimyahBtn}
+                      <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
+                    </>
                   );
                 }
-                return <EmptySlot key={i} width={31} outlineColor={outline} />;
-              };
-              const bimyahBtn = state.status === "playing" && (
-                <button
-                  onClick={handleBimyah}
-                  disabled={!canDeclareBimyah(state, meId)}
-                  className={cn(
-                    "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
-                    canDeclareBimyah(state, meId) && "animate-pulse-ring",
-                  )}
-                >
-                  BIMYAH!
-                </button>
-              );
-              if (splitCenter) {
-                const top = centerSlots.slice(0, 4);
-                const bottom = centerSlots.slice(4, 8);
                 return (
                   <>
-                    <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                    <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
                     {bimyahBtn}
-                    <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
                   </>
                 );
-              }
-              return (
-                <>
-                  <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
-                  {bimyahBtn}
-                </>
-              );
-            })()}
+              })()}
+            </div>
           </div>
         </div>
       </div>
@@ -435,7 +500,7 @@ export function GameTable({
             player={player}
             position={pos}
             offset={offset}
-            draggable={!isMe}
+            draggable
             onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
             isMe={isMe}
             status={state.status}
@@ -666,7 +731,8 @@ type SeatPos = {
  */
 function getSeatPositions(n: number): SeatPos[] {
   // South — local player. y is high (near bottom) so the hand row + piles fit.
-  const SOUTH: SeatPos = { x: 50, y: 92, anchor: "bottom-center", pileLayout: "row" };
+  // Leave ~12% below piles for the SET/SORT buttons that float under them.
+  const SOUTH: SeatPos = { x: 50, y: 86, anchor: "bottom-center", pileLayout: "row" };
   const NORTH: SeatPos = { x: 50, y: 6, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
   const EAST:  SeatPos = { x: 99, y: 50, anchor: "right-center", pileLayout: "row", compact: true };
   const WEST:  SeatPos = { x: 1,  y: 50, anchor: "left-center",  pileLayout: "row", compact: true };
@@ -800,10 +866,10 @@ function PlayerSeat({
       )}
       style={wrapperStyle}
     >
-      {/* Hand row (only for me, when pile open). SET/SORT buttons render below
-          the piles further down so they sit under the card stacks. */}
+      {/* Hand row (only for me, when pile open). Absolutely positioned ABOVE
+          the seat content so opening a pile does NOT shift the piles upward. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
-        <div className="mb-1 flex items-end justify-center gap-1.5">
+        <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
           {orderedHand.map((c) => (
             <PlayingCard
               key={c.id}
@@ -857,89 +923,93 @@ function PlayerSeat({
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
-      {/* Piles */}
+      {/* Piles (with SET/SORT absolutely anchored below for the local player
+          so opening a pile does NOT shift the piles upward) */}
       {status !== "lobby" && (
-        <div
-          className={cn(
-            "flex",
-            pileGap,
-            position.pileLayout === "col" ? "flex-col" : "flex-row",
-            !isMe && position.rotate,
-          )}
-        >
-          {player.piles.map((pile, i) => {
-            const locked = player.pileLocked[i];
-            if (locked) {
-              return <CascadeSet key={i} cards={pile} width={pileWidth} />;
-            }
-            const isOpen = isMe && player.openPileIndex === i;
-            if (pile.length === 0 && !isOpen) {
+        <div className="relative">
+          <div
+            className={cn(
+              "flex",
+              pileGap,
+              position.pileLayout === "col" ? "flex-col" : "flex-row",
+              !isMe && position.rotate,
+            )}
+          >
+            {player.piles.map((pile, i) => {
+              const locked = player.pileLocked[i];
+              if (locked) {
+                return <CascadeSet key={i} cards={pile} width={pileWidth} />;
+              }
+              const isOpen = isMe && player.openPileIndex === i;
+              if (pile.length === 0 && !isOpen) {
+                return (
+                  <div
+                    key={i}
+                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                    className="rounded-lg border-2 border-dashed border-white/10"
+                  />
+                );
+              }
+              if (pile.length === 0 && isOpen) {
+                return (
+                  <div key={i} className="relative inline-block">
+                    <div
+                      style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                      className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
+                    />
+                    <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
+                      OPEN
+                    </span>
+                  </div>
+                );
+              }
               return (
-                <div
+                <CardBack
                   key={i}
-                  style={{ width: pileWidth, height: pileWidth * 1.4 }}
-                  className="rounded-lg border-2 border-dashed border-white/10"
+                  width={pileWidth}
+                  count={isOpen ? 0 : pile.length}
+                  onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                  highlight={isOpen}
+                  imageUrl={player.cardBackUrl}
                 />
               );
-            }
-            if (pile.length === 0 && isOpen) {
-              return (
-                <div key={i} className="relative inline-block">
-                  <div
-                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
-                    className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
-                  />
-                  <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
-                    OPEN
-                  </span>
-                </div>
-              );
-            }
-            return (
-              <CardBack
-                key={i}
-                width={pileWidth}
-                count={isOpen ? 0 : pile.length}
-                onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
-                highlight={isOpen}
-                imageUrl={player.cardBackUrl}
-              />
-            );
-          })}
-        </div>
-      )}
+            })}
+          </div>
 
-      {/* SET/SORT buttons — under the piles, side by side */}
-      {isMe && player.openPileIndex !== null && status === "playing" && (
-        <div className="mt-1 flex items-center justify-center gap-1.5">
-          <button
-            onClick={onSet}
-            disabled={!handReady}
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
-              handReady
-                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
-                : "bg-white/10 text-white/40",
-            )}
-          >
-            SET
-          </button>
-          <button
-            onClick={onSort}
-            disabled={player.hand.length < 2}
-            className={cn(
-              "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
-              sortEnabled
-                ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
-                : player.hand.length >= 2
-                ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
-                : "bg-white/5 text-white/30",
-            )}
-            aria-label="Sort hand by rank"
-          >
-            <ArrowDownUp className="h-2 w-2" />
-            SORT
-          </button>
+          {/* SET/SORT buttons — absolutely positioned UNDER the piles so the
+              piles never shift when a pile is opened. */}
+          {isMe && player.openPileIndex !== null && status === "playing" && (
+            <div className="absolute left-1/2 top-full mt-1 flex -translate-x-1/2 items-center justify-center gap-1.5">
+              <button
+                onClick={onSet}
+                disabled={!handReady}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  handReady
+                    ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                    : "bg-white/10 text-white/40",
+                )}
+              >
+                SET
+              </button>
+              <button
+                onClick={onSort}
+                disabled={player.hand.length < 2}
+                className={cn(
+                  "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  sortEnabled
+                    ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                    : player.hand.length >= 2
+                    ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                    : "bg-white/5 text-white/30",
+                )}
+                aria-label="Sort hand by rank"
+              >
+                <ArrowDownUp className="h-2 w-2" />
+                SORT
+              </button>
+            </div>
+          )}
         </div>
       )}
 
