@@ -816,14 +816,20 @@ function PlayerSeat({
         </div>
       )}
 
-      {/* Name tag */}
+      {/* Name tag — also acts as the drag handle for non-me seats */}
       <div
+        onPointerDown={onHandlePointerDown}
+        onPointerMove={onHandlePointerMove}
+        onPointerUp={onHandlePointerUp}
+        onPointerCancel={onHandlePointerUp}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
+          "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur select-none",
           isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
-          !isMe && "mb-12",
+          !isMe && "mb-2",
+          draggable && "cursor-grab active:cursor-grabbing ring-1 ring-white/10",
         )}
-        style={{ borderLeft: `3px solid ${colorHex}` }}
+        style={{ borderLeft: `3px solid ${colorHex}`, touchAction: draggable ? "none" : undefined }}
+        title={draggable ? "Drag to reposition" : undefined}
       >
         {player.avatarUrl ? (
           <img
