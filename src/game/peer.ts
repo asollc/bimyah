@@ -1,5 +1,5 @@
 import Peer, { type DataConnection } from "peerjs";
-import type { GameState } from "./types";
+import type { GameState, Player } from "./types";
 import {
   closePile,
   declareBimyah,
@@ -30,6 +30,7 @@ import {
  */
 
 export type Intent =
+  | { kind: "addPlayer"; player: Player }
   | { kind: "ready"; playerId: string; ready: boolean }
   | { kind: "openPile"; playerId: string; stackIndex: number }
   | { kind: "closePile"; playerId: string }
@@ -40,12 +41,20 @@ export type Intent =
   | { kind: "playAgain" }
   | { kind: "nextMatch" }
   | { kind: "newTournament"; pointLimit: number | null }
-  /** Fallback: full-state replace (only used by host->client broadcasts and
-   *  rare client-side resets like Play Again that don't fit a named intent). */
+  /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
 export function applyIntent(state: GameState, intent: Intent): GameState {
   switch (intent.kind) {
+    case "addPlayer":
+      if (state.status !== "lobby") return state;
+      if (state.players.some((p) => p.id === intent.player.id)) return state;
+      if (state.players.length >= (state.maxSeats ?? 4)) return state;
+      return {
+        ...state,
+        players: [...state.players, intent.player],
+        scores: { ...state.scores, [intent.player.id]: state.scores[intent.player.id] ?? 0 },
+      };
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
@@ -216,6 +225,9 @@ function tryHost(
       conn.on("data", (raw) => {
         const msg = raw as Message;
         if (msg.type === "intent") {
+          if (msg.intent.kind === "replaceState") {
+            return;
+          }
           // Apply the joiner's intent against current authoritative state.
           applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
@@ -329,7 +341,6 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
         if (!state) return;
         state = mutator(state);
         notify();
-        send({ type: "intent", intent: { kind: "replaceState", state } });
       },
       sendIntent: (intent) => {
         send({ type: "intent", intent });
