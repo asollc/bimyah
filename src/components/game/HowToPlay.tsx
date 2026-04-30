@@ -123,23 +123,31 @@ export function HowToPlayButton({
           <TabsContent value="multiplayer" className="space-y-4 text-sm leading-relaxed text-white/85">
             <Section title="Hosting a Game">
               <ol className="list-decimal space-y-1 pl-5">
-                <li>From the home screen, tap <b>Play Multiplayer</b>.</li>
+                <li>From the home screen, tap <b>Create Game</b>.</li>
                 <li>Choose <b>Standard</b> or <b>Tournament</b> mode.</li>
                 <li>Enter your player name. For tournaments, set the point limit.</li>
-                <li>You'll receive a <b>game code / link</b> — share it with friends.</li>
+                <li>Pick the number of opponents (2–3 free, up to 7 with Bimyah!+).</li>
+                <li>You'll receive a <b>4-digit room code</b> — share it with friends.</li>
                 <li>Wait in the lobby until everyone joins. When all players have tapped <b>Ready</b>, the match begins.</li>
               </ol>
             </Section>
             <Section title="Joining a Game">
               <ol className="list-decimal space-y-1 pl-5">
-                <li>Open the link the host shared, or tap <b>Join</b> and enter the game code.</li>
+                <li>Open the link the host shared, or tap <b>Join with Code</b> and enter the 4-digit room code.</li>
                 <li>Enter your player name.</li>
                 <li>You'll be placed in the lobby. Tap <b>Ready</b> when you're set to play.</li>
               </ol>
             </Section>
+            <Section title="Reentry Codes">
+              <ul className="list-disc space-y-1 pl-5">
+                <li>Each seat has a private <b>4-digit reentry code</b> shown when you join.</li>
+                <li>If you lose connection or close the tab, tap <b>Join with Code</b>, enter the room code, then tap <b>Use Reentry Code</b> to take back your seat — hand, piles, and score intact.</li>
+                <li>Your most recent reentry code for a room is remembered on this device.</li>
+              </ul>
+            </Section>
             <Section title="Lobby Tips">
               <ul className="list-disc space-y-1 pl-5">
-                <li>Up to 4 humans per game.</li>
+                <li>Up to 4 players free, up to 8 with Bimyah!+.</li>
                 <li>The match starts only when all connected players are Ready.</li>
                 <li>The host's mode and point limit apply to everyone in the lobby.</li>
               </ul>
@@ -147,7 +155,7 @@ export function HowToPlayButton({
             <Section title="Connection">
               <ul className="list-disc space-y-1 pl-5">
                 <li>Multiplayer uses a peer connection — keep the tab open during play.</li>
-                <li>If a player disconnects, the host can wait or proceed with remaining players.</li>
+                <li>If you do drop, use your reentry code to rejoin without losing progress.</li>
                 <li>Tap the <b>Home</b> button to leave a match (you'll be asked to confirm).</li>
               </ul>
             </Section>
