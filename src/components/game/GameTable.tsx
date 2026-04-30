@@ -922,89 +922,93 @@ function PlayerSeat({
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
-      {/* Piles */}
+      {/* Piles (with SET/SORT absolutely anchored below for the local player
+          so opening a pile does NOT shift the piles upward) */}
       {status !== "lobby" && (
-        <div
-          className={cn(
-            "flex",
-            pileGap,
-            position.pileLayout === "col" ? "flex-col" : "flex-row",
-            !isMe && position.rotate,
-          )}
-        >
-          {player.piles.map((pile, i) => {
-            const locked = player.pileLocked[i];
-            if (locked) {
-              return <CascadeSet key={i} cards={pile} width={pileWidth} />;
-            }
-            const isOpen = isMe && player.openPileIndex === i;
-            if (pile.length === 0 && !isOpen) {
+        <div className="relative">
+          <div
+            className={cn(
+              "flex",
+              pileGap,
+              position.pileLayout === "col" ? "flex-col" : "flex-row",
+              !isMe && position.rotate,
+            )}
+          >
+            {player.piles.map((pile, i) => {
+              const locked = player.pileLocked[i];
+              if (locked) {
+                return <CascadeSet key={i} cards={pile} width={pileWidth} />;
+              }
+              const isOpen = isMe && player.openPileIndex === i;
+              if (pile.length === 0 && !isOpen) {
+                return (
+                  <div
+                    key={i}
+                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                    className="rounded-lg border-2 border-dashed border-white/10"
+                  />
+                );
+              }
+              if (pile.length === 0 && isOpen) {
+                return (
+                  <div key={i} className="relative inline-block">
+                    <div
+                      style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                      className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
+                    />
+                    <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
+                      OPEN
+                    </span>
+                  </div>
+                );
+              }
               return (
-                <div
+                <CardBack
                   key={i}
-                  style={{ width: pileWidth, height: pileWidth * 1.4 }}
-                  className="rounded-lg border-2 border-dashed border-white/10"
+                  width={pileWidth}
+                  count={isOpen ? 0 : pile.length}
+                  onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                  highlight={isOpen}
+                  imageUrl={player.cardBackUrl}
                 />
               );
-            }
-            if (pile.length === 0 && isOpen) {
-              return (
-                <div key={i} className="relative inline-block">
-                  <div
-                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
-                    className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
-                  />
-                  <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
-                    OPEN
-                  </span>
-                </div>
-              );
-            }
-            return (
-              <CardBack
-                key={i}
-                width={pileWidth}
-                count={isOpen ? 0 : pile.length}
-                onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
-                highlight={isOpen}
-                imageUrl={player.cardBackUrl}
-              />
-            );
-          })}
-        </div>
-      )}
+            })}
+          </div>
 
-      {/* SET/SORT buttons — under the piles, side by side */}
-      {isMe && player.openPileIndex !== null && status === "playing" && (
-        <div className="mt-1 flex items-center justify-center gap-1.5">
-          <button
-            onClick={onSet}
-            disabled={!handReady}
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
-              handReady
-                ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
-                : "bg-white/10 text-white/40",
-            )}
-          >
-            SET
-          </button>
-          <button
-            onClick={onSort}
-            disabled={player.hand.length < 2}
-            className={cn(
-              "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
-              sortEnabled
-                ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
-                : player.hand.length >= 2
-                ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
-                : "bg-white/5 text-white/30",
-            )}
-            aria-label="Sort hand by rank"
-          >
-            <ArrowDownUp className="h-2 w-2" />
-            SORT
-          </button>
+          {/* SET/SORT buttons — absolutely positioned UNDER the piles so the
+              piles never shift when a pile is opened. */}
+          {isMe && player.openPileIndex !== null && status === "playing" && (
+            <div className="absolute left-1/2 top-full mt-1 flex -translate-x-1/2 items-center justify-center gap-1.5">
+              <button
+                onClick={onSet}
+                disabled={!handReady}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  handReady
+                    ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                    : "bg-white/10 text-white/40",
+                )}
+              >
+                SET
+              </button>
+              <button
+                onClick={onSort}
+                disabled={player.hand.length < 2}
+                className={cn(
+                  "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  sortEnabled
+                    ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                    : player.hand.length >= 2
+                    ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--mint)] active:scale-95"
+                    : "bg-white/5 text-white/30",
+                )}
+                aria-label="Sort hand by rank"
+              >
+                <ArrowDownUp className="h-2 w-2" />
+                SORT
+              </button>
+            </div>
+          )}
         </div>
       )}
 
