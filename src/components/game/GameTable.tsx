@@ -641,83 +641,58 @@ export function GameTable({
 /* ============ Seat ============ */
 
 type SeatPos = {
-  // CSS classes to anchor seat container
-  className: string;
+  /** Anchor position as percent of viewport (0-100). Origin is the seat center. */
+  x: number; // left %
+  y: number; // top %
+  /** Translate origin: which corner of the seat sits at (x,y). */
+  anchor:
+    | "bottom-center"
+    | "top-center"
+    | "left-center"
+    | "right-center";
   pileLayout: "row" | "col";
   rotate?: string;
   compact?: boolean;
 };
 
+/**
+ * Seat positions (percent of viewport). Order:
+ *   index 0 = me (always South / bottom-center, NOT draggable)
+ *   Seats 1+ are filled per the rules:
+ *     1) North, East, West first
+ *     2) Then SE & SW (raised higher than the side seats so they don't overlap
+ *        the local hand/expanded piles)
+ *     3) Then NE & NW (also kept inset so they don't overlap each other)
+ */
 function getSeatPositions(n: number): SeatPos[] {
-  if (n === 2) {
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    ];
+  // South — local player. y is high (near bottom) so the hand row + piles fit.
+  const SOUTH: SeatPos = { x: 50, y: 92, anchor: "bottom-center", pileLayout: "row" };
+  const NORTH: SeatPos = { x: 50, y: 6, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const EAST:  SeatPos = { x: 99, y: 50, anchor: "right-center", pileLayout: "row", compact: true };
+  const WEST:  SeatPos = { x: 1,  y: 50, anchor: "left-center",  pileLayout: "row", compact: true };
+  // SE / SW — raised above the bottom hand area (y ≈ 62 instead of ~75)
+  const SE:    SeatPos = { x: 96, y: 62, anchor: "right-center", pileLayout: "row", compact: true };
+  const SW:    SeatPos = { x: 4,  y: 62, anchor: "left-center",  pileLayout: "row", compact: true };
+  // NE / NW — kept inset from N and E/W so nothing overlaps
+  const NE:    SeatPos = { x: 78, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const NW:    SeatPos = { x: 22, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+
+  if (n === 2) return [SOUTH, NORTH];
+  if (n === 3) return [SOUTH, EAST, WEST];
+  if (n === 4) return [SOUTH, NORTH, EAST, WEST];
+  if (n === 5) return [SOUTH, NORTH, EAST, WEST, SE];
+  if (n === 6) return [SOUTH, NORTH, EAST, WEST, SE, SW];
+  if (n === 7) return [SOUTH, NORTH, EAST, WEST, SE, SW, NE];
+  return [SOUTH, NORTH, EAST, WEST, SE, SW, NE, NW];
+}
+
+function anchorTransform(anchor: SeatPos["anchor"]): string {
+  switch (anchor) {
+    case "bottom-center": return "translate(-50%, -100%)";
+    case "top-center":    return "translate(-50%, 0%)";
+    case "left-center":   return "translate(0%, -50%)";
+    case "right-center":  return "translate(-100%, -50%)";
   }
-  if (n === 3) {
-    // West, South, East — me at bottom (south); other two at side seats.
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 4) {
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  // ===== 5-8 player layouts =====
-  // Seats are placed clockwise from South. Extras are inserted between the
-  // four cardinal seats (SE, NE, NW, SW corners).
-  if (n === 5) {
-    // S, SE, NE (top-right area), NW, SW
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 6) {
-    // S, E, NE, N, NW, W
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 7) {
-    // S, SE, E, NE, NW, W, SW
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-    ];
-  }
-  // 8: S, SE, E, NE, N, NW, W, SW
-  return [
-    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-    { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-  ];
 }
 
 function PlayerSeat({
