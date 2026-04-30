@@ -159,6 +159,7 @@ function PlusPage() {
 
           <ul className="mt-4 space-y-2 text-sm text-white/80">
             <li>✦ Custom avatar in every game</li>
+            <li>✦ Display your badges in-game</li>
             <li>✦ Upload your own card backs</li>
             <li>✦ Host games up to 8 players (5–8 seat rooms)</li>
             <li>✦ Founding Member title — yours forever</li>
