@@ -12,6 +12,7 @@ import {
   setFoundingMember,
   getAdminBplusConfig,
   updateBplusConfig,
+  getShareStats,
 } from "@/server/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,10 +95,11 @@ function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subs">Subscriptions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
 
@@ -109,6 +111,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="users" className="mt-6">
             <UsersTab />
+          </TabsContent>
+          <TabsContent value="shares" className="mt-6">
+            <SharesTab />
           </TabsContent>
           <TabsContent value="config" className="mt-6">
             <ConfigTab />
@@ -537,6 +542,96 @@ function Field({
           onChange(type === "cents" ? Math.round(n * 100) : Math.round(n));
         }}
       />
+    </div>
+  );
+}
+
+// ---------- Shares ----------
+type ShareStats = Awaited<ReturnType<typeof getShareStats>>;
+function SharesTab() {
+  const [data, setData] = useState<ShareStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await getShareStats();
+      setData(res);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    void refresh();
+  }, []);
+  if (loading && !data) return <Loader2 className="h-5 w-5 animate-spin" />;
+  if (!data) return null;
+  const stats = [
+    { label: "Total shares", value: String(data.total) },
+    { label: "Last 30 days", value: String(data.last_30d) },
+    { label: "Last 7 days", value: String(data.last_7d) },
+    { label: "Native share (30d)", value: String(data.web_share_30d) },
+    { label: "Copied link (30d)", value: String(data.clipboard_30d) },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Share activity
+        </h2>
+        <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {stats.map((s) => (
+          <Card key={s.label} className="p-4">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
+            <div className="mt-1 text-2xl font-semibold">{s.value}</div>
+          </Card>
+        ))}
+      </div>
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="p-2">When</th>
+              <th className="p-2">User</th>
+              <th className="p-2">Method</th>
+              <th className="p-2">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.recent.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-2 text-xs">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="p-2">
+                  <div className="font-medium">{r.display_name}</div>
+                  {r.user_id && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {r.user_id.slice(0, 8)}…
+                    </div>
+                  )}
+                </td>
+                <td className="p-2">
+                  <Badge variant={r.method === "web_share" ? "default" : "secondary"}>
+                    {r.method === "web_share" ? "Native share" : "Copied link"}
+                  </Badge>
+                </td>
+                <td className="p-2 text-xs">{r.source}</td>
+              </tr>
+            ))}
+            {data.recent.length === 0 && (
+              <tr>
+                <td colSpan={4} className="p-4 text-center text-sm text-muted-foreground">
+                  No shares yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }

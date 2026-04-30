@@ -283,6 +283,30 @@ export type Database = {
         }
         Relationships: []
       }
+      share_events: {
+        Row: {
+          created_at: string
+          id: string
+          method: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          method: string
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          method?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean

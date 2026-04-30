@@ -15,7 +15,7 @@ import { saveReentryCode, loadReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
-import { getMyAdminStatus } from "@/server/admin.functions";
+import { getMyAdminStatus, recordShareEvent } from "@/server/admin.functions";
 import type { GameMode } from "@/game/types";
 import {
   Select,
@@ -174,19 +174,30 @@ function HomePage() {
               const shareText = "I found a fun fast-paced card game called Bimyah! You should try it.";
               const shareUrl = "https://playbimyah.com";
               const shareData = { title: "Bimyah!", text: shareText, url: shareUrl };
+              let method: "web_share" | "clipboard" = "clipboard";
+              let success = false;
               try {
                 if (typeof navigator !== "undefined" && navigator.share) {
                   await navigator.share(shareData);
-                  return;
+                  method = "web_share";
+                  success = true;
                 }
               } catch {
                 /* user cancelled or share failed — fall through to clipboard */
               }
-              try {
-                await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-                toast.success("Share link copied!");
-              } catch {
-                toast.error("Couldn't copy link");
+              if (!success) {
+                try {
+                  await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                  toast.success("Share link copied!");
+                  success = true;
+                } catch {
+                  toast.error("Couldn't copy link");
+                }
+              }
+              if (success) {
+                void recordShareEvent({
+                  data: { method, source: "home", user_id: user?.id ?? null },
+                }).catch(() => {});
               }
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
