@@ -147,9 +147,39 @@ function AuthPage() {
           </button>
         </form>
 
+        {mode === "signin" && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setErr(null);
+              setInfo(null);
+              if (!email.trim()) {
+                setErr("Enter your email above, then tap Forgot password.");
+                return;
+              }
+              setBusy(true);
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (error) throw error;
+                setInfo("Check your email for a password reset link.");
+              } catch (e) {
+                setErr((e as Error).message ?? "Could not send reset email.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="mt-3 block w-full text-center text-xs text-white/60 hover:text-white"
+          >
+            Forgot password?
+          </button>
+        )}
+
         <Link
           to="/"
-          className="mt-3 block text-center text-xs text-white/50 hover:text-white"
+          className="mt-2 block text-center text-xs text-white/50 hover:text-white"
         >
           Back to home
         </Link>
