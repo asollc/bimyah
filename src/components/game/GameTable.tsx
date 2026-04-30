@@ -20,7 +20,7 @@ import {
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX, ArrowDownUp } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 
