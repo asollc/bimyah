@@ -264,7 +264,162 @@ function HomePage() {
   );
 }
 
-function FloatingCards() {
+const SHARE_TEXT = "I found a fun fast-paced card game called Bimyah! You should try it.";
+const SHARE_URL = "https://playbimyah.com";
+
+type ShareTarget = {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  build?: () => string;
+  onClick?: () => void | Promise<void>;
+};
+
+function SharePopover({ userId }: { userId: string | null }) {
+  const [open, setOpen] = useState(false);
+
+  function track(method: string) {
+    void recordShareEvent({
+      data: {
+        method: method === "clipboard" ? "clipboard" : "web_share",
+        source: `home:${method}`,
+        user_id: userId,
+      },
+    }).catch(() => {});
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(`${SHARE_TEXT} ${SHARE_URL}`);
+      toast.success("Link copied! Paste it into Instagram, TikTok, or anywhere.");
+      track("clipboard");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+    setOpen(false);
+  }
+
+  function openIntent(url: string, key: string) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    track(key);
+    setOpen(false);
+  }
+
+  const encodedText = encodeURIComponent(SHARE_TEXT);
+  const encodedUrl = encodeURIComponent(SHARE_URL);
+  const encodedTextWithUrl = encodeURIComponent(`${SHARE_TEXT} ${SHARE_URL}`);
+
+  const targets: ShareTarget[] = [
+    {
+      key: "twitter",
+      label: "X / Twitter",
+      icon: Twitter,
+      color: "text-sky-400",
+      build: () => `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+    },
+    {
+      key: "facebook",
+      label: "Facebook",
+      icon: Facebook,
+      color: "text-blue-500",
+      build: () => `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
+    },
+    {
+      key: "whatsapp",
+      label: "WhatsApp",
+      icon: MessageCircle,
+      color: "text-green-400",
+      build: () => `https://api.whatsapp.com/send?text=${encodedTextWithUrl}`,
+    },
+    {
+      key: "telegram",
+      label: "Telegram",
+      icon: Send,
+      color: "text-sky-300",
+      build: () => `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+    },
+    {
+      key: "linkedin",
+      label: "LinkedIn",
+      icon: Linkedin,
+      color: "text-blue-400",
+      build: () => `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      key: "reddit",
+      label: "Reddit",
+      icon: Share2,
+      color: "text-orange-400",
+      build: () =>
+        `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent("Bimyah! — a fast-paced no-turns card game")}`,
+    },
+    {
+      key: "email",
+      label: "Email",
+      icon: Mail,
+      color: "text-amber-300",
+      build: () =>
+        `mailto:?subject=${encodeURIComponent("You should try Bimyah!")}&body=${encodedTextWithUrl}`,
+    },
+    {
+      key: "copy",
+      label: "Copy link",
+      icon: LinkIcon,
+      color: "text-[var(--mint)]",
+      onClick: handleCopy,
+    },
+  ];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Share Bimyah!"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-[var(--mint)] ring-1 ring-[var(--mint)]/40 transition hover:scale-105"
+        >
+          <Share2 className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="w-64 border-[var(--mint)]/30 bg-black/95 p-3 text-white"
+      >
+        <div className="mb-2 font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)]">
+          Share Bimyah!
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {targets.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => {
+                  if (t.onClick) void t.onClick();
+                  else if (t.build) openIntent(t.build(), t.key);
+                }}
+                aria-label={`Share to ${t.label}`}
+                title={t.label}
+                className="flex flex-col items-center gap-1 rounded-lg p-2 transition hover:bg-white/10"
+              >
+                <Icon className={`h-5 w-5 ${t.color}`} />
+                <span className="text-[9px] leading-tight text-white/80">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[10px] leading-snug text-white/50">
+          Tap a platform to open a pre-filled post. For Instagram, TikTok, or Snapchat use Copy link.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
   const cards = [
     { top: "8%", left: "6%", size: 38, rot: -14, dx: 12, dy: -10, dur: 9 },
     { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11, imageUrl: foundingMemberCard },
