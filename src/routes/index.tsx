@@ -205,11 +205,6 @@ function HomePage() {
                 <span className="text-[10px] font-normal opacity-80 normal-case">
                   Play with bots, humans, or both
                 </span>
-                {!isAuthed && !authLoading && (
-                  <span className="text-[10px] font-normal normal-case tracking-widest text-[var(--player-mint,#22c55e)]">
-                    Free account required to play
-                  </span>
-                )}
               </span>
             </button>
             <button
