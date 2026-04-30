@@ -207,12 +207,6 @@ function HomePage() {
             >
               <Users className="mr-2 h-5 w-5" /> Join with Code
             </button>
-            <button
-              onClick={() => requireAuth(() => setShowSolo(true))}
-              className="btn-3d btn-3d-mint w-full text-base"
-            >
-              <Bot className="mr-2 h-5 w-5" /> Solo vs Bots
-            </button>
             <Link
               to="/plus"
               className="btn-3d btn-3d-gold w-full text-base"
