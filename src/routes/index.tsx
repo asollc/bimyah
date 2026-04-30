@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
+import foundingMemberCard from "@/assets/founding-member-card.jpg";
 import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords, LogIn } from "lucide-react";
 import { createInitialGame } from "@/game/engine";
