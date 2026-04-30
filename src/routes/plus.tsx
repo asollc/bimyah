@@ -112,7 +112,7 @@ function PlusPage() {
         <BplusIcon size={36} />
       </div>
       <div className="mt-1 text-center text-[10px] uppercase tracking-[0.3em] text-stone-950">
-        Founding Member Preorder
+        Founding CARDER Preorder
       </div>
 
       {success && (
