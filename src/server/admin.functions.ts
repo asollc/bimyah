@@ -351,3 +351,82 @@ export const getAdminBplusConfig = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data;
   });
+
+// ---------- Share tracking ----------
+const recordShareSchema = z.object({
+  method: z.enum(["web_share", "clipboard"]),
+  source: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).default("home"),
+});
+export const recordShareEvent = createServerFn({ method: "POST" })
+  .inputValidator((d) => recordShareSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    // Optional auth: include user_id when present, otherwise anonymous.
+    const userId = (context as { userId?: string })?.userId ?? null;
+    let resolvedUserId: string | null = userId;
+    if (!resolvedUserId) {
+      // Try to read from the bearer token without forcing auth.
+      // If unavailable, store as anonymous.
+      resolvedUserId = null;
+    }
+    const { error } = await supabaseAdmin.from("share_events").insert({
+      user_id: resolvedUserId,
+      method: data.method,
+      source: data.source,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getShareStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [totalRes, last30Res, last7Res, recentRes] = await Promise.all([
+      supabaseAdmin.from("share_events").select("id", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("share_events")
+        .select("method", { count: "exact" })
+        .gte("created_at", since30),
+      supabaseAdmin
+        .from("share_events")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since7),
+      supabaseAdmin
+        .from("share_events")
+        .select("id, user_id, method, source, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    const byMethod30: Record<string, number> = { web_share: 0, clipboard: 0 };
+    for (const row of last30Res.data ?? []) {
+      byMethod30[row.method] = (byMethod30[row.method] ?? 0) + 1;
+    }
+
+    const userIds = Array.from(
+      new Set((recentRes.data ?? []).map((r) => r.user_id).filter((v): v is string => !!v))
+    );
+    const nameById = new Map<string, string>();
+    if (userIds.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      for (const p of profs ?? []) nameById.set(p.id, p.display_name);
+    }
+
+    return {
+      total: totalRes.count ?? 0,
+      last_30d: (last30Res.data ?? []).length,
+      last_7d: last7Res.count ?? 0,
+      web_share_30d: byMethod30.web_share ?? 0,
+      clipboard_30d: byMethod30.clipboard ?? 0,
+      recent: (recentRes.data ?? []).map((r) => ({
+        ...r,
+        display_name: r.user_id ? (nameById.get(r.user_id) ?? "(unknown)") : "Anonymous",
+      })),
+    };
+  });
