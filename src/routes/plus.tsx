@@ -179,7 +179,7 @@ function PlusPage() {
             {authLoading ? null : !user ? (
               <button
                 onClick={() => navigate({ to: "/auth" })}
-                className="btn-3d btn-3d-gold w-full text-sm"
+                className="btn-3d btn-3d-gold mx-auto block w-[70%] text-xs"
               >
                 GIMME THESE PERKS!
               </button>
