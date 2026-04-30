@@ -785,6 +785,13 @@ function PlayerSeat({
             draggable={false}
             className="h-4 w-4 rounded-full object-cover"
           />
+        ) : player.isBot ? (
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full bg-black/40 text-[10px] leading-none"
+            aria-label="Bot"
+          >
+            🤖
+          </span>
         ) : (
           <span
             className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
@@ -794,7 +801,6 @@ function PlayerSeat({
           </span>
         )}
         <span>{player.name}</span>
-        {player.isBot && <span className="opacity-60">🤖</span>}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
