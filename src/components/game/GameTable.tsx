@@ -148,7 +148,26 @@ export function GameTable({
     if (idx <= 0) return state.players;
     return [...state.players.slice(idx), ...state.players.slice(0, idx)];
   }, [state.players, meId]);
-  const positions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
+  const basePositions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
+
+  // ===== Per-seat drag offsets, persisted locally per (mode, playerCount) =====
+  const layoutKey = `bimyah_seat_offsets_${state.mode}_${seatOrder.length}`;
+  const [seatOffsets, setSeatOffsets] = useState<Record<number, { dx: number; dy: number }>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(layoutKey);
+      setSeatOffsets(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatOffsets({});
+    }
+  }, [layoutKey]);
+  const updateSeatOffset = (seatIdx: number, dx: number, dy: number) => {
+    setSeatOffsets((cur) => {
+      const next = { ...cur, [seatIdx]: { dx, dy } };
+      try { localStorage.setItem(layoutKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // helpers
   const handlePileTap = (pileIndex: number) => {
