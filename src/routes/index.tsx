@@ -178,6 +178,11 @@ function HomePage() {
           <br />
           With No Turns!
         </div>
+        {!isAuthed && !authLoading && (
+          <div className="text-center text-[10px] uppercase tracking-widest text-[var(--player-mint,#22c55e)]">
+            Free account required to play
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
@@ -200,11 +205,6 @@ function HomePage() {
                 <span className="text-[10px] font-normal opacity-80 normal-case">
                   Play with bots, humans, or both
                 </span>
-                {!isAuthed && !authLoading && (
-                  <span className="text-[10px] font-normal normal-case tracking-widest text-[var(--player-mint,#22c55e)]">
-                    Free account required to play
-                  </span>
-                )}
               </span>
             </button>
             <button
