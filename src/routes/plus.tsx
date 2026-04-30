@@ -162,7 +162,7 @@ function PlusPage() {
             <li>✦ Display your badges in-game</li>
             <li>✦ Upload your own card backs</li>
             <li>✦ Access to members only tournaments</li>
-            <li>✦ Access to the Bimyah! market where cards and sounds can be purchased</li>
+            <li>✦ Access to the Bimyah! market where cards, sounds and other cosmetics can be purchased</li>
             <li>✦ Host games up to 8 players (5–8 seat rooms)</li>
             <li>✦ Founding Member title and diamond card</li>
             <li>✦ All future Bimyah!+ features included for life</li>
