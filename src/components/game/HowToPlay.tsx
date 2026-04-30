@@ -8,15 +8,22 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-export function HowToPlayButton({ floating = true }: { floating?: boolean }) {
+export function HowToPlayButton({
+  floating = true,
+  variant = "default",
+}: {
+  floating?: boolean;
+  variant?: "default" | "lime";
+}) {
   const [open, setOpen] = useState(false);
+  const className =
+    variant === "lime"
+      ? "flex h-9 items-center gap-1 rounded-full bg-lime-400 px-3 font-display text-[10px] font-black uppercase tracking-widest text-black ring-1 ring-lime-300 transition hover:scale-105"
+      : "inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90"
-          aria-label="How to play"
-        >
+        <button className={className} aria-label="How to play">
           How to Play
         </button>
       </DialogTrigger>
