@@ -187,7 +187,20 @@ function HomePage() {
       </div>
 
       <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
-        <PowLogo size={207} />
+        <div className="relative">
+          <PowLogo size={207} />
+          <span
+            aria-label="beta"
+            className="absolute -bottom-2 -right-4 rotate-[-8deg] text-2xl sm:text-3xl"
+            style={{
+              fontFamily: "'Permanent Marker', 'Caveat', cursive",
+              color: "#fde047",
+              textShadow: "0 0 6px rgba(253,224,71,0.6), 1px 1px 0 rgba(0,0,0,0.4)",
+            }}
+          >
+            beta
+          </span>
+        </div>
         <div
           className="text-3d-yellow font-display text-center text-xs font-black uppercase leading-tight sm:text-sm md:text-base"
           style={{ letterSpacing: "0.08em" }}
