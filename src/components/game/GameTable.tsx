@@ -397,80 +397,89 @@ export function GameTable({
         </div>
       )}
 
-      {/* Round table */}
-      <div className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2">
-        <div
-          className="wood-table grid place-items-center rounded-full"
-          style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
-        >
-          {/* Inner content: center cards + BIMYAH */}
-          <div className="flex flex-col items-center justify-center gap-1.5">
-            {state.status === "lobby" && (
-              <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
-                {state.players.length < 2 ? (
-                  "Waiting for players…"
-                ) : (
-                  <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
-                )}
-              </div>
-            )}
-            {state.status !== "lobby" && (() => {
-              const centerSlots = state.center;
-              const splitCenter = centerSlots.length >= 8;
-              const renderSlot = (slot: typeof centerSlots[number], i: number) => {
-                const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
-                const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
-                if (slot.card) {
-                  const isMine = slot.heldBy === meId;
-                  const readyToComplete = isMine && !!selectedHandCardId;
+      {/* Round table — pinch to zoom (scales table + center cards + Bimyah button together) */}
+      <div
+        className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
+        onPointerDown={centerPointerDown}
+        onPointerMove={centerPointerMove}
+        onPointerUp={centerPointerUp}
+        onPointerCancel={centerPointerUp}
+        style={{ touchAction: "none" }}
+      >
+        <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
+          <div
+            className="wood-table grid place-items-center rounded-full"
+            style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
+          >
+            {/* Inner content: center cards + BIMYAH */}
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              {state.status === "lobby" && (
+                <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
+                  {state.players.length < 2 ? (
+                    "Waiting for players…"
+                  ) : (
+                    <span className="animate-flash text-[var(--mint)]">Tap Ready!</span>
+                  )}
+                </div>
+              )}
+              {state.status !== "lobby" && (() => {
+                const centerSlots = state.center;
+                const splitCenter = centerSlots.length >= 8;
+                const renderSlot = (slot: typeof centerSlots[number], i: number) => {
+                  const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
+                  const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
+                  if (slot.card) {
+                    const isMine = slot.heldBy === meId;
+                    const readyToComplete = isMine && !!selectedHandCardId;
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => handleCenterTap(i)}
+                        className={cn(
+                          "cursor-pointer",
+                          outline && "rounded-lg p-0.5",
+                          readyToComplete && "animate-pulse-ring",
+                        )}
+                        style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
+                        aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
+                      >
+                        <PlayingCard card={slot.card} width={31} />
+                      </div>
+                    );
+                  }
+                  return <EmptySlot key={i} width={31} outlineColor={outline} />;
+                };
+                const bimyahBtn = state.status === "playing" && (
+                  <button
+                    onClick={handleBimyah}
+                    disabled={!canDeclareBimyah(state, meId)}
+                    className={cn(
+                      "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
+                      canDeclareBimyah(state, meId) && "animate-pulse-ring",
+                    )}
+                  >
+                    BIMYAH!
+                  </button>
+                );
+                if (splitCenter) {
+                  const top = centerSlots.slice(0, 4);
+                  const bottom = centerSlots.slice(4, 8);
                   return (
-                    <div
-                      key={i}
-                      onClick={() => handleCenterTap(i)}
-                      className={cn(
-                        "cursor-pointer",
-                        outline && "rounded-lg p-0.5",
-                        readyToComplete && "animate-pulse-ring",
-                      )}
-                      style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
-                      aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
-                    >
-                      <PlayingCard card={slot.card} width={31} />
-                    </div>
+                    <>
+                      <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                      {bimyahBtn}
+                      <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
+                    </>
                   );
                 }
-                return <EmptySlot key={i} width={31} outlineColor={outline} />;
-              };
-              const bimyahBtn = state.status === "playing" && (
-                <button
-                  onClick={handleBimyah}
-                  disabled={!canDeclareBimyah(state, meId)}
-                  className={cn(
-                    "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
-                    canDeclareBimyah(state, meId) && "animate-pulse-ring",
-                  )}
-                >
-                  BIMYAH!
-                </button>
-              );
-              if (splitCenter) {
-                const top = centerSlots.slice(0, 4);
-                const bottom = centerSlots.slice(4, 8);
                 return (
                   <>
-                    <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                    <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
                     {bimyahBtn}
-                    <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
                   </>
                 );
-              }
-              return (
-                <>
-                  <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
-                  {bimyahBtn}
-                </>
-              );
-            })()}
+              })()}
+            </div>
           </div>
         </div>
       </div>
