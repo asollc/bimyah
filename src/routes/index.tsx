@@ -157,14 +157,7 @@ function HomePage() {
               Admin
             </Link>
           )}
-          <Link
-            to="/plus"
-            aria-label="Bimyah Plus"
-            className="flex h-9 items-center gap-1 rounded-full bg-gradient-to-r from-[var(--gold)]/30 to-[var(--gold)]/10 px-3 font-display text-[10px] font-black uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50 transition hover:scale-105"
-          >
-            Bimyah!<span className="text-white">+</span>
-          </Link>
-          <HowToPlayButton />
+          <HowToPlayButton variant="lime" />
         </div>
       </div>
 
