@@ -500,6 +500,67 @@ export function GameTable({
         onClose={() => setShowScoreboard(false)}
       />
 
+      {/* Settings popup */}
+      {showSettings && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowSettings(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+                Settings
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close settings"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {inviteUrl && (
+              <div className="mb-4">
+                <div className="mb-1 text-center text-[10px] uppercase tracking-widest text-white/50">
+                  Room code
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(inviteUrl);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 1500);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--mint)]/40 bg-black/40 px-3 py-2 font-mono text-xl font-bold tracking-[0.3em] text-[var(--mint)] active:scale-95"
+                  aria-label="Copy room code"
+                >
+                  <span>{inviteUrl}</span>
+                  {codeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-3">
+              <HomeButton />
+              <button
+                onClick={() => {
+                  const next = !muted;
+                  sfx.setMuted(next);
+                  setMuted(next);
+                }}
+                className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/80 ring-1 ring-white/15 active:scale-90"
+                aria-label="Mute"
+              >
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New tournament point-limit picker */}
       {showNewTournyPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
