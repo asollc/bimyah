@@ -419,7 +419,7 @@ function SharePopover({ userId }: { userId: string | null }) {
   );
 }
 
-
+function FloatingCards() {
   const cards = [
     { top: "8%", left: "6%", size: 38, rot: -14, dx: 12, dy: -10, dur: 9 },
     { top: "18%", left: "82%", size: 44, rot: 18, dx: -14, dy: 12, dur: 11, imageUrl: foundingMemberCard },
