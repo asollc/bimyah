@@ -275,18 +275,31 @@ export function GameTable({
 
   return (
     <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
-      {/* Top-left: Settings cog (with Score to its right in tournament) */}
-      <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <button
-          onClick={() => setShowSettings(true)}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-          aria-label="Settings"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
-        {isTournament && state.pointLimit !== null && (
-          <ScoreDisplay limit={state.pointLimit} />
-        )}
+      {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
+      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+          {isTournament && state.pointLimit !== null && (
+            <ScoreDisplay limit={state.pointLimit} />
+          )}
+        </div>
+        {state.status === "lobby" &&
+          isHost &&
+          state.players.length < (state.maxSeats ?? 4) && (
+            <button
+              onClick={() => dispatch({ kind: "addBot" })}
+              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+              aria-label="Add a bot to the lobby"
+            >
+              🤖 Add Bot
+            </button>
+          )}
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
