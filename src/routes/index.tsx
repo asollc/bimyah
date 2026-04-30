@@ -195,7 +195,12 @@ function HomePage() {
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
               <Plus className="mr-2 h-5 w-5" />
-              Host Multiplayer
+              <span className="flex flex-col items-center leading-tight">
+                <span>Create Game</span>
+                <span className="text-[10px] font-normal opacity-80 normal-case">
+                  Play with bots, humans, or both
+                </span>
+              </span>
             </button>
             <button
               onClick={() => requireAuth(() => setShowJoin(true))}
