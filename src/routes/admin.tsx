@@ -401,7 +401,9 @@ function UsersTab() {
                       {u.display_name}
                       {u.founding_member && <Crown className="h-3 w-3 text-amber-500" />}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">{u.id.slice(0, 8)}…</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[220px]">
+                      {u.email ?? <span className="font-mono">{u.id.slice(0, 8)}…</span>}
+                    </div>
                   </td>
                   <td className="p-2">
                     <div className="flex gap-1">

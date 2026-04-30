@@ -219,7 +219,7 @@ export const listUsers = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const ids = (profs ?? []).map((p) => p.id);
-    const [rolesRes, subsRes, foundersRes] = await Promise.all([
+    const [rolesRes, subsRes, foundersRes, usersRes] = await Promise.all([
       ids.length
         ? supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids)
         : Promise.resolve({ data: [] as { user_id: string; role: string }[] }),
@@ -233,6 +233,8 @@ export const listUsers = createServerFn({ method: "POST" })
       ids.length
         ? supabaseAdmin.from("founding_members").select("user_id").in("user_id", ids)
         : Promise.resolve({ data: [] as { user_id: string }[] }),
+      // auth.admin.listUsers paginates; pull enough to cover this page of profiles.
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: Math.max(data.limit, 200) }),
     ]);
 
     const rolesByUser = new Map<string, string[]>();
@@ -244,10 +246,13 @@ export const listUsers = createServerFn({ method: "POST" })
     const subByUser = new Map<string, { plan: string; status: string }>();
     for (const s of subsRes.data ?? []) subByUser.set(s.user_id, { plan: s.plan, status: s.status });
     const founders = new Set((foundersRes.data ?? []).map((f) => f.user_id));
+    const emailByUser = new Map<string, string | null>();
+    for (const u of usersRes.data?.users ?? []) emailByUser.set(u.id, u.email ?? null);
 
     return {
       rows: (profs ?? []).map((p) => ({
         ...p,
+        email: emailByUser.get(p.id) ?? null,
         roles: rolesByUser.get(p.id) ?? ["user"],
         active_plan: subByUser.get(p.id)?.plan ?? null,
         founding_member: founders.has(p.id),
