@@ -70,8 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // CRITICAL: subscribe before fetching session.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    let lastUserId: string | null = null;
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const newUserId = newSession?.user?.id ?? null;
+
+      // Always keep the session token fresh so server-fn calls stay authed,
+      // but skip user/profile re-fetches when identity hasn't changed.
+      // TOKEN_REFRESHED + INITIAL_SESSION fire periodically and would
+      // otherwise cause unnecessary re-renders.
       setSession(newSession);
+
+      if (newUserId === lastUserId && event !== "SIGNED_OUT") {
+        return;
+      }
+      lastUserId = newUserId;
+
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
         // Defer to avoid deadlocks per Supabase guidance.
@@ -86,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      lastUserId = data.session?.user?.id ?? null;
       if (data.session?.user) {
         void fetchProfile(data.session.user.id);
       }
