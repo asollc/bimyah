@@ -148,7 +148,26 @@ export function GameTable({
     if (idx <= 0) return state.players;
     return [...state.players.slice(idx), ...state.players.slice(0, idx)];
   }, [state.players, meId]);
-  const positions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
+  const basePositions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
+
+  // ===== Per-seat drag offsets, persisted locally per (mode, playerCount) =====
+  const layoutKey = `bimyah_seat_offsets_${state.mode}_${seatOrder.length}`;
+  const [seatOffsets, setSeatOffsets] = useState<Record<number, { dx: number; dy: number }>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(layoutKey);
+      setSeatOffsets(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatOffsets({});
+    }
+  }, [layoutKey]);
+  const updateSeatOffset = (seatIdx: number, dx: number, dy: number) => {
+    setSeatOffsets((cur) => {
+      const next = { ...cur, [seatIdx]: { dx, dy } };
+      try { localStorage.setItem(layoutKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // helpers
   const handlePileTap = (pileIndex: number) => {
@@ -256,18 +275,31 @@ export function GameTable({
 
   return (
     <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
-      {/* Top-left: Settings cog (with Score to its right in tournament) */}
-      <div className="absolute left-2 top-2 z-30 flex items-center gap-2">
-        <button
-          onClick={() => setShowSettings(true)}
-          className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-          aria-label="Settings"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
-        {isTournament && state.pointLimit !== null && (
-          <ScoreDisplay limit={state.pointLimit} />
-        )}
+      {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
+      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+          {isTournament && state.pointLimit !== null && (
+            <ScoreDisplay limit={state.pointLimit} />
+          )}
+        </div>
+        {state.status === "lobby" &&
+          isHost &&
+          state.players.length < (state.maxSeats ?? 4) && (
+            <button
+              onClick={() => dispatch({ kind: "addBot" })}
+              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+              aria-label="Add a bot to the lobby"
+            >
+              🤖 Add Bot
+            </button>
+          )}
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
@@ -297,20 +329,7 @@ export function GameTable({
         </div>
       )}
 
-      {/* Add Bot (host only, lobby only, seats available) */}
-      {state.status === "lobby" &&
-        isHost &&
-        state.players.length < (state.maxSeats ?? 4) && (
-          <div className="absolute left-1/2 top-12 z-30 -translate-x-1/2">
-            <button
-              onClick={() => dispatch({ kind: "addBot" })}
-              className="btn-3d btn-3d-dark flex items-center gap-1.5 px-3 py-1 text-[11px]"
-              aria-label="Add a bot to the lobby"
-            >
-              🤖 Add Bot
-            </button>
-          </div>
-        )}
+
 
       {/* Match # banner above the table (tournament only) */}
       {isTournament && (
@@ -408,12 +427,16 @@ export function GameTable({
       {/* Player seats */}
       {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
-        const pos = positions[seatIdx];
+        const pos = basePositions[seatIdx];
+        const offset = seatOffsets[seatIdx];
         return (
           <PlayerSeat
             key={player.id}
             player={player}
             position={pos}
+            offset={offset}
+            draggable={!isMe}
+            onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
             isMe={isMe}
             status={state.status}
             onReady={isMe ? onReady : undefined}
@@ -618,88 +641,66 @@ export function GameTable({
 /* ============ Seat ============ */
 
 type SeatPos = {
-  // CSS classes to anchor seat container
-  className: string;
+  /** Anchor position as percent of viewport (0-100). Origin is the seat center. */
+  x: number; // left %
+  y: number; // top %
+  /** Translate origin: which corner of the seat sits at (x,y). */
+  anchor:
+    | "bottom-center"
+    | "top-center"
+    | "left-center"
+    | "right-center";
   pileLayout: "row" | "col";
   rotate?: string;
   compact?: boolean;
 };
 
+/**
+ * Seat positions (percent of viewport). Order:
+ *   index 0 = me (always South / bottom-center, NOT draggable)
+ *   Seats 1+ are filled per the rules:
+ *     1) North, East, West first
+ *     2) Then SE & SW (raised higher than the side seats so they don't overlap
+ *        the local hand/expanded piles)
+ *     3) Then NE & NW (also kept inset so they don't overlap each other)
+ */
 function getSeatPositions(n: number): SeatPos[] {
-  if (n === 2) {
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-    ];
+  // South — local player. y is high (near bottom) so the hand row + piles fit.
+  const SOUTH: SeatPos = { x: 50, y: 92, anchor: "bottom-center", pileLayout: "row" };
+  const NORTH: SeatPos = { x: 50, y: 6, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const EAST:  SeatPos = { x: 99, y: 50, anchor: "right-center", pileLayout: "row", compact: true };
+  const WEST:  SeatPos = { x: 1,  y: 50, anchor: "left-center",  pileLayout: "row", compact: true };
+  // SE / SW — raised above the bottom hand area (y ≈ 62 instead of ~75)
+  const SE:    SeatPos = { x: 96, y: 62, anchor: "right-center", pileLayout: "row", compact: true };
+  const SW:    SeatPos = { x: 4,  y: 62, anchor: "left-center",  pileLayout: "row", compact: true };
+  // NE / NW — kept inset from N and E/W so nothing overlaps
+  const NE:    SeatPos = { x: 78, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const NW:    SeatPos = { x: 22, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+
+  if (n === 2) return [SOUTH, NORTH];
+  if (n === 3) return [SOUTH, EAST, WEST];
+  if (n === 4) return [SOUTH, NORTH, EAST, WEST];
+  if (n === 5) return [SOUTH, NORTH, EAST, WEST, SE];
+  if (n === 6) return [SOUTH, NORTH, EAST, WEST, SE, SW];
+  if (n === 7) return [SOUTH, NORTH, EAST, WEST, SE, SW, NE];
+  return [SOUTH, NORTH, EAST, WEST, SE, SW, NE, NW];
+}
+
+function anchorTransform(anchor: SeatPos["anchor"]): string {
+  switch (anchor) {
+    case "bottom-center": return "translate(-50%, -100%)";
+    case "top-center":    return "translate(-50%, 0%)";
+    case "left-center":   return "translate(0%, -50%)";
+    case "right-center":  return "translate(-100%, -50%)";
   }
-  if (n === 3) {
-    // West, South, East — me at bottom (south); other two at side seats.
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 4) {
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row" },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180" },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  // ===== 5-8 player layouts =====
-  // Seats are placed clockwise from South. Extras are inserted between the
-  // four cardinal seats (SE, NE, NW, SW corners).
-  if (n === 5) {
-    // S, SE, NE (top-right area), NW, SW
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 6) {
-    // S, E, NE, N, NW, W
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    ];
-  }
-  if (n === 7) {
-    // S, SE, E, NE, NW, W, SW
-    return [
-      { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-      { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-      { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-      { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-    ];
-  }
-  // 8: S, SE, E, NE, N, NW, W, SW
-  return [
-    { className: "bottom-8 left-1/2 -translate-x-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-32 right-[3%]", pileLayout: "row", compact: true },
-    { className: "right-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "top-14 right-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-3 left-1/2 -translate-x-1/2", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "top-14 left-[18%]", pileLayout: "row", rotate: "rotate-180", compact: true },
-    { className: "left-1 top-1/2 -translate-y-1/2", pileLayout: "row", compact: true },
-    { className: "bottom-32 left-[3%]", pileLayout: "row", compact: true },
-  ];
 }
 
 function PlayerSeat({
   player,
   position,
+  offset,
+  draggable = false,
+  onDragEnd,
   isMe,
   status,
   onReady,
@@ -712,6 +713,9 @@ function PlayerSeat({
 }: {
   player: Player;
   position: SeatPos;
+  offset?: { dx: number; dy: number };
+  draggable?: boolean;
+  onDragEnd?: (dx: number, dy: number) => void;
   isMe: boolean;
   status: GameState["status"];
   onReady?: () => void;
@@ -726,12 +730,41 @@ function PlayerSeat({
   const handReady =
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
-  // Determine pile width based on player count and seat
   const pileWidth = isMe ? 44 : position.compact ? 24 : 30;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
 
-  // When sort mode is enabled, group identical ranks together (frequency desc,
-  // then rank asc). Recomputed every render so swaps stay grouped automatically.
+  // ===== Drag state (other players only) =====
+  const [dragDelta, setDragDelta] = useState<{ dx: number; dy: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; baseDx: number; baseDy: number; moved: boolean } | null>(null);
+  const baseDx = offset?.dx ?? 0;
+  const baseDy = offset?.dy ?? 0;
+  const liveDx = dragDelta ? dragDelta.dx : baseDx;
+  const liveDy = dragDelta ? dragDelta.dy : baseDy;
+
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    if (!draggable) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, baseDx, baseDy, moved: false };
+    setDragDelta({ dx: baseDx, dy: baseDy });
+  };
+  const onHandlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const { startX, startY, baseDx: bdx, baseDy: bdy } = dragRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true;
+    setDragDelta({ dx: bdx + dx, dy: bdy + dy });
+  };
+  const onHandlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    const final = dragDelta;
+    const moved = dragRef.current.moved;
+    dragRef.current = null;
+    setDragDelta(null);
+    if (moved && final && onDragEnd) onDragEnd(final.dx, final.dy);
+  };
+
   const orderedHand = (() => {
     if (!sortEnabled || player.hand.length < 2) return player.hand;
     const counts = new Map<string, number>();
@@ -751,8 +784,22 @@ function PlayerSeat({
     });
   })();
 
+  const wrapperStyle: React.CSSProperties = {
+    left: `${position.x}%`,
+    top: `${position.y}%`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)`,
+    transition: dragRef.current ? "none" : "transform 160ms ease-out",
+    touchAction: draggable ? "none" : undefined,
+  };
+
   return (
-    <div className={cn("absolute z-10 flex flex-col items-center gap-1", position.className)}>
+    <div
+      className={cn(
+        "absolute z-10 flex flex-col items-center gap-1",
+        dragRef.current && "z-30 opacity-95",
+      )}
+      style={wrapperStyle}
+    >
       {/* Hand row (only for me, when pile open). SET/SORT buttons render below
           the piles further down so they sit under the card stacks. */}
       {isMe && player.openPileIndex !== null && status === "playing" && (
@@ -769,14 +816,20 @@ function PlayerSeat({
         </div>
       )}
 
-      {/* Name tag */}
+      {/* Name tag — also acts as the drag handle for non-me seats */}
       <div
+        onPointerDown={onHandlePointerDown}
+        onPointerMove={onHandlePointerMove}
+        onPointerUp={onHandlePointerUp}
+        onPointerCancel={onHandlePointerUp}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
+          "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur select-none",
           isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
-          !isMe && "mb-12",
+          !isMe && "mb-2",
+          draggable && "cursor-grab active:cursor-grabbing ring-1 ring-white/10",
         )}
-        style={{ borderLeft: `3px solid ${colorHex}` }}
+        style={{ borderLeft: `3px solid ${colorHex}`, touchAction: draggable ? "none" : undefined }}
+        title={draggable ? "Drag to reposition" : undefined}
       >
         {player.avatarUrl ? (
           <img
