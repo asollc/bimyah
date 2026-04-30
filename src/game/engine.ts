@@ -83,6 +83,10 @@ export function createInitialGame(
 }
 
 export function setReady(state: GameState, playerId: string, ready: boolean): GameState {
+  // Ready toggles only apply in the lobby. Any stray "ready" intent that
+  // arrives mid-match (e.g. duplicate broadcast, late reconnect) must NOT
+  // re-deal cards or restart the match.
+  if (state.status !== "lobby") return state;
   const players = state.players.map((p) => (p.id === playerId ? { ...p, ready } : p));
   const allReady = players.length >= 2 && players.every((p) => p.ready);
   if (!allReady) return { ...state, players };
