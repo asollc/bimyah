@@ -66,6 +66,19 @@ export function GameTable({
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [sortEnabled, setSortEnabled] = useState(false);
+  const [showKeybinds, setShowKeybinds] = useState(false);
+  const [keybinds, setKeybinds] = useState<Keybinds>(() =>
+    typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
+  );
+  useEffect(() => {
+    const refresh = () => setKeybinds(loadKeybindsLocal());
+    window.addEventListener("bimyah:keybinds-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("bimyah:keybinds-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
   const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in our hand.
