@@ -10,6 +10,7 @@ import {
 } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
+import { KeybindEditor } from "@/components/game/KeybindEditor";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -329,8 +330,17 @@ function ProfilePage() {
         )}
       </div>
 
+      {/* Keybinds */}
+      <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6">
+        <div className="text-[10px] uppercase tracking-widest text-white/50">
+          Keyboard controls
+        </div>
+        <KeybindEditor />
+      </div>
+
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
       {err && <div className="mt-3 text-center text-xs text-[var(--player-red)]">{err}</div>}
     </div>
   );
 }
+

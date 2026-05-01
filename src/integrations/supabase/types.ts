@@ -385,6 +385,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_keybinds: {
+        Row: {
+          bindings: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bindings?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bindings?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BplusIcon } from "@/components/BplusIcon";
+import { KeybindEditor } from "./KeybindEditor";
 
 function BPlus() {
   return (
@@ -26,6 +27,7 @@ export function HowToPlayButton({
   variant?: "default" | "lime";
 }) {
   const [open, setOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const className =
     variant === "lime"
       ? "flex h-9 items-center gap-1 rounded-full bg-lime-400 px-3 font-display text-[10px] font-black uppercase tracking-widest text-black ring-1 ring-lime-300 transition hover:scale-105"
@@ -37,8 +39,20 @@ export function HowToPlayButton({
           How to Play
         </button>
       </DialogTrigger>
-      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white">
-        <Tabs defaultValue="standard" className="w-full">
+      <DialogContent
+        ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
+        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white"
+      >
+        <Tabs
+          defaultValue="standard"
+          className="w-full"
+          onValueChange={() => {
+            // Scroll the dialog body to the top whenever a new tab is selected.
+            requestAnimationFrame(() => {
+              scrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+            });
+          }}
+        >
           <div className="sticky top-0 z-10 bg-[oklch(0.18_0.04_165)] px-6 pb-3 pt-6 shadow-[0_4px_8px_-4px_rgba(0,0,0,0.6)]">
             <DialogHeader>
               <DialogTitle className="mb-3 font-display text-2xl text-[var(--mint)]">
@@ -111,7 +125,7 @@ export function HowToPlayButton({
                 <li>Sizes are remembered locally per mode and player count.</li>
               </ul>
             </Section>
-            <Section title="Center Cards">
+            <Section title="Default Center Cards">
               <ul className="list-disc space-y-1 pl-5">
                 <li><b>1 – 4</b>: top row of center cards (left → right). With 4 or fewer center cards, these are the only row.</li>
                 <li><b>5 – 8</b>: bottom row of center cards (left → right), when the center has 8 cards.</li>
@@ -119,18 +133,24 @@ export function HowToPlayButton({
                 <li><b>A S D F</b>: alternative for the bottom 4 center cards.</li>
               </ul>
             </Section>
-            <Section title="Your Hand & Piles">
+            <Section title="Default Piles & Hand">
               <ul className="list-disc space-y-1 pl-5">
-                <li><b>J K L ;</b>: open / interact with pile 1 – 4 (left → right).</li>
-                <li><b>U I O P</b>: select hand cards 1 – 4 (left → right) inside the opened pile.</li>
+                <li><b>U I O P</b>: open / interact with pile 1 – 4 (left → right).</li>
+                <li><b>J K L ;</b>: select hand cards 1 – 4 (left → right) inside the opened pile.</li>
               </ul>
             </Section>
-            <Section title="Action Keys">
+            <Section title="Default Action Keys">
               <ul className="list-disc space-y-1 pl-5">
                 <li><b>Spacebar</b>: tap the <b>SET</b> button.</li>
-                <li><b>S</b>: tap the <b>SORT</b> button (when no center action is pending).</li>
+                <li><b>Shift</b>: tap the <b>SORT</b> button.</li>
                 <li><b>Enter</b>: tap the <b>BIMYAH!</b> button.</li>
               </ul>
+            </Section>
+            <Section title="Customize your keybinds">
+              <p className="mb-2">Rebind any action below. Changes apply instantly on this device. Sign in and tap <b>Save</b> to sync across devices, or <b>Reset to defaults</b> to undo all customizations.</p>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <KeybindEditor />
+              </div>
             </Section>
           </TabsContent>
 

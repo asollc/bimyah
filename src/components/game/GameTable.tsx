@@ -23,6 +23,8 @@ import { sfx, recordWin } from "@/game/sfx";
 import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
+import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
+import { KeybindEditor } from "./KeybindEditor";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
@@ -64,6 +66,19 @@ export function GameTable({
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [sortEnabled, setSortEnabled] = useState(false);
+  const [showKeybinds, setShowKeybinds] = useState(false);
+  const [keybinds, setKeybinds] = useState<Keybinds>(() =>
+    typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
+  );
+  useEffect(() => {
+    const refresh = () => setKeybinds(loadKeybindsLocal());
+    window.addEventListener("bimyah:keybinds-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("bimyah:keybinds-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
   const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in our hand.
@@ -375,28 +390,45 @@ export function GameTable({
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+      // Normalize this keypress the same way the editor stores keys.
+      const k =
+        e.key === " " || e.key === "Enter" || e.key === "Shift" ||
+        e.key.startsWith("Arrow") || e.key === "Tab" || e.key === "Escape" || e.key === "Backspace"
+          ? e.key
+          : e.key.length === 1
+            ? e.key.toLowerCase()
+            : e.key;
+
+      // Build a reverse map: key -> first matching action.
+      const keyToAction = new Map<string, ActionId>();
+      (Object.entries(keybinds) as [ActionId, string][]).forEach(([id, val]) => {
+        if (val && !keyToAction.has(val)) keyToAction.set(val, id);
+      });
+      const action = keyToAction.get(k);
+
       // Sizing keys (work in any status)
-      if (e.key === "ArrowUp") { e.preventDefault(); bumpPlayerZoom(0.1); return; }
-      if (e.key === "ArrowDown") { e.preventDefault(); bumpPlayerZoom(-0.1); return; }
-      if (e.key === "ArrowRight") { e.preventDefault(); bumpCenterZoom(0.1); return; }
-      if (e.key === "ArrowLeft") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
+      if (action === "playerZoomIn") { e.preventDefault(); bumpPlayerZoom(0.1); return; }
+      if (action === "playerZoomOut") { e.preventDefault(); bumpPlayerZoom(-0.1); return; }
+      if (action === "centerZoomIn") { e.preventDefault(); bumpCenterZoom(0.1); return; }
+      if (action === "centerZoomOut") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
 
       if (!me) return;
 
       // Lobby ready
       if (state.status === "lobby") {
-        if (e.key === "Enter" || e.key === " ") {
+        if (action === "bimyah" || action === "set") {
           if (!me.ready) { e.preventDefault(); onReady(); }
         }
         return;
       }
       if (state.status !== "playing" && state.status !== "countdown") {
-        // Allow Enter for play again / next match isn't easily wired; skip.
         return;
       }
 
-      // BIMYAH on Enter
-      if (e.key === "Enter") {
+      if (!action) return;
+
+      // BIMYAH
+      if (action === "bimyah") {
         if (canDeclareBimyah(state, meId)) {
           e.preventDefault();
           handleBimyah();
@@ -404,8 +436,8 @@ export function GameTable({
         return;
       }
 
-      // SET on space
-      if (e.key === " " || e.code === "Space") {
+      // SET
+      if (action === "set") {
         if (me.openPileIndex !== null && me.hand.length === 4 && isFourOfAKind(me.hand)) {
           e.preventDefault();
           handleSet();
@@ -413,32 +445,8 @@ export function GameTable({
         return;
       }
 
-      const k = e.key.toLowerCase();
-
-      // Center card mappings
-      // Numbers 1-8: top row 1-4, bottom row 5-8 (when 8 slots)
-      // QWER: first 4 (top row); ASDF: bottom 4 (when 8 slots)
-      const centerLen = state.center.length;
-      const split = centerLen >= 8;
-      const numberMap: Record<string, number> = {
-        "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7,
-      };
-      const qwerMap: Record<string, number> = { q: 0, w: 1, e: 2, r: 3 };
-      const asdfMap: Record<string, number> = { a: 4, s: 5, d: 6, f: 7 };
-
-      let centerIdx: number | undefined;
-      if (k in numberMap) centerIdx = numberMap[k];
-      else if (k in qwerMap) centerIdx = qwerMap[k];
-      else if (split && k in asdfMap) centerIdx = asdfMap[k];
-
-      if (centerIdx !== undefined && centerIdx < centerLen) {
-        e.preventDefault();
-        handleCenterTap(centerIdx);
-        return;
-      }
-
-      // SORT on `s` (only reachable when ASDF didn't claim it — i.e. center isn't split)
-      if (k === "s") {
+      // SORT
+      if (action === "sort") {
         if (me.openPileIndex !== null && me.hand.length >= 2) {
           e.preventDefault();
           handleSort();
@@ -446,10 +454,35 @@ export function GameTable({
         return;
       }
 
-      // Pile keys j k l ;
-      const pileMap: Record<string, number> = { j: 0, k: 1, l: 2, ";": 3 };
-      if (k in pileMap) {
-        const idx = pileMap[k];
+      // Center cards
+      const centerLen = state.center.length;
+      const split = centerLen >= 8;
+      const centerIdxFromAction = (a: ActionId): number | null => {
+        const m: Partial<Record<ActionId, number>> = {
+          center1: 0, center2: 1, center3: 2, center4: 3,
+          center5: 4, center6: 5, center7: 6, center8: 7,
+          centerAlt1: 0, centerAlt2: 1, centerAlt3: 2, centerAlt4: 3,
+          centerAlt5: 4, centerAlt6: 5, centerAlt7: 6, centerAlt8: 7,
+        };
+        const idx = m[a];
+        if (idx === undefined) return null;
+        // alt bottom row only valid in 8-slot mode
+        if (!split && (a === "centerAlt5" || a === "centerAlt6" || a === "centerAlt7" || a === "centerAlt8")) return null;
+        return idx;
+      };
+      const centerIdx = centerIdxFromAction(action);
+      if (centerIdx !== null && centerIdx < centerLen) {
+        e.preventDefault();
+        handleCenterTap(centerIdx);
+        return;
+      }
+
+      // Piles
+      const pileMap: Partial<Record<ActionId, number>> = {
+        pile1: 0, pile2: 1, pile3: 2, pile4: 3,
+      };
+      if (action in pileMap) {
+        const idx = pileMap[action]!;
         if (idx < me.piles.length) {
           e.preventDefault();
           handlePileTap(idx);
@@ -457,11 +490,12 @@ export function GameTable({
         return;
       }
 
-      // Hand card selection u i o p (positions 0-3 in displayed hand)
-      const handMap: Record<string, number> = { u: 0, i: 1, o: 2, p: 3 };
-      if (k in handMap) {
-        const idx = handMap[k];
-        // Build the same ordering used in the visible hand
+      // Hand cards
+      const handMap: Partial<Record<ActionId, number>> = {
+        hand1: 0, hand2: 1, hand3: 2, hand4: 3,
+      };
+      if (action in handMap) {
+        const idx = handMap[action]!;
         const visibleHand = (() => {
           if (!sortEnabled || me.hand.length < 2) return me.hand;
           const counts = new Map<string, number>();
@@ -491,7 +525,7 @@ export function GameTable({
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, meId, selectedHandCardId, sortEnabled, me]);
+  }, [state, meId, selectedHandCardId, sortEnabled, me, keybinds]);
 
 
   return (
@@ -811,11 +845,46 @@ export function GameTable({
                 {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
             </div>
+
+            <button
+              onClick={() => { setShowSettings(false); setShowKeybinds(true); }}
+              className="mt-4 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[11px] uppercase tracking-widest text-white/80 hover:border-[var(--mint)]/60 hover:text-white"
+            >
+              Keyboard controls
+            </button>
           </div>
         </div>
       )}
 
-      {/* New tournament point-limit picker */}
+      {/* Keybinds modal */}
+      {showKeybinds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowKeybinds(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+                Keyboard controls
+              </div>
+              <button
+                onClick={() => setShowKeybinds(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close keybinds"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <KeybindEditor />
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNewTournyPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-xs rounded-2xl border border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-gold)]">
