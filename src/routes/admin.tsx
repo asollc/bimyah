@@ -640,3 +640,168 @@ function SharesTab() {
     </div>
   );
 }
+
+// ---------- Gifts (random gift purchasers) ----------
+type GiftPurchasers = Awaited<ReturnType<typeof listRandomGifts>>["purchasers"];
+
+function GiftsTab() {
+  const [purchasers, setPurchasers] = useState<GiftPurchasers>([]);
+  const [loading, setLoading] = useState(true);
+  const [allocating, setAllocating] = useState<string | null>(null);
+  const [recipientByGift, setRecipientByGift] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listRandomGifts();
+      setPurchasers(res.purchasers);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  async function handleAllocate(giftId: string) {
+    const recipientId = (recipientByGift[giftId] ?? "").trim();
+    if (!recipientId) {
+      toast.error("Enter a recipient user ID");
+      return;
+    }
+    setAllocating(giftId);
+    try {
+      await allocateRandomGift({ data: { gift_id: giftId, recipient_user_id: recipientId } });
+      toast.success("Gift allocated");
+      setRecipientByGift((m) => ({ ...m, [giftId]: "" }));
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setAllocating(null);
+    }
+  }
+
+  if (loading && !purchasers.length) return <Loader2 className="h-5 w-5 animate-spin" />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Random gift purchasers
+        </h2>
+        <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+        </Button>
+      </div>
+
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="p-2">Purchaser</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Total</th>
+              <th className="p-2">Pending</th>
+              <th className="p-2">Allocated</th>
+              <th className="p-2">Spent</th>
+              <th className="p-2">Last purchase</th>
+              <th className="p-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchasers.map((p) => (
+              <>
+                <tr key={p.purchaser_id} className="border-t">
+                  <td className="p-2">
+                    <div className="font-medium">{p.display_name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {p.purchaser_id.slice(0, 8)}…
+                    </div>
+                  </td>
+                  <td className="p-2 text-xs">{p.email ?? "—"}</td>
+                  <td className="p-2 font-medium">{p.total_purchased}</td>
+                  <td className="p-2">
+                    <Badge variant={p.pending > 0 ? "default" : "secondary"}>{p.pending}</Badge>
+                  </td>
+                  <td className="p-2">{p.fulfilled}</td>
+                  <td className="p-2 text-xs">{fmtCents(p.total_amount_cents)}</td>
+                  <td className="p-2 text-xs">{new Date(p.last_purchase_at).toLocaleDateString()}</td>
+                  <td className="p-2 text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setExpanded(expanded === p.purchaser_id ? null : p.purchaser_id)
+                      }
+                    >
+                      {expanded === p.purchaser_id ? "Hide" : "Manage"}
+                    </Button>
+                  </td>
+                </tr>
+                {expanded === p.purchaser_id && (
+                  <tr className="border-t bg-muted/20">
+                    <td colSpan={8} className="p-3">
+                      <div className="space-y-2">
+                        {p.gifts.map((g) => (
+                          <div
+                            key={g.id}
+                            className="flex flex-wrap items-center gap-2 rounded-md border bg-background p-2 text-xs"
+                          >
+                            <Badge variant={g.status === "pending" ? "default" : "secondary"}>
+                              {g.status}
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              Gift {g.id.slice(0, 8)}… · {fmtCents(g.amount_cents)} ·{" "}
+                              {new Date(g.created_at).toLocaleString()}
+                            </span>
+                            {g.status === "fulfilled" && g.recipient_display_name && (
+                              <span className="ml-auto text-muted-foreground">
+                                → {g.recipient_display_name}
+                              </span>
+                            )}
+                            {g.status === "pending" && (
+                              <div className="ml-auto flex items-center gap-2">
+                                <Input
+                                  placeholder="Recipient user UUID"
+                                  value={recipientByGift[g.id] ?? ""}
+                                  onChange={(e) =>
+                                    setRecipientByGift((m) => ({ ...m, [g.id]: e.target.value }))
+                                  }
+                                  className="h-8 w-72 text-xs"
+                                />
+                                <Button
+                                  size="sm"
+                                  disabled={allocating === g.id}
+                                  onClick={() => void handleAllocate(g.id)}
+                                >
+                                  {allocating === g.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    "Allocate"
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
+            ))}
+            {!purchasers.length && !loading && (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-sm text-muted-foreground">
+                  No random gifts purchased yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
