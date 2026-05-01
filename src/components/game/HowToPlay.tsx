@@ -134,7 +134,7 @@ export function HowToPlayButton({
             </Section>
           </TabsContent>
 
-
+          <TabsContent value="tournament" className="space-y-4 text-sm leading-relaxed text-white/85">
             <Section title="Tournament Objective">
               Be the first player to reach the <b>point limit</b> set by the host across multiple matches.
             </Section>
