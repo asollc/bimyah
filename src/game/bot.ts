@@ -434,8 +434,9 @@ export function stepBots(
     // reopen the richer pile, we'll continue building there.
     if (target && bot.openPileIndex !== null) {
       const richer = pileWithMostOf(bot, target, bot.openPileIndex);
-      const ownInOpen = bot.piles[bot.openPileIndex].filter((c) => c.rank === target).length
-        + handCounts.get(target) ?? 0;
+      const ownInOpen =
+        bot.piles[bot.openPileIndex].filter((c) => c.rank === target).length +
+        (handCounts.get(target) ?? 0);
       if (richer.idx !== -1 && richer.count > ownInOpen) {
         // Close current pile and open the richer one next tick.
         apply((s) => closePile(s, bot.id));
