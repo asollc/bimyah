@@ -129,8 +129,10 @@ export function normalizeKey(e: KeyboardEvent): string {
 /** Display label for a stored key string. */
 export function displayKey(k: string): string {
   if (k === " ") return "Space";
-  if (k === ";") return ";";
-  if (k.startsWith("Arrow")) return k.replace("Arrow", "") + " ↑↓←→".charAt(["Up","Down","Left","Right"].indexOf(k.slice(5)) + 1);
+  if (k === "ArrowUp") return "↑";
+  if (k === "ArrowDown") return "↓";
+  if (k === "ArrowLeft") return "←";
+  if (k === "ArrowRight") return "→";
   if (k === "Enter" || k === "Shift" || k === "Tab" || k === "Escape" || k === "Backspace") return k;
   return k.length === 1 ? k.toUpperCase() : k;
 }
