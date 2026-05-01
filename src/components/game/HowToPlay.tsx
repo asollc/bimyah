@@ -176,6 +176,7 @@ export function HowToPlayButton({
               </ul>
             </Section>
           </TabsContent>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
