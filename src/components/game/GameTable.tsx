@@ -856,7 +856,35 @@ export function GameTable({
         </div>
       )}
 
-      {/* New tournament point-limit picker */}
+      {/* Keybinds modal */}
+      {showKeybinds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowKeybinds(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+                Keyboard controls
+              </div>
+              <button
+                onClick={() => setShowKeybinds(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close keybinds"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <KeybindEditor />
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNewTournyPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-xs rounded-2xl border border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-gold)]">
