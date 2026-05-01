@@ -19,11 +19,121 @@ function planFromPriceId(priceId: string | undefined): "lifetime" | "monthly" | 
   return null;
 }
 
+async function grantLifetimeToUser(
+  sb: ReturnType<typeof createClient>,
+  recipientUserId: string,
+  env: StripeEnv,
+  source: string,
+  sessionId: string | null,
+  amountCents: number,
+  currency: string,
+): Promise<string | null> {
+  // Skip if recipient already has an active sub
+  const { data: existing } = await sb
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", recipientUserId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const { data: subRow, error: subErr } = await sb
+    .from("subscriptions")
+    .insert({
+      user_id: recipientUserId,
+      plan: "lifetime",
+      status: "active",
+      source,
+      environment: env,
+      price_id: "bplus_lifetime_onetime",
+    })
+    .select("id")
+    .single();
+  if (subErr || !subRow) {
+    console.error("Failed to insert gifted lifetime sub:", subErr);
+    return null;
+  }
+  await sb.from("payments").insert({
+    user_id: recipientUserId,
+    subscription_id: subRow.id,
+    amount_cents: amountCents,
+    currency,
+    plan: "lifetime",
+    status: "completed",
+    stripe_session_id: sessionId,
+    environment: env,
+  });
+  await sb.from("founding_members").insert({ user_id: recipientUserId }).select();
+  return subRow.id as string;
+}
+
+async function handleGiftCheckout(session: any, env: StripeEnv) {
+  if (session.payment_status !== "paid") return;
+  const sb = getSupabase();
+  const purchaserId: string = session.metadata.userId;
+  const priceId: string = session.metadata.priceId;
+  const giftType: "friend" | "random" = session.metadata.giftType;
+  const quantity = Math.max(1, Number(session.metadata.giftQuantity ?? 1));
+  const recipientUserId: string | null = session.metadata.recipientUserId ?? null;
+  const recipientEmail: string | null = session.metadata.recipientEmail ?? null;
+  const currency = (session.currency ?? "usd").toUpperCase();
+  const unitAmount = Math.round((session.amount_total ?? 500 * quantity) / quantity);
+
+  // Idempotency: skip if we've already processed this session
+  const { data: existing } = await sb
+    .from("bplus_gifts")
+    .select("id")
+    .eq("stripe_session_id", session.id)
+    .limit(1);
+  if (existing && existing.length) return;
+
+  if (giftType === "friend" && recipientUserId) {
+    const subId = await grantLifetimeToUser(
+      sb, recipientUserId, env, "stripe_gift_friend",
+      session.id, unitAmount, currency,
+    );
+    await sb.from("bplus_gifts").insert({
+      purchaser_id: purchaserId,
+      gift_type: "friend",
+      status: subId ? "fulfilled" : "pending",
+      stripe_session_id: session.id,
+      amount_cents: unitAmount,
+      currency,
+      environment: env,
+      recipient_email: recipientEmail,
+      recipient_user_id: recipientUserId,
+      subscription_id: subId,
+      allocated_at: subId ? new Date().toISOString() : null,
+    });
+    return;
+  }
+
+  if (giftType === "random") {
+    // Insert one pending row per gifted membership
+    const rows = Array.from({ length: quantity }, () => ({
+      purchaser_id: purchaserId,
+      gift_type: "random" as const,
+      status: "pending" as const,
+      stripe_session_id: session.id,
+      amount_cents: unitAmount,
+      currency,
+      environment: env,
+    }));
+    await sb.from("bplus_gifts").insert(rows);
+  }
+}
+
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId: string | undefined = session.metadata?.userId;
   const priceId: string | undefined = session.metadata?.priceId;
   if (!userId || !priceId) {
     console.error("checkout.session.completed missing metadata", session.id);
+    return;
+  }
+  // Route gift checkouts to a separate handler — they do NOT consume a
+  // lifetime slot and don't grant entitlement to the purchaser.
+  if (priceId === "bplus_gift_friend_onetime" || priceId === "bplus_gift_random_onetime") {
+    await handleGiftCheckout(session, env);
     return;
   }
   if (priceId !== "bplus_lifetime_onetime") return; // subscriptions handled separately
