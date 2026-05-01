@@ -494,6 +494,7 @@ export function GameTable({
   }, [state, meId, selectedHandCardId, sortEnabled, me]);
 
 
+  return (
     <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
