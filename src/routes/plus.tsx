@@ -249,16 +249,48 @@ function PlusPage() {
 
           <div className="mt-5 space-y-3">
             {authLoading ? null : !user ? (
-              <button
-                onClick={() => navigate({ to: "/auth" })}
-                className="btn-3d btn-3d-gold mx-auto block w-[70%] text-xs text-center"
-              >
-                GIMME THESE PERKS!
-              </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  onClick={() => navigate({ to: "/auth" })}
+                  className="btn-3d btn-3d-gold text-xs text-center"
+                >
+                  GIMME THESE PERKS!
+                </button>
+                <button
+                  onClick={() => navigate({ to: "/auth" })}
+                  className="btn-3d btn-3d-dark text-xs text-center"
+                >
+                  GIFT BIMYAH!+
+                </button>
+              </div>
             ) : (
               <>
-                {/* Stripe (card) checkout */}
-                {stripeReady && (
+                {/* Mode toggle */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPurchaseMode("self");
+                      setStripePlan(null);
+                    }}
+                    className={`btn-3d ${purchaseMode === "self" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                  >
+                    GIMME THESE PERKS!
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPurchaseMode("gift");
+                      setStripePlan(null);
+                    }}
+                    className={`btn-3d ${purchaseMode === "gift" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                  >
+                    GIFT BIMYAH!+
+                  </button>
+                </div>
+
+                {/* Self purchase: Stripe (card) checkout */}
+                {purchaseMode === "self" && stripeReady && (
                   <div className="space-y-2">
                     <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
                       Pay with card
@@ -302,6 +334,145 @@ function PlusPage() {
                           key={stripePlan}
                           priceId={STRIPE_PRICE_IDS[stripePlan]}
                           returnUrl={returnUrl}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Gift flow */}
+                {purchaseMode === "gift" && stripeReady && (
+                  <div className="space-y-3 rounded-lg border border-[var(--gold)]/30 bg-black/30 p-3">
+                    <div className="text-center text-[10px] uppercase tracking-widest text-white/60">
+                      Gift a Bimyah!+ Lifetime — ${dollars} each
+                    </div>
+                    <fieldset className="space-y-2">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
+                        <input
+                          type="radio"
+                          name="giftMode"
+                          checked={giftMode === "friend"}
+                          onChange={() => setGiftMode("friend")}
+                          className="accent-[var(--gold)]"
+                        />
+                        <span>Gift a friend</span>
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
+                        <input
+                          type="radio"
+                          name="giftMode"
+                          checked={giftMode === "random"}
+                          onChange={() => setGiftMode("random")}
+                          className="accent-[var(--gold)]"
+                        />
+                        <span>Gift a random</span>
+                      </label>
+                    </fieldset>
+
+                    {giftMode === "friend" && (
+                      <div className="space-y-2">
+                        <label className="block text-[10px] uppercase tracking-widest text-white/60">
+                          Recipient email
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            autoComplete="off"
+                            value={giftEmail}
+                            onChange={(e) => setGiftEmail(e.target.value)}
+                            placeholder="friend@example.com"
+                            className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 pr-9 text-sm text-white placeholder:text-white/30 focus:border-[var(--gold)]/60 focus:outline-none"
+                          />
+                          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                            {giftEmailVerifying && (
+                              <Loader2 className="h-4 w-4 animate-spin text-white/40" />
+                            )}
+                            {!giftEmailVerifying && giftEmailVerified && (
+                              <Check className="h-5 w-5 text-[var(--mint)]" strokeWidth={3} />
+                            )}
+                          </div>
+                        </div>
+                        {giftEmailVerified && (
+                          <div className="text-xs text-[var(--mint)]">
+                            ✓ Member found: {giftEmailVerified.name}
+                          </div>
+                        )}
+                        {giftEmailError && (
+                          <div className="text-xs text-[var(--player-red)]">
+                            {giftEmailError}
+                          </div>
+                        )}
+                        {giftEmailVerified && !giftCheckoutOpen && (
+                          <button
+                            type="button"
+                            onClick={() => setGiftCheckoutOpen(true)}
+                            className="btn-3d btn-3d-gold w-full text-[11px]"
+                          >
+                            Proceed to checkout
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {giftMode === "random" && (
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="block text-[10px] uppercase tracking-widest text-white/60">
+                            Quantity (1–50)
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={randomQty}
+                            onChange={(e) => {
+                              const n = parseInt(e.target.value, 10);
+                              if (Number.isNaN(n)) return setRandomQty(1);
+                              setRandomQty(Math.max(1, Math.min(50, n)));
+                            }}
+                            className="w-24 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white focus:border-[var(--gold)]/60 focus:outline-none"
+                          />
+                          <div className="text-xs text-white/60">
+                            Total: ${(randomQty * status.lifetime_price_cents / 100).toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-2 text-[11px] leading-relaxed text-yellow-100/90">
+                          By choosing to "gift a random" you understand that this upgrade
+                          will NOT be applied to your account, and that it will be given
+                          to someone else within the community.
+                        </div>
+                        <label className="flex cursor-pointer items-start gap-2 text-xs text-white/80">
+                          <input
+                            type="checkbox"
+                            checked={randomAck}
+                            onChange={(e) => setRandomAck(e.target.checked)}
+                            className="mt-0.5 accent-[var(--gold)]"
+                          />
+                          <span>I acknowledge and agree.</span>
+                        </label>
+                        {randomAck && !giftCheckoutOpen && (
+                          <button
+                            type="button"
+                            onClick={() => setGiftCheckoutOpen(true)}
+                            className="btn-3d btn-3d-gold w-full text-[11px]"
+                          >
+                            Proceed to checkout
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {giftCheckoutOpen && giftMode && (
+                      <div className="mt-3 overflow-hidden rounded-lg bg-white">
+                        <StripeEmbeddedCheckout
+                          key={`gift-${giftMode}-${giftMode === "random" ? randomQty : giftEmail}`}
+                          priceId={GIFT_PRICE_IDS[giftMode]}
+                          returnUrl={returnUrl}
+                          giftType={giftMode}
+                          quantity={giftMode === "random" ? randomQty : 1}
+                          recipientEmail={
+                            giftMode === "friend" ? giftEmail.trim().toLowerCase() : undefined
+                          }
                         />
                       </div>
                     )}
