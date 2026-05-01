@@ -1021,7 +1021,15 @@ function PlayerSeat({
   const wrapperStyle: React.CSSProperties = {
     left: `${position.x}%`,
     top: `${position.y}%`,
-    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${zoom !== 1 ? ` scale(${zoom})` : ""}`,
+    transformOrigin:
+      position.anchor === "bottom-center"
+        ? "center bottom"
+        : position.anchor === "top-center"
+        ? "center top"
+        : position.anchor === "left-center"
+        ? "left center"
+        : "right center",
     transition: dragRef.current ? "none" : "transform 160ms ease-out",
     touchAction: draggable ? "none" : undefined,
   };
