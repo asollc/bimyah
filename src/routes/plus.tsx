@@ -8,6 +8,7 @@ import { BplusIcon } from "@/components/BplusIcon";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
+import { Check, Loader2 } from "lucide-react";
 import {
   getBplusStatus,
   getMyEntitlement,
@@ -15,12 +16,19 @@ import {
   captureLifetimeOrder,
   getPaypalClientConfig,
 } from "@/server/bplus.functions";
+import { verifyGiftRecipient } from "@/server/gifts.functions";
 
 type StripePlan = "lifetime" | "monthly" | "yearly";
 const STRIPE_PRICE_IDS: Record<StripePlan, string> = {
   lifetime: "bplus_lifetime_onetime",
   monthly: "bplus_monthly",
   yearly: "bplus_yearly",
+};
+
+type GiftMode = "friend" | "random";
+const GIFT_PRICE_IDS: Record<GiftMode, string> = {
+  friend: "bplus_gift_friend_onetime",
+  random: "bplus_gift_random_onetime",
 };
 
 export const Route = createFileRoute("/plus")({
