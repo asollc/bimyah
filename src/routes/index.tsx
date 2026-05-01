@@ -5,6 +5,11 @@ import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { BplusIcon } from "@/components/BplusIcon";
 import foundingMemberCard from "@/assets/founding-member-card.jpg";
+import socialYoutube from "@/assets/social-youtube.png";
+import socialDiscord from "@/assets/social-discord.png";
+import socialTiktok from "@/assets/social-tiktok.png";
+import socialFacebook from "@/assets/social-facebook.png";
+import socialEmail from "@/assets/social-email.png";
 import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -252,6 +257,7 @@ function HomePage() {
             {hostErr && (
               <div className="text-center text-xs text-[var(--player-red)]">{hostErr}</div>
             )}
+            <SocialIcons />
           </>
         )}
 
