@@ -5,6 +5,11 @@ import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { BplusIcon } from "@/components/BplusIcon";
 import foundingMemberCard from "@/assets/founding-member-card.jpg";
+import socialYoutube from "@/assets/social-youtube.png";
+import socialDiscord from "@/assets/social-discord.png";
+import socialTiktok from "@/assets/social-tiktok.png";
+import socialFacebook from "@/assets/social-facebook.png";
+import socialEmail from "@/assets/social-email.png";
 import { sfx } from "@/game/sfx";
 import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -252,6 +257,7 @@ function HomePage() {
             {hostErr && (
               <div className="text-center text-xs text-[var(--player-red)]">{hostErr}</div>
             )}
+            <SocialIcons />
           </>
         )}
 
@@ -273,6 +279,38 @@ function HomePage() {
         )}
       </div>
 
+    </div>
+  );
+}
+
+const SOCIAL_LINKS = [
+  { src: socialYoutube, alt: "YouTube", href: "https://youtube.com" },
+  { src: socialDiscord, alt: "Discord", href: "https://discord.gg/5xs5pWFrxp" },
+  { src: socialTiktok, alt: "TikTok", href: "https://www.tiktok.com/@playbimyah" },
+  { src: socialFacebook, alt: "Facebook", href: "https://www.facebook.com/share/1EeyG6PVAp/" },
+  { src: socialEmail, alt: "Email", href: "mailto:info@ronyaross.top" },
+];
+
+function SocialIcons() {
+  return (
+    <div className="mt-2 flex w-full items-center justify-center gap-3">
+      {SOCIAL_LINKS.map((s) => (
+        <a
+          key={s.alt}
+          href={s.href}
+          target={s.href.startsWith("mailto:") ? undefined : "_blank"}
+          rel={s.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+          aria-label={s.alt}
+          className="transition-transform hover:scale-110 active:scale-95"
+        >
+          <img
+            src={s.src}
+            alt={s.alt}
+            className="h-11 w-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
+            draggable={false}
+          />
+        </a>
+      ))}
     </div>
   );
 }
