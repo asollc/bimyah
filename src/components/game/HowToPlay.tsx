@@ -96,7 +96,45 @@ export function HowToPlayButton({
             </Section>
           </TabsContent>
 
-          <TabsContent value="tournament" className="space-y-4 text-sm leading-relaxed text-white/85">
+          <TabsContent value="controls" className="space-y-4 text-sm leading-relaxed text-white/85">
+            <Section title="Repositioning Seats">
+              <ul className="list-disc space-y-1 pl-5">
+                <li>Every opponent's <b>name tag</b> doubles as a drag handle — press and drag it to move that seat anywhere on the table.</li>
+                <li>Your own seat (bottom) stays fixed so your hand and piles never get pushed off-screen.</li>
+                <li>Layouts are saved per game mode and player count, so your arrangement persists across matches.</li>
+              </ul>
+            </Section>
+            <Section title="Resizing In-Game Elements">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>Pinch to zoom</b> the center table (table, center cards, and BIMYAH! button scale together) on touch devices.</li>
+                <li>On a keyboard, use <b>← / →</b> to shrink/grow the center table and <b>↑ / ↓</b> to grow/shrink your hand, piles, and SET/SORT buttons.</li>
+                <li>Sizes are remembered locally per mode and player count.</li>
+              </ul>
+            </Section>
+            <Section title="Center Cards">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>1 – 4</b>: top row of center cards (left → right). With 4 or fewer center cards, these are the only row.</li>
+                <li><b>5 – 8</b>: bottom row of center cards (left → right), when the center has 8 cards.</li>
+                <li><b>Q W E R</b>: alternative for the first 4 center cards (top row).</li>
+                <li><b>A S D F</b>: alternative for the bottom 4 center cards.</li>
+              </ul>
+            </Section>
+            <Section title="Your Hand & Piles">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>J K L ;</b>: open / interact with pile 1 – 4 (left → right).</li>
+                <li><b>U I O P</b>: select hand cards 1 – 4 (left → right) inside the opened pile.</li>
+              </ul>
+            </Section>
+            <Section title="Action Keys">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>Spacebar</b>: tap the <b>SET</b> button.</li>
+                <li><b>S</b>: tap the <b>SORT</b> button (when no center action is pending).</li>
+                <li><b>Enter</b>: tap the <b>BIMYAH!</b> button.</li>
+              </ul>
+            </Section>
+          </TabsContent>
+
+
             <Section title="Tournament Objective">
               Be the first player to reach the <b>point limit</b> set by the host across multiple matches.
             </Section>
