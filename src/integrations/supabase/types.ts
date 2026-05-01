@@ -44,6 +44,60 @@ export type Database = {
         }
         Relationships: []
       }
+      bplus_gifts: {
+        Row: {
+          allocated_at: string | null
+          allocated_by: string | null
+          amount_cents: number
+          created_at: string
+          currency: string
+          environment: string
+          gift_type: Database["public"]["Enums"]["gift_type"]
+          id: string
+          purchaser_id: string
+          recipient_email: string | null
+          recipient_user_id: string | null
+          status: Database["public"]["Enums"]["gift_status"]
+          stripe_session_id: string | null
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          gift_type: Database["public"]["Enums"]["gift_type"]
+          id?: string
+          purchaser_id: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          status?: Database["public"]["Enums"]["gift_status"]
+          stripe_session_id?: string | null
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          gift_type?: Database["public"]["Enums"]["gift_type"]
+          id?: string
+          purchaser_id?: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          status?: Database["public"]["Enums"]["gift_status"]
+          stripe_session_id?: string | null
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       card_backs: {
         Row: {
           created_at: string
@@ -469,6 +523,8 @@ export type Database = {
       app_role: "user" | "admin"
       bplus_plan: "lifetime" | "monthly" | "annual"
       bplus_status: "active" | "past_due" | "cancelled"
+      gift_status: "pending" | "fulfilled" | "refunded"
+      gift_type: "friend" | "random"
       payment_status: "completed" | "refunded" | "failed"
     }
     CompositeTypes: {
@@ -600,6 +656,8 @@ export const Constants = {
       app_role: ["user", "admin"],
       bplus_plan: ["lifetime", "monthly", "annual"],
       bplus_status: ["active", "past_due", "cancelled"],
+      gift_status: ["pending", "fulfilled", "refunded"],
+      gift_type: ["friend", "random"],
       payment_status: ["completed", "refunded", "failed"],
     },
   },
