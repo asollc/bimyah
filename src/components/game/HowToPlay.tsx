@@ -37,24 +37,30 @@ export function HowToPlayButton({
           How to Play
         </button>
       </DialogTrigger>
-      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] pt-8 text-white">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl text-[var(--mint)]">
-            How to Play BIMYAH!
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white">
         <Tabs defaultValue="standard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-black/40">
-            <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
-              Standard
-            </TabsTrigger>
-            <TabsTrigger value="tournament" className="text-xs data-[state=active]:bg-[var(--gold)] data-[state=active]:text-black">
-              Tournament
-            </TabsTrigger>
-            <TabsTrigger value="multiplayer" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
-              Multiplayer
-            </TabsTrigger>
-          </TabsList>
+          <div className="sticky top-0 z-10 bg-[oklch(0.18_0.04_165)] px-6 pb-3 pt-6 shadow-[0_4px_8px_-4px_rgba(0,0,0,0.6)]">
+            <DialogHeader>
+              <DialogTitle className="mb-3 font-display text-2xl text-[var(--mint)]">
+                How to Play BIMYAH!
+              </DialogTitle>
+            </DialogHeader>
+            <TabsList className="grid w-full grid-cols-4 bg-black/40">
+              <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Standard
+              </TabsTrigger>
+              <TabsTrigger value="controls" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Controls
+              </TabsTrigger>
+              <TabsTrigger value="tournament" className="text-xs data-[state=active]:bg-[var(--gold)] data-[state=active]:text-black">
+                Tournament
+              </TabsTrigger>
+              <TabsTrigger value="multiplayer" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Multiplayer
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="px-6 pb-6 pt-2">
 
           <TabsContent value="standard" className="space-y-4 text-sm leading-relaxed text-white/85">
             <Section title="Objective">
@@ -87,6 +93,44 @@ export function HowToPlayButton({
             </Section>
             <Section title="Winning">
               When all 4 cards in your hand are the same rank, tap <b>SET</b> to lock that pile. When all your piles are SET, tap the red <b>BIMYAH!</b> button to declare victory.
+            </Section>
+          </TabsContent>
+
+          <TabsContent value="controls" className="space-y-4 text-sm leading-relaxed text-white/85">
+            <Section title="Repositioning Seats">
+              <ul className="list-disc space-y-1 pl-5">
+                <li>Every opponent's <b>name tag</b> doubles as a drag handle — press and drag it to move that seat anywhere on the table.</li>
+                <li>Your own seat (bottom) stays fixed so your hand and piles never get pushed off-screen.</li>
+                <li>Layouts are saved per game mode and player count, so your arrangement persists across matches.</li>
+              </ul>
+            </Section>
+            <Section title="Resizing In-Game Elements">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>Pinch to zoom</b> the center table (table, center cards, and BIMYAH! button scale together) on touch devices.</li>
+                <li>On a keyboard, use <b>← / →</b> to shrink/grow the center table and <b>↑ / ↓</b> to grow/shrink your hand, piles, and SET/SORT buttons.</li>
+                <li>Sizes are remembered locally per mode and player count.</li>
+              </ul>
+            </Section>
+            <Section title="Center Cards">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>1 – 4</b>: top row of center cards (left → right). With 4 or fewer center cards, these are the only row.</li>
+                <li><b>5 – 8</b>: bottom row of center cards (left → right), when the center has 8 cards.</li>
+                <li><b>Q W E R</b>: alternative for the first 4 center cards (top row).</li>
+                <li><b>A S D F</b>: alternative for the bottom 4 center cards.</li>
+              </ul>
+            </Section>
+            <Section title="Your Hand & Piles">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>J K L ;</b>: open / interact with pile 1 – 4 (left → right).</li>
+                <li><b>U I O P</b>: select hand cards 1 – 4 (left → right) inside the opened pile.</li>
+              </ul>
+            </Section>
+            <Section title="Action Keys">
+              <ul className="list-disc space-y-1 pl-5">
+                <li><b>Spacebar</b>: tap the <b>SET</b> button.</li>
+                <li><b>S</b>: tap the <b>SORT</b> button (when no center action is pending).</li>
+                <li><b>Enter</b>: tap the <b>BIMYAH!</b> button.</li>
+              </ul>
             </Section>
           </TabsContent>
 
@@ -170,6 +214,7 @@ export function HowToPlayButton({
               </ul>
             </Section>
           </TabsContent>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
