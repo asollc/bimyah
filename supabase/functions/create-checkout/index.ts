@@ -11,6 +11,13 @@ const ALLOWED_PRICE_IDS = new Set([
   "bplus_lifetime_onetime",
   "bplus_monthly",
   "bplus_yearly",
+  "bplus_gift_friend_onetime",
+  "bplus_gift_random_onetime",
+]);
+
+const GIFT_PRICE_IDS = new Set([
+  "bplus_gift_friend_onetime",
+  "bplus_gift_random_onetime",
 ]);
 
 Deno.serve(async (req) => {
@@ -23,12 +30,36 @@ Deno.serve(async (req) => {
     const priceId = String(body?.priceId ?? "");
     const returnUrl = String(body?.returnUrl ?? "");
     const rawEnv = String(body?.environment ?? "");
+    const quantity = Math.max(1, Math.min(50, Number(body?.quantity ?? 1) || 1));
+    const giftType = body?.giftType === "friend" || body?.giftType === "random"
+      ? (body.giftType as "friend" | "random")
+      : null;
+    const recipientEmail = typeof body?.recipientEmail === "string"
+      ? body.recipientEmail.trim().toLowerCase().slice(0, 255)
+      : null;
+
     if (!ALLOWED_PRICE_IDS.has(priceId)) throw new Error("Invalid priceId");
     if (!/^https?:\/\//.test(returnUrl)) throw new Error("Invalid returnUrl");
     if (rawEnv !== "sandbox" && rawEnv !== "live") throw new Error("Invalid environment");
     const env: StripeEnv = rawEnv;
 
-    // Optional auth — attach userId if logged in
+    // Gift consistency checks
+    const isGift = GIFT_PRICE_IDS.has(priceId);
+    if (isGift) {
+      if (!giftType) throw new Error("giftType required for gift purchases");
+      if (priceId === "bplus_gift_friend_onetime") {
+        if (giftType !== "friend") throw new Error("Mismatched gift price/type");
+        if (quantity !== 1) throw new Error("Friend gifts must have quantity 1");
+        if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+          throw new Error("Valid recipient email required for friend gifts");
+        }
+      }
+      if (priceId === "bplus_gift_random_onetime") {
+        if (giftType !== "random") throw new Error("Mismatched gift price/type");
+      }
+    }
+
+    // Optional auth — required for all purchases
     let userId: string | null = null;
     let customerEmail: string | null = null;
     const authHeader = req.headers.get("authorization");
@@ -46,7 +77,8 @@ Deno.serve(async (req) => {
     }
     if (!userId) throw new Error("You must be signed in to checkout");
 
-    // Lifetime: enforce slot still available
+    // For self-purchase lifetime, enforce slot still available.
+    // Gifts do NOT consume the lifetime slot pool — they're a separate product.
     if (priceId === "bplus_lifetime_onetime") {
       const sb = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -62,21 +94,55 @@ Deno.serve(async (req) => {
       }
     }
 
+    // For friend gifts, verify recipient email maps to a real user before charging.
+    let recipientUserId: string | null = null;
+    if (isGift && giftType === "friend" && recipientEmail) {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      // Search auth users for matching email (paginated lookup)
+      const { data: users } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const match = users?.users.find(
+        (u) => u.email?.toLowerCase() === recipientEmail
+      );
+      if (!match) throw new Error("No member found with that email");
+      if (match.id === userId) throw new Error("You can't gift yourself");
+      // Reject if recipient already has active sub
+      const { data: existing } = await sb
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", match.id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (existing) throw new Error("That member already has Bimyah!+");
+      recipientUserId = match.id;
+    }
+
     const stripe = createStripeClient(env);
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
     if (!prices.data.length) throw new Error("Price not found");
     const stripePrice = prices.data[0];
     const isRecurring = stripePrice.type === "recurring";
 
+    const metadata: Record<string, string> = {
+      userId,
+      priceId,
+    };
+    if (isGift && giftType) metadata.giftType = giftType;
+    if (recipientUserId) metadata.recipientUserId = recipientUserId;
+    if (recipientEmail) metadata.recipientEmail = recipientEmail;
+    if (isGift) metadata.giftQuantity = String(quantity);
+
     const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: stripePrice.id, quantity: 1 }],
+      line_items: [{ price: stripePrice.id, quantity }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
       ...(customerEmail && { customer_email: customerEmail }),
-      metadata: { userId, priceId },
+      metadata,
       ...(isRecurring && {
-        subscription_data: { metadata: { userId, priceId } },
+        subscription_data: { metadata },
       }),
     });
 
