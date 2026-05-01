@@ -676,6 +676,7 @@ export function GameTable({
             onSort={isMe ? handleSort : undefined}
             selectedHandCardId={isMe ? selectedHandCardId : null}
             sortEnabled={isMe ? sortEnabled : false}
+            zoom={isMe ? playerZoom : 1}
           />
         );
       })}
