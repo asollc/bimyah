@@ -96,10 +96,11 @@ function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subs">Subscriptions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="gifts">Gifts</TabsTrigger>
             <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
@@ -112,6 +113,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="users" className="mt-6">
             <UsersTab />
+          </TabsContent>
+          <TabsContent value="gifts" className="mt-6">
+            <GiftsTab />
           </TabsContent>
           <TabsContent value="shares" className="mt-6">
             <SharesTab />
