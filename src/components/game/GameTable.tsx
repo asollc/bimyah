@@ -942,6 +942,7 @@ function PlayerSeat({
   onSort,
   selectedHandCardId,
   sortEnabled,
+  zoom = 1,
 }: {
   player: Player;
   position: SeatPos;
@@ -957,6 +958,7 @@ function PlayerSeat({
   onSort?: () => void;
   selectedHandCardId?: string | null;
   sortEnabled?: boolean;
+  zoom?: number;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
