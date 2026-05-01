@@ -14,6 +14,7 @@ import {
   updateBplusConfig,
   getShareStats,
 } from "@/server/admin.functions";
+import { listRandomGifts, allocateRandomGift } from "@/server/gifts.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
