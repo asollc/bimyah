@@ -10,6 +10,7 @@ import {
 } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
+import { KeybindEditor } from "@/components/game/KeybindEditor";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
