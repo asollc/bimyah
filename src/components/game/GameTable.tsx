@@ -184,6 +184,36 @@ export function GameTable({
   const persistZoom = (z: number) => {
     try { localStorage.setItem(zoomKey, String(z)); } catch {}
   };
+
+  // ===== Player zoom (hand + piles + SET/SORT, local player only) =====
+  const playerZoomKey = `bimyah_player_zoom_${state.mode}_${seatOrder.length}`;
+  const [playerZoom, setPlayerZoom] = useState<number>(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(playerZoomKey);
+      const n = raw ? parseFloat(raw) : 1;
+      setPlayerZoom(Number.isFinite(n) && n > 0 ? n : 1);
+    } catch {
+      setPlayerZoom(1);
+    }
+  }, [playerZoomKey]);
+  const persistPlayerZoom = (z: number) => {
+    try { localStorage.setItem(playerZoomKey, String(z)); } catch {}
+  };
+  const bumpPlayerZoom = (delta: number) => {
+    setPlayerZoom((cur) => {
+      const next = Math.min(2, Math.max(0.6, cur + delta));
+      persistPlayerZoom(next);
+      return next;
+    });
+  };
+  const bumpCenterZoom = (delta: number) => {
+    setCenterZoom((cur) => {
+      const next = Math.min(2, Math.max(0.6, cur + delta));
+      persistZoom(next);
+      return next;
+    });
+  };
   // Pinch handling: track 2 active pointers on the center container.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
