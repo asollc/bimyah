@@ -77,6 +77,57 @@ function PlusPage() {
   const [success, setSuccess] = useState(false);
   const [stripePlan, setStripePlan] = useState<StripePlan | null>(null);
 
+  // Gift flow state
+  const [purchaseMode, setPurchaseMode] = useState<"self" | "gift">("self");
+  const [giftMode, setGiftMode] = useState<GiftMode | null>(null);
+  // Friend gift
+  const [giftEmail, setGiftEmail] = useState("");
+  const [giftEmailVerified, setGiftEmailVerified] = useState<{
+    name: string;
+  } | null>(null);
+  const [giftEmailVerifying, setGiftEmailVerifying] = useState(false);
+  const [giftEmailError, setGiftEmailError] = useState<string | null>(null);
+  // Random gift
+  const [randomQty, setRandomQty] = useState(1);
+  const [randomAck, setRandomAck] = useState(false);
+  // Both
+  const [giftCheckoutOpen, setGiftCheckoutOpen] = useState(false);
+
+  // Reset checkout when key inputs change
+  useEffect(() => {
+    setGiftCheckoutOpen(false);
+  }, [giftMode, giftEmail, randomQty, purchaseMode]);
+
+  // Debounced email verification
+  useEffect(() => {
+    if (giftMode !== "friend") return;
+    const email = giftEmail.trim().toLowerCase();
+    setGiftEmailVerified(null);
+    setGiftEmailError(null);
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    setGiftEmailVerifying(true);
+    const handle = setTimeout(async () => {
+      try {
+        const res = await verifyGiftRecipient({ data: { email } });
+        if (res.found) {
+          setGiftEmailVerified({ name: res.display_name });
+        } else if ((res as { reason?: string }).reason === "self") {
+          setGiftEmailError("You can't gift yourself");
+        } else if ((res as { reason?: string }).reason === "already_plus") {
+          setGiftEmailError("That member already has Bimyah!+");
+        } else {
+          setGiftEmailError("No member found with that email");
+        }
+      } catch (e) {
+        setGiftEmailError((e as Error).message ?? "Lookup failed");
+      } finally {
+        setGiftEmailVerifying(false);
+      }
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [giftMode, giftEmail]);
+
   const refreshEntitlement = async () => {
     try {
       const nextEntitlement = await getMyEntitlement();
