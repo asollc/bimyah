@@ -359,7 +359,141 @@ export function GameTable({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  return (
+  // ===== Keyboard controls =====
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      // Ignore when typing in an input/textarea or modal forms
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          target.isContentEditable
+        ) return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Sizing keys (work in any status)
+      if (e.key === "ArrowUp") { e.preventDefault(); bumpPlayerZoom(0.1); return; }
+      if (e.key === "ArrowDown") { e.preventDefault(); bumpPlayerZoom(-0.1); return; }
+      if (e.key === "ArrowRight") { e.preventDefault(); bumpCenterZoom(0.1); return; }
+      if (e.key === "ArrowLeft") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
+
+      if (!me) return;
+
+      // Lobby ready
+      if (state.status === "lobby") {
+        if (e.key === "Enter" || e.key === " ") {
+          if (!me.ready) { e.preventDefault(); onReady(); }
+        }
+        return;
+      }
+      if (state.status !== "playing" && state.status !== "countdown") {
+        // Allow Enter for play again / next match isn't easily wired; skip.
+        return;
+      }
+
+      // BIMYAH on Enter
+      if (e.key === "Enter") {
+        if (canDeclareBimyah(state, meId)) {
+          e.preventDefault();
+          handleBimyah();
+        }
+        return;
+      }
+
+      // SET on space
+      if (e.key === " " || e.code === "Space") {
+        if (me.openPileIndex !== null && me.hand.length === 4 && isFourOfAKind(me.hand)) {
+          e.preventDefault();
+          handleSet();
+        }
+        return;
+      }
+
+      const k = e.key.toLowerCase();
+
+      // Center card mappings
+      // Numbers 1-8: top row 1-4, bottom row 5-8 (when 8 slots)
+      // QWER: first 4 (top row); ASDF: bottom 4 (when 8 slots)
+      const centerLen = state.center.length;
+      const split = centerLen >= 8;
+      const numberMap: Record<string, number> = {
+        "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7,
+      };
+      const qwerMap: Record<string, number> = { q: 0, w: 1, e: 2, r: 3 };
+      const asdfMap: Record<string, number> = { a: 4, s: 5, d: 6, f: 7 };
+
+      let centerIdx: number | undefined;
+      if (k in numberMap) centerIdx = numberMap[k];
+      else if (k in qwerMap) centerIdx = qwerMap[k];
+      else if (split && k in asdfMap) centerIdx = asdfMap[k];
+
+      if (centerIdx !== undefined && centerIdx < centerLen) {
+        e.preventDefault();
+        handleCenterTap(centerIdx);
+        return;
+      }
+
+      // SORT on `s` (only reachable when ASDF didn't claim it — i.e. center isn't split)
+      if (k === "s") {
+        if (me.openPileIndex !== null && me.hand.length >= 2) {
+          e.preventDefault();
+          handleSort();
+        }
+        return;
+      }
+
+      // Pile keys j k l ;
+      const pileMap: Record<string, number> = { j: 0, k: 1, l: 2, ";": 3 };
+      if (k in pileMap) {
+        const idx = pileMap[k];
+        if (idx < me.piles.length) {
+          e.preventDefault();
+          handlePileTap(idx);
+        }
+        return;
+      }
+
+      // Hand card selection u i o p (positions 0-3 in displayed hand)
+      const handMap: Record<string, number> = { u: 0, i: 1, o: 2, p: 3 };
+      if (k in handMap) {
+        const idx = handMap[k];
+        // Build the same ordering used in the visible hand
+        const visibleHand = (() => {
+          if (!sortEnabled || me.hand.length < 2) return me.hand;
+          const counts = new Map<string, number>();
+          for (const c of me.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+          const RANK_ORDER: Record<string, number> = {
+            A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+            "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+          };
+          return [...me.hand].sort((a, b) => {
+            const fa = counts.get(a.rank) ?? 0;
+            const fb = counts.get(b.rank) ?? 0;
+            if (fa !== fb) return fb - fa;
+            const ra = RANK_ORDER[a.rank] ?? 99;
+            const rb = RANK_ORDER[b.rank] ?? 99;
+            if (ra !== rb) return ra - rb;
+            return a.suit.localeCompare(b.suit);
+          });
+        })();
+        const card = visibleHand[idx];
+        if (card) {
+          e.preventDefault();
+          handleHandCardTap(card.id);
+        }
+        return;
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, meId, selectedHandCardId, sortEnabled, me]);
+
+
     <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
