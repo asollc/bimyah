@@ -283,6 +283,38 @@ function HomePage() {
   );
 }
 
+const SOCIAL_LINKS = [
+  { src: socialYoutube, alt: "YouTube", href: "https://youtube.com" },
+  { src: socialDiscord, alt: "Discord", href: "https://discord.gg/5xs5pWFrxp" },
+  { src: socialTiktok, alt: "TikTok", href: "https://www.tiktok.com/@playbimyah" },
+  { src: socialFacebook, alt: "Facebook", href: "https://www.facebook.com/share/1EeyG6PVAp/" },
+  { src: socialEmail, alt: "Email", href: "mailto:info@ronyaross.top" },
+];
+
+function SocialIcons() {
+  return (
+    <div className="mt-2 flex w-full items-center justify-center gap-3">
+      {SOCIAL_LINKS.map((s) => (
+        <a
+          key={s.alt}
+          href={s.href}
+          target={s.href.startsWith("mailto:") ? undefined : "_blank"}
+          rel={s.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+          aria-label={s.alt}
+          className="transition-transform hover:scale-110 active:scale-95"
+        >
+          <img
+            src={s.src}
+            alt={s.alt}
+            className="h-11 w-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]"
+            draggable={false}
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 const SHARE_TEXT = "I found a fun fast-paced card game called Bimyah! You should try it.";
 const SHARE_URL = "https://playbimyah.com";
 const SHARE_IMAGE = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
