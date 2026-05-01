@@ -37,24 +37,30 @@ export function HowToPlayButton({
           How to Play
         </button>
       </DialogTrigger>
-      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] pt-8 text-white">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl text-[var(--mint)]">
-            How to Play BIMYAH!
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white">
         <Tabs defaultValue="standard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-black/40">
-            <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
-              Standard
-            </TabsTrigger>
-            <TabsTrigger value="tournament" className="text-xs data-[state=active]:bg-[var(--gold)] data-[state=active]:text-black">
-              Tournament
-            </TabsTrigger>
-            <TabsTrigger value="multiplayer" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
-              Multiplayer
-            </TabsTrigger>
-          </TabsList>
+          <div className="sticky top-0 z-10 bg-[oklch(0.18_0.04_165)] px-6 pb-3 pt-6 shadow-[0_4px_8px_-4px_rgba(0,0,0,0.6)]">
+            <DialogHeader>
+              <DialogTitle className="mb-3 font-display text-2xl text-[var(--mint)]">
+                How to Play BIMYAH!
+              </DialogTitle>
+            </DialogHeader>
+            <TabsList className="grid w-full grid-cols-4 bg-black/40">
+              <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Standard
+              </TabsTrigger>
+              <TabsTrigger value="controls" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Controls
+              </TabsTrigger>
+              <TabsTrigger value="tournament" className="text-xs data-[state=active]:bg-[var(--gold)] data-[state=active]:text-black">
+                Tournament
+              </TabsTrigger>
+              <TabsTrigger value="multiplayer" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Multiplayer
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="px-6 pb-6 pt-2">
 
           <TabsContent value="standard" className="space-y-4 text-sm leading-relaxed text-white/85">
             <Section title="Objective">
