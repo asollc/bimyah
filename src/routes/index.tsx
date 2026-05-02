@@ -956,13 +956,15 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
 
 /* ============================ Host flow ============================ */
 
-type HostStep = "mode" | "name" | "points" | "seats";
+type HostStep = "mode" | "points" | "seats";
 
 function HostFlow({
   hosting,
   error,
   onCancel,
   onStart,
+  profileName,
+  userEmail,
 }: {
   hosting: boolean;
   error: string | null;
@@ -973,16 +975,12 @@ function HostFlow({
     pointLimit: number | null,
     maxSeats: number,
   ) => void;
+  profileName: string | null;
+  userEmail: string | null;
 }) {
   const [step, setStep] = useState<HostStep>("mode");
   const [mode, setMode] = useState<GameMode>("standard");
-  const [name, setName] = useState<string>(() => {
-    try {
-      return localStorage.getItem("bimyah_last_name") ?? "";
-    } catch {
-      return "";
-    }
-  });
+  const name = deriveDisplayName(profileName, userEmail, "Host");
   const [pointLimit, setPointLimit] = useState<number | null>(null);
   const [isPlus, setIsPlus] = useState(false);
 
@@ -1006,32 +1004,10 @@ function HostFlow({
       <ModeStep
         onPick={(m) => {
           setMode(m);
-          setStep("name");
+          setStep(m === "tournament" ? "points" : "seats");
         }}
         onCancel={onCancel}
       />
-    );
-  }
-  if (step === "name") {
-    const isTourney = mode === "tournament";
-    return (
-      <>
-        <NameStep
-          initial={name}
-          accent="gold"
-          ctaLabel="Next"
-          ctaClass="btn-3d-gold"
-          busy={false}
-          onSubmit={(n) => {
-            setName(n);
-            setStep(isTourney ? "points" : "seats");
-          }}
-          onCancel={onCancel}
-        />
-        {error && (
-          <div className="text-center text-xs text-[var(--player-red)]">{error}</div>
-        )}
-      </>
     );
   }
   if (step === "points") {
