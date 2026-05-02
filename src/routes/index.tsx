@@ -262,12 +262,20 @@ function HomePage() {
         )}
 
 
-        {showSolo && <SoloFlow onCancel={() => setShowSolo(false)} />}
+        {showSolo && (
+          <SoloFlow
+            onCancel={() => setShowSolo(false)}
+            profileName={profile?.display_name ?? null}
+            userEmail={user?.email ?? null}
+          />
+        )}
         {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
         {showHost && (
           <HostFlow
             hosting={hosting}
             error={hostErr}
+            profileName={profile?.display_name ?? null}
+            userEmail={user?.email ?? null}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
