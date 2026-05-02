@@ -656,19 +656,38 @@ function PointLimitStep({
 
 /* ============================ Solo flow ============================ */
 
-type SoloStep = "mode" | "name" | "points" | "bots";
+type SoloStep = "mode" | "points" | "bots";
 
-function SoloFlow({ onCancel }: { onCancel: () => void }) {
+function deriveDisplayName(
+  profileName: string | null,
+  userEmail: string | null,
+  fallback: string,
+): string {
+  const fromProfile = (profileName ?? "").trim();
+  if (fromProfile) return fromProfile.slice(0, 14);
+  const fromEmail = (userEmail ?? "").split("@")[0]?.trim() ?? "";
+  if (fromEmail) return fromEmail.slice(0, 14);
+  try {
+    const stored = localStorage.getItem("bimyah_last_name")?.trim();
+    if (stored) return stored.slice(0, 14);
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
+function SoloFlow({
+  onCancel,
+  profileName,
+  userEmail,
+}: {
+  onCancel: () => void;
+  profileName: string | null;
+  userEmail: string | null;
+}) {
   const navigate = useNavigate();
   const [step, setStep] = useState<SoloStep>("mode");
   const [mode, setMode] = useState<GameMode>("standard");
-  const [name, setName] = useState<string>(() => {
-    try {
-      return localStorage.getItem("bimyah_last_name") ?? "";
-    } catch {
-      return "";
-    }
-  });
   const [pointLimit, setPointLimit] = useState<number | null>(null);
   const [isPlus, setIsPlus] = useState(false);
 
@@ -689,7 +708,7 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
 
   function start(botCount: number) {
     const myId = "me";
-    const finalName = name.trim().slice(0, 14) || "You";
+    const finalName = deriveDisplayName(profileName, userEmail, "You");
     try {
       localStorage.setItem("bimyah_last_name", finalName);
     } catch {
@@ -715,22 +734,7 @@ function SoloFlow({ onCancel }: { onCancel: () => void }) {
       <ModeStep
         onPick={(m) => {
           setMode(m);
-          setStep("name");
-        }}
-        onCancel={onCancel}
-      />
-    );
-  }
-  if (step === "name") {
-    return (
-      <NameStep
-        initial={name}
-        accent="mint"
-        ctaLabel="Next"
-        ctaClass="btn-3d-mint"
-        onSubmit={(n) => {
-          setName(n);
-          setStep(mode === "tournament" ? "points" : "bots");
+          setStep(m === "tournament" ? "points" : "bots");
         }}
         onCancel={onCancel}
       />
