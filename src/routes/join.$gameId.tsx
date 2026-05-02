@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { joinGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
@@ -32,20 +32,56 @@ export const Route = createFileRoute("/join/$gameId")({
   component: JoinGame,
 });
 
+function deriveJoinName(
+  profileName: string | null | undefined,
+  email: string | null | undefined,
+): string {
+  const fromProfile = (profileName ?? "").trim();
+  if (fromProfile) return fromProfile.slice(0, 14);
+  const fromEmail = (email ?? "").split("@")[0]?.trim() ?? "";
+  if (fromEmail) return fromEmail.slice(0, 14);
+  try {
+    const stored = localStorage.getItem("bimyah_last_name")?.trim();
+    if (stored) return stored.slice(0, 14);
+  } catch {
+    /* ignore */
+  }
+  return "Player";
+}
+
 function JoinGame() {
   const { gameId } = Route.useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [name, setName] = useState("");
+  const { user, profile, loading: authLoading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      void navigate({
+        to: "/auth",
+        search: { redirect: `/join/${gameId}` } as never,
+      });
+      return;
+    }
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void join();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user, gameId]);
+
+  async function join() {
     setBusy(true);
     setErr(null);
     try {
+      const playerName = deriveJoinName(profile?.display_name, user?.email);
+      try {
+        localStorage.setItem("bimyah_last_name", playerName);
+      } catch {
+        /* ignore */
+      }
       const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
       const session = await joinGame(gameId, myId);
       const state = session.getState();
@@ -53,6 +89,7 @@ function JoinGame() {
         setErr("Could not load game");
         setBusy(false);
         session.destroy();
+        startedRef.current = false;
         return;
       }
       if (state.status !== "lobby") {
@@ -76,16 +113,14 @@ function JoinGame() {
         avatarUrl: null,
         cardBackUrl: null,
       };
-      if (user) {
-        try {
-          cosmetics = await getMyCosmetics();
-        } catch {
-          /* ignore */
-        }
+      try {
+        cosmetics = await getMyCosmetics();
+      } catch {
+        /* ignore */
       }
       const newPlayer = {
         id: myId,
-        name: name.trim().slice(0, 14),
+        name: playerName,
         color: PLAYER_COLORS[state.players.length],
         isBot: false,
         ready: false,
@@ -108,7 +143,14 @@ function JoinGame() {
       console.error(e);
       setErr("Could not connect. Check the code.");
       setBusy(false);
+      startedRef.current = false;
     }
+  }
+
+  function retry() {
+    if (busy) return;
+    startedRef.current = false;
+    void join();
   }
 
   return (
@@ -118,27 +160,23 @@ function JoinGame() {
         <HowToPlayButton />
       </div>
       <PowLogo size={270} />
-      <form onSubmit={submit} className="flex w-full max-w-xs flex-col gap-3">
+      <div className="flex w-full max-w-xs flex-col gap-3">
         <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
           Joining game <span className="text-[var(--mint)]">{gameId}</span>
         </div>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          maxLength={14}
-          className="rounded-lg border border-[var(--mint)]/40 bg-black/40 px-4 py-3 text-center font-display text-xl text-white placeholder:text-white/30"
-        />
+        <div className="text-center font-display text-base text-white">
+          {busy || authLoading ? "Connecting…" : err ? "Couldn't join" : "Connecting…"}
+        </div>
         {err && <div className="text-center text-xs text-[var(--player-red)]">{err}</div>}
-        <button
-          type="submit"
-          disabled={!name.trim() || busy}
-          className="btn-3d btn-3d-mint w-full text-base"
-        >
-          {busy ? "Connecting…" : "Join Game"}
-        </button>
-      </form>
+        {err && (
+          <button
+            onClick={retry}
+            className="btn-3d btn-3d-mint w-full text-base"
+          >
+            Try again
+          </button>
+        )}
+      </div>
       <div />
     </div>
   );
