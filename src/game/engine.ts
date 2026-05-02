@@ -103,7 +103,7 @@ export function setReady(state: GameState, playerId: string, ready: boolean): Ga
   return {
     ...state,
     players: playersDealt,
-    center: dealt.center.map((c) => ({ card: c, heldBy: null, heldUntil: null })),
+    center: dealt.center.map((c) => ({ card: c, heldBy: null, heldUntil: null, placedAt: Date.now() })),
     status: "countdown",
     countdownEndsAt: Date.now() + COUNTDOWN_MS,
   };
@@ -187,7 +187,7 @@ export function swapCard(
   const newHand = player.hand.map((c) => (c.id === cardId ? centerCard : c));
   const players = state.players.map((p) => (p.id === playerId ? { ...p, hand: newHand } : p));
   const center = state.center.map((s, i) =>
-    i === heldIdx ? { card: handCard, heldBy: null, heldUntil: null } : s,
+    i === heldIdx ? { card: handCard, heldBy: null, heldUntil: null, placedAt: Date.now() } : s,
   );
   return { ...state, players, center };
 }

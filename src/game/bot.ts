@@ -30,6 +30,8 @@ import { isFourOfAKind } from "./deck";
  *             3-of-a-kind for, by feeding their ranks into the center.
  *
  * Other rules:
+ *   - Rule 10: bots must wait at least 1.5s after a card is placed in a
+ *     center slot before claiming it.
  *   - At match start, each bot picks a target rank per pile based on which
  *     ranks appear more than once across that pile (rule 2).
  *   - If another player swaps away a card the bot needs to complete a set,
@@ -200,28 +202,41 @@ function pileWithMostOf(bot: Player, rank: Rank, exclude: number): { idx: number
   return best;
 }
 
-/** Count rank occurrences in the center (face-up, unheld). */
-function centerRankCounts(state: GameState): Map<Rank, number> {
+/** Rule 10: bots must wait at least 1.5s after a card lands in a slot. */
+const BOT_CENTER_COOLDOWN_MS = 1500;
+
+/** Whether a bot is allowed to claim the given center slot right now. */
+function slotClaimable(state: GameState, centerIdx: number, now: number): boolean {
+  const slot = state.center[centerIdx];
+  if (!slot || !slot.card || slot.heldBy) return false;
+  const placedAt = slot.placedAt ?? state.startedAt ?? now;
+  return now - placedAt >= BOT_CENTER_COOLDOWN_MS;
+}
+
+/** Count rank occurrences in the center (face-up, unheld, past cooldown). */
+function centerRankCounts(state: GameState, now: number): Map<Rank, number> {
   const m = new Map<Rank, number>();
-  for (const slot of state.center) {
-    if (slot.card && slot.heldBy === null) {
-      m.set(slot.card.rank, (m.get(slot.card.rank) ?? 0) + 1);
-    }
-  }
+  state.center.forEach((slot, i) => {
+    if (!slotClaimable(state, i, now)) return;
+    if (!slot.card) return;
+    m.set(slot.card.rank, (m.get(slot.card.rank) ?? 0) + 1);
+  });
   return m;
 }
 
 /** Pick a center index whose card matches one of `wantedRanks`. */
 function findCenterCard(
   state: GameState,
+  now: number,
   wantedRanks: Set<Rank>,
   preferDuplicates = false,
 ): number {
-  const counts = centerRankCounts(state);
+  const counts = centerRankCounts(state, now);
   let best = -1;
   let bestScore = -1;
   state.center.forEach((slot, i) => {
-    if (!slot.card || slot.heldBy) return;
+    if (!slotClaimable(state, i, now)) return;
+    if (!slot.card) return;
     if (!wantedRanks.has(slot.card.rank)) return;
     const score = preferDuplicates ? counts.get(slot.card.rank) ?? 1 : 1;
     if (score > bestScore) {
@@ -378,17 +393,17 @@ export function stepBots(
     }
 
     // Step C1: try to take a useful center card.
-    let centerIdx = findCenterCard(state, wantedRanks, /*preferDuplicates*/ false);
+    let centerIdx = findCenterCard(state, now, wantedRanks, /*preferDuplicates*/ false);
 
     // Rule 6: phase-pivot — if we have 3-of-a-kind in this hand and we're
     // past 45s, also accept center cards of OTHER ranks (preferring duplicates).
     if (centerIdx === -1 && phasePivot && target && haveOfTarget >= 3) {
-      const counts = centerRankCounts(state);
+      const counts = centerRankCounts(state, now);
       // Build a set of "any rank that appears in center", preferring those
       // with multiples; we still want to grab one that gives us a fresh start.
       const anyRanks = new Set<Rank>();
       for (const r of counts.keys()) if (r !== target) anyRanks.add(r);
-      centerIdx = findCenterCard(state, anyRanks, /*preferDuplicates*/ true);
+      centerIdx = findCenterCard(state, now, anyRanks, /*preferDuplicates*/ true);
       // If we take this card, retarget this pile to its rank.
       if (centerIdx !== -1 && bot.openPileIndex !== null) {
         const newRank = state.center[centerIdx].card?.rank ?? null;
@@ -399,10 +414,10 @@ export function stepBots(
     // Rule 7 fallback: overdue for a swap — accept ANY center card.
     if (centerIdx === -1 && overdueSwap) {
       const anyRanks = new Set<Rank>();
-      for (const slot of state.center) {
-        if (slot.card && slot.heldBy === null) anyRanks.add(slot.card.rank);
-      }
-      centerIdx = findCenterCard(state, anyRanks, true);
+      state.center.forEach((slot, i) => {
+        if (slotClaimable(state, i, now) && slot.card) anyRanks.add(slot.card.rank);
+      });
+      centerIdx = findCenterCard(state, now, anyRanks, true);
     }
 
     if (centerIdx !== -1) {
@@ -452,7 +467,7 @@ export function stepBots(
     if (phaseAggressive && target && haveOfTarget >= 3) {
       // Hold any center card so we can exchange a non-target hand card.
       const anySlot = state.center.findIndex(
-        (sl) => sl.card && sl.heldBy === null,
+        (_sl, i) => slotClaimable(state, i, now),
       );
       if (anySlot !== -1) {
         const probe = pickThrowaway(bot, memory, anySlot, target);
@@ -487,7 +502,7 @@ export function stepBots(
         if (donor) {
           // Take any center card so we can throw the donor into play.
           const anySlot = state.center.findIndex(
-            (sl) => sl.card && sl.heldBy === null,
+            (_sl, i) => slotClaimable(state, i, now),
           );
           if (anySlot !== -1 && !swapBlocked(memory, bot.id, donor.id, anySlot)) {
             memory.lastHelpAt.set(bot.id, now);
