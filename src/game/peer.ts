@@ -485,9 +485,11 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
 
     openAndConnect();
 
-    setTimeout(() => {
-      if (!resolved) reject(new Error("Could not connect to host"));
-    }, 10000);
+    // Per-attempt timeout. joinGame() retries on failure, so this can be
+    // tighter than the previous 10s single-shot.
+    initialTimer = setTimeout(() => {
+      if (!settled) settleReject(new Error("Could not connect to host"));
+    }, 6000);
   });
 }
 
