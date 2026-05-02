@@ -42,6 +42,8 @@ export type CenterSlot = {
   card: Card | null;
   heldBy: string | null;
   heldUntil: number | null;
+  /** Timestamp (ms) when the current card was placed in this slot. */
+  placedAt: number | null;
 };
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "won";
