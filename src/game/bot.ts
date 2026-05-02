@@ -30,6 +30,8 @@ import { isFourOfAKind } from "./deck";
  *             3-of-a-kind for, by feeding their ranks into the center.
  *
  * Other rules:
+ *   - Rule 10: bots must wait at least 1.5s after a card is placed in a
+ *     center slot before claiming it.
  *   - At match start, each bot picks a target rank per pile based on which
  *     ranks appear more than once across that pile (rule 2).
  *   - If another player swaps away a card the bot needs to complete a set,
