@@ -202,28 +202,41 @@ function pileWithMostOf(bot: Player, rank: Rank, exclude: number): { idx: number
   return best;
 }
 
-/** Count rank occurrences in the center (face-up, unheld). */
-function centerRankCounts(state: GameState): Map<Rank, number> {
+/** Rule 10: bots must wait at least 1.5s after a card lands in a slot. */
+const BOT_CENTER_COOLDOWN_MS = 1500;
+
+/** Whether a bot is allowed to claim the given center slot right now. */
+function slotClaimable(state: GameState, centerIdx: number, now: number): boolean {
+  const slot = state.center[centerIdx];
+  if (!slot || !slot.card || slot.heldBy) return false;
+  const placedAt = slot.placedAt ?? state.startedAt ?? now;
+  return now - placedAt >= BOT_CENTER_COOLDOWN_MS;
+}
+
+/** Count rank occurrences in the center (face-up, unheld, past cooldown). */
+function centerRankCounts(state: GameState, now: number): Map<Rank, number> {
   const m = new Map<Rank, number>();
-  for (const slot of state.center) {
-    if (slot.card && slot.heldBy === null) {
-      m.set(slot.card.rank, (m.get(slot.card.rank) ?? 0) + 1);
-    }
-  }
+  state.center.forEach((slot, i) => {
+    if (!slotClaimable(state, i, now)) return;
+    if (!slot.card) return;
+    m.set(slot.card.rank, (m.get(slot.card.rank) ?? 0) + 1);
+  });
   return m;
 }
 
 /** Pick a center index whose card matches one of `wantedRanks`. */
 function findCenterCard(
   state: GameState,
+  now: number,
   wantedRanks: Set<Rank>,
   preferDuplicates = false,
 ): number {
-  const counts = centerRankCounts(state);
+  const counts = centerRankCounts(state, now);
   let best = -1;
   let bestScore = -1;
   state.center.forEach((slot, i) => {
-    if (!slot.card || slot.heldBy) return;
+    if (!slotClaimable(state, i, now)) return;
+    if (!slot.card) return;
     if (!wantedRanks.has(slot.card.rank)) return;
     const score = preferDuplicates ? counts.get(slot.card.rank) ?? 1 : 1;
     if (score > bestScore) {
