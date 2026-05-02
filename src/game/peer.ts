@@ -281,15 +281,88 @@ function tryHost(
   });
 }
 
+/**
+ * PeerJS error type classification.
+ *
+ * Fatal (give up immediately):
+ *   - peer-unavailable: the host id doesn't exist (wrong code OR host not yet online)
+ *     We treat this as RETRYABLE for the initial join because the host may still be
+ *     coming online or the broker hasn't propagated the registration yet.
+ *   - invalid-id / invalid-key / browser-incompatible / ssl-unavailable: unrecoverable.
+ *
+ * Transient (retry):
+ *   - network, disconnected, socket-error, socket-closed, server-error, webrtc
+ */
+function isFatalPeerError(err: unknown): boolean {
+  const type = (err as { type?: string } | null)?.type;
+  if (!type) return false;
+  return (
+    type === "invalid-id" ||
+    type === "invalid-key" ||
+    type === "browser-incompatible" ||
+    type === "ssl-unavailable"
+  );
+}
+
 export async function joinGame(code: string, myId: string): Promise<PeerSession> {
+  // Retry the entire connect flow several times because PeerJS's public broker
+  // (and the host peer's WebRTC negotiation) can fail transiently — especially
+  // right after the host page loads, on flaky mobile networks, or if the
+  // browser was just woken from sleep. A single hard reject here is what
+  // produced the "Could not connect. Check the code." error users see even
+  // when the code is correct.
+  const MAX_ATTEMPTS = 5;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await tryJoinOnce(code, myId);
+    } catch (err) {
+      lastErr = err;
+      if (isFatalPeerError(err)) break;
+      // Backoff before next attempt (gives broker time to recover / host to come online).
+      await new Promise((r) => setTimeout(r, 600 + attempt * 400));
+    }
+  }
+  throw lastErr ?? new Error("Could not connect to host");
+}
+
+function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
   return new Promise((resolve, reject) => {
     let peer: Peer = new Peer(PEER_OPTS);
     let conn: DataConnection | null = null;
     let resolved = false;
+    let settled = false;
     let destroyed = false;
     let state: GameState | null = null;
     const listeners = new Set<(s: GameState) => void>();
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let initialTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function settleResolve() {
+      if (settled) return;
+      settled = true;
+      if (initialTimer) {
+        clearTimeout(initialTimer);
+        initialTimer = null;
+      }
+      resolved = true;
+      resolve(session);
+    }
+
+    function settleReject(err: unknown) {
+      if (settled) return;
+      settled = true;
+      if (initialTimer) {
+        clearTimeout(initialTimer);
+        initialTimer = null;
+      }
+      try {
+        peer.destroy();
+      } catch {
+        // ignore
+      }
+      reject(err);
+    }
 
     function notify() {
       if (state) for (const cb of listeners) cb(state);
@@ -306,10 +379,7 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
         if (msg.type === "state") {
           state = msg.state;
           notify();
-          if (!resolved) {
-            resolved = true;
-            resolve(session);
-          }
+          settleResolve();
         }
       });
       c.on("close", () => {
@@ -317,10 +387,9 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
         scheduleReconnect();
       });
       c.on("error", () => {
-        if (!resolved) {
-          // Initial failure handled by timeout below.
-          return;
-        }
+        // Connection-level errors after we're resolved → reconnect.
+        // Before resolution, the outer initial timer / peer error handles it.
+        if (!resolved) return;
         if (destroyed) return;
         scheduleReconnect();
       });
@@ -333,8 +402,15 @@ export async function joinGame(code: string, myId: string): Promise<PeerSession>
         attachConn(c);
       });
       peer.on("error", (err) => {
+        // Only reject the initial promise on FATAL errors. Transient errors
+        // (peer-unavailable, network, socket-*, server-error, disconnected)
+        // are common and recover on retry — let the initial timer or the
+        // outer joinGame() retry loop handle them.
         if (!resolved) {
-          reject(err);
+          if (isFatalPeerError(err)) {
+            settleReject(err);
+          }
+          // else: swallow; initialTimer will reject if we never connect.
           return;
         }
         if (destroyed) return;
