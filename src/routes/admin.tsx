@@ -372,6 +372,38 @@ function UsersTab() {
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     }
+  async function handleGrantBplus(u: UserRow) {
+    if (u.active_plan) {
+      if (!confirm(`Revoke Bimyah!+ from ${u.display_name}?`)) return;
+      try {
+        // Find their active sub
+        const { rows } = await listSubscriptions({
+          data: { search: u.id, status: "active", limit: 5 },
+        });
+        const sub = rows.find((r) => r.user_id === u.id);
+        if (!sub) throw new Error("No active subscription found");
+        await revokeBplus({ data: { subscription_id: sub.id } });
+        toast.success("Revoked Bimyah!+");
+        await refresh();
+      } catch (e: unknown) {
+        toast.error(String((e as Error)?.message ?? e));
+      }
+      return;
+    }
+    const planInput = prompt(`Grant Bimyah!+ to ${u.display_name}.\nEnter plan: lifetime, monthly, or annual`, "lifetime");
+    if (!planInput) return;
+    const plan = planInput.trim().toLowerCase();
+    if (!["lifetime", "monthly", "annual"].includes(plan)) {
+      toast.error("Invalid plan");
+      return;
+    }
+    try {
+      await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
+      toast.success("Granted Bimyah!+");
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
   }
 
   return (
