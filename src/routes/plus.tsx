@@ -95,7 +95,7 @@ function PlusPage() {
   // Reset checkout when key inputs change
   useEffect(() => {
     setGiftCheckoutOpen(false);
-  }, [giftMode, giftEmail, randomQty, purchaseMode]);
+  }, [giftMode, giftEmail, randomQty]);
 
   // Debounced email verification
   useEffect(() => {
