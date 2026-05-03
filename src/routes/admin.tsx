@@ -459,6 +459,15 @@ function UsersTab() {
                   </td>
                   <td className="p-2 text-xs">{u.active_plan ?? "—"}</td>
                   <td className="p-2 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
+                  <td className="p-2">
+                    <Button
+                      size="sm"
+                      variant={u.active_plan ? "destructive" : "default"}
+                      onClick={() => void handleGrantBplus(u)}
+                    >
+                      {u.active_plan ? "Revoke B+" : "Grant B+"}
+                    </Button>
+                  </td>
                   <td className="p-2 text-right">
                     <div className="flex justify-end gap-2">
                       <Button
