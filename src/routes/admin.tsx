@@ -374,6 +374,40 @@ function UsersTab() {
     }
   }
 
+  async function handleGrantBplus(u: UserRow) {
+    if (u.active_plan) {
+      if (!confirm(`Revoke Bimyah!+ from ${u.display_name}?`)) return;
+      try {
+        // Find their active sub
+        const { rows } = await listSubscriptions({
+          data: { search: u.id, status: "active", limit: 5 },
+        });
+        const sub = rows.find((r) => r.user_id === u.id);
+        if (!sub) throw new Error("No active subscription found");
+        await revokeBplus({ data: { subscription_id: sub.id } });
+        toast.success("Revoked Bimyah!+");
+        await refresh();
+      } catch (e: unknown) {
+        toast.error(String((e as Error)?.message ?? e));
+      }
+      return;
+    }
+    const planInput = prompt(`Grant Bimyah!+ to ${u.display_name}.\nEnter plan: lifetime, monthly, or annual`, "lifetime");
+    if (!planInput) return;
+    const plan = planInput.trim().toLowerCase();
+    if (!["lifetime", "monthly", "annual"].includes(plan)) {
+      toast.error("Invalid plan");
+      return;
+    }
+    try {
+      await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
+      toast.success("Granted Bimyah!+");
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -397,6 +431,7 @@ function UsersTab() {
               <th className="p-2">Roles</th>
               <th className="p-2">Bimyah!+</th>
               <th className="p-2">Joined</th>
+              <th className="p-2">Grant B+</th>
               <th className="p-2 text-right">Actions</th>
             </tr>
           </thead>
@@ -424,6 +459,15 @@ function UsersTab() {
                   </td>
                   <td className="p-2 text-xs">{u.active_plan ?? "—"}</td>
                   <td className="p-2 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
+                  <td className="p-2">
+                    <Button
+                      size="sm"
+                      variant={u.active_plan ? "destructive" : "default"}
+                      onClick={() => void handleGrantBplus(u)}
+                    >
+                      {u.active_plan ? "Revoke B+" : "Grant B+"}
+                    </Button>
+                  </td>
                   <td className="p-2 text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -443,7 +487,7 @@ function UsersTab() {
               );
             })}
             {!rows.length && !loading && (
-              <tr><td colSpan={5} className="p-6 text-center text-muted-foreground text-sm">No users</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">No users</td></tr>
             )}
           </tbody>
         </table>

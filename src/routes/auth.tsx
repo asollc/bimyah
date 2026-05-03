@@ -52,6 +52,14 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         const name = displayName.trim().slice(0, 14) || email.split("@")[0];
+        if (!name) throw new Error("Display name is required.");
+        // Check uniqueness (case-insensitive). Username is permanent once claimed.
+        const { data: taken } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("display_name", name)
+          .maybeSingle();
+        if (taken) throw new Error("That display name is already taken. Pick another — your username is permanent.");
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -109,13 +117,18 @@ function AuthPage() {
 
         <form onSubmit={submit} className="flex flex-col gap-2">
           {mode === "signup" && (
-            <input
-              value={displayName}
-              maxLength={14}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Display name"
-              className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white placeholder:text-white/30"
-            />
+            <>
+              <input
+                value={displayName}
+                maxLength={14}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Display name (permanent)"
+                className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white placeholder:text-white/30"
+              />
+              <div className="-mt-1 text-[10px] text-white/40">
+                Your display name is permanent and cannot be changed later.
+              </div>
+            </>
           )}
           <input
             type="email"

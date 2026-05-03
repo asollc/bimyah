@@ -26,8 +26,6 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
-  const [displayName, setDisplayName] = useState("");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -39,10 +37,6 @@ function ProfilePage() {
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
-
-  useEffect(() => {
-    if (profile) setDisplayName(profile.display_name);
-  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
@@ -63,32 +57,6 @@ function ProfilePage() {
     })();
   }, [user]);
 
-  async function save() {
-    if (!user) return;
-    setSaving(true);
-    setMsg(null);
-    setErr(null);
-    try {
-      const name = displayName.trim().slice(0, 14);
-      if (!name) throw new Error("Name cannot be empty.");
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: name })
-        .eq("id", user.id);
-      if (error) throw error;
-      try {
-        localStorage.setItem("bimyah_last_name", name);
-      } catch {
-        /* ignore */
-      }
-      await refreshProfile();
-      setMsg("Saved.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function uploadAvatar(file: File) {
     if (!user) return;
@@ -249,22 +217,17 @@ function ProfilePage() {
         )}
       </div>
 
-      {/* Display name */}
+      {/* Display name (locked) */}
       <div className="mt-6 flex flex-col gap-2">
-        <label className="text-[10px] uppercase tracking-widest text-white/50">Display name</label>
-        <input
-          value={displayName}
-          maxLength={14}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white"
-        />
-        <button
-          onClick={save}
-          disabled={saving}
-          className="btn-3d btn-3d-mint mt-2 w-full text-sm disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
+        <label className="text-[10px] uppercase tracking-widest text-white/50">
+          Display name (permanent)
+        </label>
+        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-2 font-display text-white/80">
+          {profile?.display_name ?? "—"}
+        </div>
+        <div className="text-[10px] text-white/40">
+          Your display name is locked once your account is created.
+        </div>
       </div>
 
       {/* Card back */}
