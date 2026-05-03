@@ -78,7 +78,6 @@ function PlusPage() {
   const [stripePlan, setStripePlan] = useState<StripePlan | null>(null);
 
   // Gift flow state
-  const [purchaseMode, setPurchaseMode] = useState<"self" | "gift">("self");
   const [giftMode, setGiftMode] = useState<GiftMode | null>(null);
   // Friend gift
   const [giftEmail, setGiftEmail] = useState("");
