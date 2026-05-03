@@ -431,6 +431,7 @@ function UsersTab() {
               <th className="p-2">Roles</th>
               <th className="p-2">Bimyah!+</th>
               <th className="p-2">Joined</th>
+              <th className="p-2">Grant B+</th>
               <th className="p-2 text-right">Actions</th>
             </tr>
           </thead>
