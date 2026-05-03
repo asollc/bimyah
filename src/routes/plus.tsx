@@ -12,8 +12,6 @@ import { Check, Loader2 } from "lucide-react";
 import {
   getBplusStatus,
   getMyEntitlement,
-  createLifetimeOrder,
-  captureLifetimeOrder,
   getPaypalClientConfig,
 } from "@/server/bplus.functions";
 import { verifyGiftRecipient } from "@/server/gifts.functions";
