@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
@@ -12,8 +12,6 @@ import { Check, Loader2 } from "lucide-react";
 import {
   getBplusStatus,
   getMyEntitlement,
-  createLifetimeOrder,
-  captureLifetimeOrder,
   getPaypalClientConfig,
 } from "@/server/bplus.functions";
 import { verifyGiftRecipient } from "@/server/gifts.functions";
@@ -63,8 +61,7 @@ export const Route = createFileRoute("/plus")({
 });
 
 function PlusPage() {
-  const { status, paypal } = Route.useLoaderData();
-  const PAYPAL_CLIENT_ID = paypal.clientId;
+  const { status } = Route.useLoaderData();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [entitlement, setEntitlement] = useState<{
@@ -72,13 +69,11 @@ function PlusPage() {
     plan: string | null;
     founding_member: boolean;
   } | null>(null);
-  const [paying, setPaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [stripePlan, setStripePlan] = useState<StripePlan | null>(null);
 
   // Gift flow state
-  const [purchaseMode, setPurchaseMode] = useState<"self" | "gift">("self");
   const [giftMode, setGiftMode] = useState<GiftMode | null>(null);
   // Friend gift
   const [giftEmail, setGiftEmail] = useState("");
@@ -96,7 +91,7 @@ function PlusPage() {
   // Reset checkout when key inputs change
   useEffect(() => {
     setGiftCheckoutOpen(false);
-  }, [giftMode, giftEmail, randomQty, purchaseMode]);
+  }, [giftMode, giftEmail, randomQty]);
 
   // Debounced email verification
   useEffect(() => {
@@ -249,300 +244,208 @@ function PlusPage() {
 
           <div className="mt-5 space-y-3">
             {authLoading ? null : !user ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  onClick={() => navigate({ to: "/auth" })}
-                  className="btn-3d btn-3d-gold text-xs text-center"
-                >
-                  GIMME THESE PERKS!
-                </button>
-                <button
-                  onClick={() => navigate({ to: "/auth" })}
-                  className="btn-3d btn-3d-dark text-xs text-center"
-                >
-                  GIFT BIMYAH!+
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Mode toggle */}
-                <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate({ to: "/auth" })}
+                className="btn-3d btn-3d-gold w-full text-xs text-center"
+              >
+                Sign in to upgrade
+              </button>
+            ) : stripeReady ? (
+              <div className="space-y-2">
+                <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
+                  Pay with card
+                </div>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
+                    disabled={!status.preorder_open}
                     onClick={() => {
-                      setPurchaseMode("self");
-                      setStripePlan(null);
+                      setErr(null);
+                      setStripePlan("lifetime");
                     }}
-                    className={`btn-3d ${purchaseMode === "self" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                    className={`btn-3d ${stripePlan === "lifetime" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px] disabled:cursor-not-allowed disabled:opacity-50`}
                   >
-                    GIMME THESE PERKS!
+                    Lifetime ${dollars}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setPurchaseMode("gift");
-                      setStripePlan(null);
+                      setErr(null);
+                      setStripePlan("monthly");
                     }}
-                    className={`btn-3d ${purchaseMode === "gift" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                    className={`btn-3d ${stripePlan === "monthly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
                   >
-                    GIFT BIMYAH!+
+                    ${monthly}/mo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErr(null);
+                      setStripePlan("yearly");
+                    }}
+                    className={`btn-3d ${stripePlan === "yearly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                  >
+                    ${annual}/yr
                   </button>
                 </div>
-
-                {/* Self purchase: Stripe (card) checkout */}
-                {purchaseMode === "self" && stripeReady && (
-                  <div className="space-y-2">
-                    <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
-                      Pay with card
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        disabled={!status.preorder_open}
-                        onClick={() => {
-                          setErr(null);
-                          setStripePlan("lifetime");
-                        }}
-                        className={`btn-3d ${stripePlan === "lifetime" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px] disabled:cursor-not-allowed disabled:opacity-50`}
-                      >
-                        Lifetime ${dollars}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setErr(null);
-                          setStripePlan("monthly");
-                        }}
-                        className={`btn-3d ${stripePlan === "monthly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
-                      >
-                        ${monthly}/mo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setErr(null);
-                          setStripePlan("yearly");
-                        }}
-                        className={`btn-3d ${stripePlan === "yearly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
-                      >
-                        ${annual}/yr
-                      </button>
-                    </div>
-                    {stripePlan && (
-                      <div className="mt-3 overflow-hidden rounded-lg bg-white">
-                        <StripeEmbeddedCheckout
-                          key={stripePlan}
-                          priceId={STRIPE_PRICE_IDS[stripePlan]}
-                          returnUrl={returnUrl}
-                        />
-                      </div>
-                    )}
+                {stripePlan && (
+                  <div className="mt-3 overflow-hidden rounded-lg bg-white">
+                    <StripeEmbeddedCheckout
+                      key={stripePlan}
+                      priceId={STRIPE_PRICE_IDS[stripePlan]}
+                      returnUrl={returnUrl}
+                    />
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-[var(--player-red)]/40 bg-black/40 p-3 text-center text-xs text-white/70">
+                Checkout is not yet configured. Please check back shortly.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-                {/* Gift flow */}
-                {purchaseMode === "gift" && stripeReady && (
-                  <div className="space-y-3 rounded-lg border border-[var(--gold)]/30 bg-black/30 p-3">
-                    <div className="text-center text-[10px] uppercase tracking-widest text-white/60">
-                      Gift a Bimyah!+ Lifetime — ${dollars} each
-                    </div>
-                    <fieldset className="space-y-2">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
-                        <input
-                          type="radio"
-                          name="giftMode"
-                          checked={giftMode === "friend"}
-                          onChange={() => setGiftMode("friend")}
-                          className="accent-[var(--gold)]"
-                        />
-                        <span>Gift a friend</span>
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
-                        <input
-                          type="radio"
-                          name="giftMode"
-                          checked={giftMode === "random"}
-                          onChange={() => setGiftMode("random")}
-                          className="accent-[var(--gold)]"
-                        />
-                        <span>Gift a random</span>
-                      </label>
-                    </fieldset>
+      {!success && user && stripeReady && (
+        <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
+          <div className="font-display text-center text-lg font-black uppercase tracking-widest text-[var(--gold)]">
+            Gift Bimyah!+
+          </div>
+          <div className="mt-1 text-center text-[10px] uppercase tracking-widest text-white/60">
+            Lifetime gift — ${dollars} each
+          </div>
 
-                    {giftMode === "friend" && (
-                      <div className="space-y-2">
-                        <label className="block text-[10px] uppercase tracking-widest text-white/60">
-                          Recipient email
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="email"
-                            autoComplete="off"
-                            value={giftEmail}
-                            onChange={(e) => setGiftEmail(e.target.value)}
-                            placeholder="friend@example.com"
-                            className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 pr-9 text-sm text-white placeholder:text-white/30 focus:border-[var(--gold)]/60 focus:outline-none"
-                          />
-                          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            {giftEmailVerifying && (
-                              <Loader2 className="h-4 w-4 animate-spin text-white/40" />
-                            )}
-                            {!giftEmailVerifying && giftEmailVerified && (
-                              <Check className="h-5 w-5 text-[var(--mint)]" strokeWidth={3} />
-                            )}
-                          </div>
-                        </div>
-                        {giftEmailVerified && (
-                          <div className="text-xs text-[var(--mint)]">
-                            ✓ Member found: {giftEmailVerified.name}
-                          </div>
-                        )}
-                        {giftEmailError && (
-                          <div className="text-xs text-[var(--player-red)]">
-                            {giftEmailError}
-                          </div>
-                        )}
-                        {giftEmailVerified && !giftCheckoutOpen && (
-                          <button
-                            type="button"
-                            onClick={() => setGiftCheckoutOpen(true)}
-                            className="btn-3d btn-3d-gold w-full text-[11px]"
-                          >
-                            Proceed to checkout
-                          </button>
-                        )}
-                      </div>
+          <div className="mt-4 space-y-3">
+            <fieldset className="space-y-2">
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
+                <input
+                  type="radio"
+                  name="giftMode"
+                  checked={giftMode === "friend"}
+                  onChange={() => setGiftMode("friend")}
+                  className="accent-[var(--gold)]"
+                />
+                <span>Gift a friend</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2 text-sm text-white/90 hover:border-[var(--gold)]/40">
+                <input
+                  type="radio"
+                  name="giftMode"
+                  checked={giftMode === "random"}
+                  onChange={() => setGiftMode("random")}
+                  className="accent-[var(--gold)]"
+                />
+                <span>Gift a random</span>
+              </label>
+            </fieldset>
+
+            {giftMode === "friend" && (
+              <div className="space-y-2">
+                <label className="block text-[10px] uppercase tracking-widest text-white/60">
+                  Recipient email
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    autoComplete="off"
+                    value={giftEmail}
+                    onChange={(e) => setGiftEmail(e.target.value)}
+                    placeholder="friend@example.com"
+                    className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 pr-9 text-sm text-white placeholder:text-white/30 focus:border-[var(--gold)]/60 focus:outline-none"
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                    {giftEmailVerifying && (
+                      <Loader2 className="h-4 w-4 animate-spin text-white/40" />
                     )}
-
-                    {giftMode === "random" && (
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <label className="block text-[10px] uppercase tracking-widest text-white/60">
-                            Quantity (1–50)
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={50}
-                            value={randomQty}
-                            onChange={(e) => {
-                              const n = parseInt(e.target.value, 10);
-                              if (Number.isNaN(n)) return setRandomQty(1);
-                              setRandomQty(Math.max(1, Math.min(50, n)));
-                            }}
-                            className="w-24 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white focus:border-[var(--gold)]/60 focus:outline-none"
-                          />
-                          <div className="text-xs text-white/60">
-                            Total: ${(randomQty * status.lifetime_price_cents / 100).toFixed(2)}
-                          </div>
-                        </div>
-                        <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-2 text-[11px] leading-relaxed text-yellow-100/90">
-                          By choosing to "gift a random" you understand that this upgrade
-                          will NOT be applied to your account, and that it will be given
-                          to someone else within the community.
-                        </div>
-                        <label className="flex cursor-pointer items-start gap-2 text-xs text-white/80">
-                          <input
-                            type="checkbox"
-                            checked={randomAck}
-                            onChange={(e) => setRandomAck(e.target.checked)}
-                            className="mt-0.5 accent-[var(--gold)]"
-                          />
-                          <span>I acknowledge and agree.</span>
-                        </label>
-                        {randomAck && !giftCheckoutOpen && (
-                          <button
-                            type="button"
-                            onClick={() => setGiftCheckoutOpen(true)}
-                            className="btn-3d btn-3d-gold w-full text-[11px]"
-                          >
-                            Proceed to checkout
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {giftCheckoutOpen && giftMode && (
-                      <div className="mt-3 overflow-hidden rounded-lg bg-white">
-                        <StripeEmbeddedCheckout
-                          key={`gift-${giftMode}-${giftMode === "random" ? randomQty : giftEmail}`}
-                          priceId={GIFT_PRICE_IDS[giftMode]}
-                          returnUrl={returnUrl}
-                          giftType={giftMode}
-                          quantity={giftMode === "random" ? randomQty : 1}
-                          recipientEmail={
-                            giftMode === "friend" ? giftEmail.trim().toLowerCase() : undefined
-                          }
-                        />
-                      </div>
+                    {!giftEmailVerifying && giftEmailVerified && (
+                      <Check className="h-5 w-5 text-[var(--mint)]" strokeWidth={3} />
                     )}
                   </div>
-                )}
-
-                {/* PayPal — hidden for now */}
-                {false && status.preorder_open && PAYPAL_CLIENT_ID && (
-                  <div className="space-y-2">
-                    <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
-                      Or pay with PayPal (lifetime only)
-                    </div>
-                    <PayPalScriptProvider
-                      options={{
-                        clientId: PAYPAL_CLIENT_ID,
-                        currency: "USD",
-                        intent: "capture",
-                      }}
-                    >
-                      <PayPalButtons
-                        style={{
-                          layout: "vertical",
-                          color: "gold",
-                          shape: "pill",
-                          label: "paypal",
-                        }}
-                        disabled={paying}
-                        forceReRender={[user?.id ?? "", dollars]}
-                        createOrder={async () => {
-                          setErr(null);
-                          setPaying(true);
-                          try {
-                            const { orderId } = await createLifetimeOrder();
-                            return orderId;
-                          } catch (e) {
-                            setErr((e as Error).message);
-                            setPaying(false);
-                            throw e;
-                          }
-                        }}
-                        onApprove={async (data) => {
-                          try {
-                            await captureLifetimeOrder({
-                              data: { orderId: data.orderID },
-                            });
-                            setSuccess(true);
-                            void supabase.auth.refreshSession();
-                            void refreshEntitlement();
-                          } catch (e) {
-                            setErr((e as Error).message);
-                          } finally {
-                            setPaying(false);
-                          }
-                        }}
-                        onCancel={() => setPaying(false)}
-                        onError={(e) => {
-                          setErr((e as { message?: string })?.message ?? "Payment error");
-                          setPaying(false);
-                        }}
-                      />
-                    </PayPalScriptProvider>
+                </div>
+                {giftEmailVerified && (
+                  <div className="text-xs text-[var(--mint)]">
+                    ✓ Member found: {giftEmailVerified.name}
                   </div>
                 )}
-
-                {!stripeReady && !PAYPAL_CLIENT_ID && (
-                  <div className="rounded-lg border border-[var(--player-red)]/40 bg-black/40 p-3 text-center text-xs text-white/70">
-                    Checkout is not yet configured. Please check back shortly.
+                {giftEmailError && (
+                  <div className="text-xs text-[var(--player-red)]">
+                    {giftEmailError}
                   </div>
                 )}
-              </>
+                {giftEmailVerified && !giftCheckoutOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setGiftCheckoutOpen(true)}
+                    className="btn-3d btn-3d-gold w-full text-[11px]"
+                  >
+                    Proceed to checkout
+                  </button>
+                )}
+              </div>
+            )}
+
+            {giftMode === "random" && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase tracking-widest text-white/60">
+                    Quantity (1–50)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={randomQty}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (Number.isNaN(n)) return setRandomQty(1);
+                      setRandomQty(Math.max(1, Math.min(50, n)));
+                    }}
+                    className="w-24 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white focus:border-[var(--gold)]/60 focus:outline-none"
+                  />
+                  <div className="text-xs text-white/60">
+                    Total: ${(randomQty * status.lifetime_price_cents / 100).toFixed(2)}
+                  </div>
+                </div>
+                <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-2 text-[11px] leading-relaxed text-yellow-100/90">
+                  By choosing to "gift a random" you understand that this upgrade
+                  will NOT be applied to your account, and that it will be given
+                  to someone else within the community.
+                </div>
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={randomAck}
+                    onChange={(e) => setRandomAck(e.target.checked)}
+                    className="mt-0.5 accent-[var(--gold)]"
+                  />
+                  <span>I acknowledge and agree.</span>
+                </label>
+                {randomAck && !giftCheckoutOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setGiftCheckoutOpen(true)}
+                    className="btn-3d btn-3d-gold w-full text-[11px]"
+                  >
+                    Proceed to checkout
+                  </button>
+                )}
+              </div>
+            )}
+
+            {giftCheckoutOpen && giftMode && (
+              <div className="mt-3 overflow-hidden rounded-lg bg-white">
+                <StripeEmbeddedCheckout
+                  key={`gift-${giftMode}-${giftMode === "random" ? randomQty : giftEmail}`}
+                  priceId={GIFT_PRICE_IDS[giftMode]}
+                  returnUrl={returnUrl}
+                  giftType={giftMode}
+                  quantity={giftMode === "random" ? randomQty : 1}
+                  recipientEmail={
+                    giftMode === "friend" ? giftEmail.trim().toLowerCase() : undefined
+                  }
+                />
+              </div>
             )}
           </div>
         </div>
