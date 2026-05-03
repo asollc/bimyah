@@ -61,8 +61,7 @@ export const Route = createFileRoute("/plus")({
 });
 
 function PlusPage() {
-  const { status, paypal } = Route.useLoaderData();
-  const PAYPAL_CLIENT_ID = paypal.clientId;
+  const { status } = Route.useLoaderData();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [entitlement, setEntitlement] = useState<{
@@ -70,7 +69,6 @@ function PlusPage() {
     plan: string | null;
     founding_member: boolean;
   } | null>(null);
-  const [paying, setPaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [stripePlan, setStripePlan] = useState<StripePlan | null>(null);
