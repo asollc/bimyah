@@ -117,13 +117,18 @@ function AuthPage() {
 
         <form onSubmit={submit} className="flex flex-col gap-2">
           {mode === "signup" && (
-            <input
-              value={displayName}
-              maxLength={14}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Display name"
-              className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white placeholder:text-white/30"
-            />
+            <>
+              <input
+                value={displayName}
+                maxLength={14}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Display name (permanent)"
+                className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white placeholder:text-white/30"
+              />
+              <div className="-mt-1 text-[10px] text-white/40">
+                Your display name is permanent and cannot be changed later.
+              </div>
+            </>
           )}
           <input
             type="email"
