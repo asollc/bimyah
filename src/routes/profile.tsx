@@ -26,8 +26,6 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
-  const [displayName, setDisplayName] = useState("");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -39,10 +37,6 @@ function ProfilePage() {
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
-
-  useEffect(() => {
-    if (profile) setDisplayName(profile.display_name);
-  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
