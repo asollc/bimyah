@@ -52,6 +52,14 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         const name = displayName.trim().slice(0, 14) || email.split("@")[0];
+        if (!name) throw new Error("Display name is required.");
+        // Check uniqueness (case-insensitive). Username is permanent once claimed.
+        const { data: taken } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("display_name", name)
+          .maybeSingle();
+        if (taken) throw new Error("That display name is already taken. Pick another — your username is permanent.");
         const { error } = await supabase.auth.signUp({
           email,
           password,
