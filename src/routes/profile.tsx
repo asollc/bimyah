@@ -249,22 +249,17 @@ function ProfilePage() {
         )}
       </div>
 
-      {/* Display name */}
+      {/* Display name (locked) */}
       <div className="mt-6 flex flex-col gap-2">
-        <label className="text-[10px] uppercase tracking-widest text-white/50">Display name</label>
-        <input
-          value={displayName}
-          maxLength={14}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white"
-        />
-        <button
-          onClick={save}
-          disabled={saving}
-          className="btn-3d btn-3d-mint mt-2 w-full text-sm disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
+        <label className="text-[10px] uppercase tracking-widest text-white/50">
+          Display name (permanent)
+        </label>
+        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-2 font-display text-white/80">
+          {profile?.display_name ?? "—"}
+        </div>
+        <div className="text-[10px] text-white/40">
+          Your display name is locked once your account is created.
+        </div>
       </div>
 
       {/* Card back */}
