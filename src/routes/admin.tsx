@@ -487,7 +487,7 @@ function UsersTab() {
               );
             })}
             {!rows.length && !loading && (
-              <tr><td colSpan={5} className="p-6 text-center text-muted-foreground text-sm">No users</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">No users</td></tr>
             )}
           </tbody>
         </table>
