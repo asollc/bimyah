@@ -372,6 +372,8 @@ function UsersTab() {
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     }
+  }
+
   async function handleGrantBplus(u: UserRow) {
     if (u.active_plan) {
       if (!confirm(`Revoke Bimyah!+ from ${u.display_name}?`)) return;
