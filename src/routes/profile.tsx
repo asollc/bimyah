@@ -57,32 +57,6 @@ function ProfilePage() {
     })();
   }, [user]);
 
-  async function save() {
-    if (!user) return;
-    setSaving(true);
-    setMsg(null);
-    setErr(null);
-    try {
-      const name = displayName.trim().slice(0, 14);
-      if (!name) throw new Error("Name cannot be empty.");
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: name })
-        .eq("id", user.id);
-      if (error) throw error;
-      try {
-        localStorage.setItem("bimyah_last_name", name);
-      } catch {
-        /* ignore */
-      }
-      await refreshProfile();
-      setMsg("Saved.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function uploadAvatar(file: File) {
     if (!user) return;
