@@ -98,6 +98,91 @@ export type Database = {
         }
         Relationships: []
       }
+      bulletin_hides: {
+        Row: {
+          bulletin_id: string
+          hidden_at: string
+          user_id: string
+        }
+        Insert: {
+          bulletin_id: string
+          hidden_at?: string
+          user_id: string
+        }
+        Update: {
+          bulletin_id?: string
+          hidden_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_hides_bulletin_id_fkey"
+            columns: ["bulletin_id"]
+            isOneToOne: false
+            referencedRelation: "bulletins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulletin_reads: {
+        Row: {
+          bulletin_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          bulletin_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          bulletin_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_reads_bulletin_id_fkey"
+            columns: ["bulletin_id"]
+            isOneToOne: false
+            referencedRelation: "bulletins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulletins: {
+        Row: {
+          author_id: string
+          content_html: string
+          created_at: string
+          delivery: string
+          id: string
+          media_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content_html: string
+          created_at?: string
+          delivery?: string
+          id?: string
+          media_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content_html?: string
+          created_at?: string
+          delivery?: string
+          id?: string
+          media_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       card_backs: {
         Row: {
           created_at: string
@@ -334,6 +419,36 @@ export type Database = {
           display_name?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
