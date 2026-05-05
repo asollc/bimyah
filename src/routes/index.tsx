@@ -63,6 +63,7 @@ function HomePage() {
   const [showSolo, setShowSolo] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [showHost, setShowHost] = useState(false);
+  const [hostInitialMode, setHostInitialMode] = useState<GameMode | null>(null);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
