@@ -288,11 +288,13 @@ function HomePage() {
           <HostFlow
             hosting={hosting}
             error={hostErr}
+            forcedMode={forcedMode}
             profileName={profile?.display_name ?? null}
             userEmail={user?.email ?? null}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
+              setForcedMode(null);
             }}
             onStart={(name, mode, limit, seats) => {
               void hostMultiplayer(name, mode, limit, seats);
