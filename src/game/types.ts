@@ -48,7 +48,7 @@ export type CenterSlot = {
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "won";
 
-export type GameMode = "standard" | "tournament";
+export type GameMode = "standard" | "tournament" | "training";
 
 /** A single completed match within a tournament. */
 export type MatchRecord = {
