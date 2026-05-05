@@ -711,6 +711,7 @@ export function GameTable({
             selectedHandCardId={isMe ? selectedHandCardId : null}
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
+            revealAll={state.mode === "training"}
           />
         );
       })}
