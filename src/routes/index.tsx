@@ -11,7 +11,7 @@ import socialTiktok from "@/assets/social-tiktok.png";
 import socialFacebook from "@/assets/social-facebook.png";
 import socialEmail from "@/assets/social-email.png";
 import { sfx } from "@/game/sfx";
-import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon, GraduationCap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { createInitialGame } from "@/game/engine";
@@ -63,6 +63,7 @@ function HomePage() {
   const [showSolo, setShowSolo] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [showHost, setShowHost] = useState(false);
+  const [forcedMode, setForcedMode] = useState<GameMode | null>(null);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -225,7 +226,7 @@ function HomePage() {
         {!showSolo && !showJoin && !showHost && (
           <>
             <button
-              onClick={() => requireAuth(() => setShowHost(true))}
+              onClick={() => requireAuth(() => { setForcedMode(null); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
@@ -242,6 +243,19 @@ function HomePage() {
               className="btn-3d btn-3d-dark w-full text-base"
             >
               <Users className="mr-2 h-5 w-5" /> Join with Code
+            </button>
+            <button
+              onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
+              disabled={hosting}
+              className="btn-3d btn-3d-mint w-full text-base disabled:opacity-60"
+            >
+              <GraduationCap className="mr-2 h-5 w-5" />
+              <span className="flex flex-col items-center leading-tight">
+                <span>Training</span>
+                <span className="text-[10px] font-normal opacity-80 normal-case">
+                  All cards face up — practice mode
+                </span>
+              </span>
             </button>
             <Link
               to="/plus"
@@ -274,11 +288,13 @@ function HomePage() {
           <HostFlow
             hosting={hosting}
             error={hostErr}
+            forcedMode={forcedMode}
             profileName={profile?.display_name ?? null}
             userEmail={user?.email ?? null}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
+              setForcedMode(null);
             }}
             onStart={(name, mode, limit, seats) => {
               void hostMultiplayer(name, mode, limit, seats);
@@ -965,6 +981,7 @@ function HostFlow({
   onStart,
   profileName,
   userEmail,
+  forcedMode,
 }: {
   hosting: boolean;
   error: string | null;
@@ -977,9 +994,10 @@ function HostFlow({
   ) => void;
   profileName: string | null;
   userEmail: string | null;
+  forcedMode?: GameMode | null;
 }) {
-  const [step, setStep] = useState<HostStep>("mode");
-  const [mode, setMode] = useState<GameMode>("standard");
+  const [step, setStep] = useState<HostStep>(forcedMode ? "seats" : "mode");
+  const [mode, setMode] = useState<GameMode>(forcedMode ?? "standard");
   const name = deriveDisplayName(profileName, userEmail, "Host");
   const [pointLimit, setPointLimit] = useState<number | null>(null);
   const [isPlus, setIsPlus] = useState(false);

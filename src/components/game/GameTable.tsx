@@ -66,6 +66,7 @@ export function GameTable({
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [sortEnabled, setSortEnabled] = useState(false);
+  const [showViewAll, setShowViewAll] = useState(false);
   const [showKeybinds, setShowKeybinds] = useState(false);
   const [keybinds, setKeybinds] = useState<Keybinds>(() =>
     typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
@@ -544,6 +545,13 @@ export function GameTable({
             <ScoreDisplay limit={state.pointLimit} />
           )}
         </div>
+        <button
+          onClick={() => setShowViewAll(true)}
+          className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+          aria-label="View all cards"
+        >
+          👁 View All Cards
+        </button>
         {state.status === "lobby" &&
           isHost &&
           state.players.length < (state.maxSeats ?? 4) && (
@@ -711,6 +719,7 @@ export function GameTable({
             selectedHandCardId={isMe ? selectedHandCardId : null}
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
+            revealAll={state.mode === "training"}
           />
         );
       })}
@@ -934,6 +943,10 @@ export function GameTable({
           </div>
         </div>
       )}
+
+      {showViewAll && (
+        <ViewAllCardsModal state={state} onClose={() => setShowViewAll(false)} />
+      )}
     </div>
   );
 }
@@ -1012,6 +1025,7 @@ function PlayerSeat({
   selectedHandCardId,
   sortEnabled,
   zoom = 1,
+  revealAll = false,
 }: {
   player: Player;
   position: SeatPos;
@@ -1028,6 +1042,7 @@ function PlayerSeat({
   selectedHandCardId?: string | null;
   sortEnabled?: boolean;
   zoom?: number;
+  revealAll?: boolean;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -1111,17 +1126,18 @@ function PlayerSeat({
       )}
       style={wrapperStyle}
     >
-      {/* Hand row (only for me, when pile open). Absolutely positioned ABOVE
-          the seat content so opening a pile does NOT shift the piles upward. */}
-      {isMe && player.openPileIndex !== null && status === "playing" && (
+      {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
+      {((isMe && player.openPileIndex !== null) ||
+        (!isMe && revealAll && player.hand.length > 0)) &&
+        status === "playing" && (
         <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
-          {orderedHand.map((c) => (
+          {(isMe ? orderedHand : player.hand).map((c) => (
             <PlayingCard
               key={c.id}
               card={c}
-              width={36}
-              selected={selectedHandCardId === c.id}
-              onClick={() => onHandCardTap?.(c.id)}
+              width={isMe ? 36 : 22}
+              selected={isMe && selectedHandCardId === c.id}
+              onClick={isMe ? () => onHandCardTap?.(c.id) : undefined}
             />
           ))}
         </div>
@@ -1208,6 +1224,25 @@ function PlayerSeat({
                   </div>
                 );
               }
+              if (revealAll && !isOpen) {
+                const top = pile[pile.length - 1];
+                return (
+                  <div key={i} className="relative inline-block">
+                    {top ? (
+                      <PlayingCard
+                        card={top}
+                        width={pileWidth}
+                        onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                      />
+                    ) : null}
+                    {pile.length > 1 && (
+                      <span className="pointer-events-none absolute -bottom-1 -right-1 rounded-full bg-black/70 px-1 py-px text-[8px] font-bold text-white ring-1 ring-white/30">
+                        {pile.length}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
               return (
                 <CardBack
                   key={i}
@@ -1269,6 +1304,150 @@ function PlayerSeat({
           {player.ready ? "Ready" : "Waiting…"}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ============ View All Cards modal ============ */
+
+function ViewAllCardsModal({
+  state,
+  onClose,
+}: {
+  state: GameState;
+  onClose: () => void;
+}) {
+  const [openPiles, setOpenPiles] = useState<Record<string, number | null>>({});
+  const togglePile = (playerId: string, idx: number) => {
+    setOpenPiles((cur) => ({
+      ...cur,
+      [playerId]: cur[playerId] === idx ? null : idx,
+    }));
+  };
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] text-white shadow-[var(--shadow-glow-mint)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+          <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+            All Cards
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+          {state.players.map((player) => {
+            const colorHex = PLAYER_COLOR_HEX[player.color];
+            const openIdx = openPiles[player.id] ?? null;
+            const openPile = openIdx !== null ? player.piles[openIdx] : null;
+            return (
+              <div
+                key={player.id}
+                className="rounded-xl border border-white/10 bg-black/30 p-3"
+              >
+                <div
+                  className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1 text-xs font-semibold w-fit"
+                  style={{ borderLeft: `3px solid ${colorHex}` }}
+                >
+                  <span
+                    className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+                    style={{ backgroundColor: colorHex }}
+                  >
+                    {player.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span>{player.name}</span>
+                  {player.hand.length > 0 && (
+                    <span className="text-[9px] uppercase tracking-wider text-white/50">
+                      hand: {player.hand.length}
+                    </span>
+                  )}
+                </div>
+
+                {/* Hand row — reserved space so piles don't shift */}
+                <div className="mt-2 flex min-h-[44px] items-center gap-1">
+                  {player.hand.length > 0 ? (
+                    player.hand.map((c) => (
+                      <PlayingCard key={c.id} card={c} width={28} />
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-white/30">No cards in hand</span>
+                  )}
+                </div>
+
+                {/* Piles row */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {player.piles.map((pile, i) => {
+                    const locked = player.pileLocked[i];
+                    if (locked) {
+                      return (
+                        <div
+                          key={i}
+                          className="rounded border border-[var(--gold)]/40 p-1"
+                          title="Locked set"
+                        >
+                          <CascadeSet cards={pile} width={28} />
+                        </div>
+                      );
+                    }
+                    if (pile.length === 0) {
+                      return (
+                        <div
+                          key={i}
+                          style={{ width: 36, height: 50 }}
+                          className="grid place-items-center rounded border border-dashed border-white/10 text-[9px] text-white/30"
+                        >
+                          empty
+                        </div>
+                      );
+                    }
+                    const top = pile[pile.length - 1];
+                    const isOpen = openIdx === i;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => togglePile(player.id, i)}
+                        className={cn(
+                          "relative inline-block rounded transition",
+                          isOpen && "ring-2 ring-[var(--mint)]",
+                        )}
+                        aria-label={`Pile ${i + 1}, ${pile.length} cards`}
+                      >
+                        <PlayingCard card={top} width={36} />
+                        <span className="pointer-events-none absolute -bottom-1 -right-1 rounded-full bg-black/80 px-1 text-[9px] font-bold text-white ring-1 ring-white/30">
+                          {pile.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {openPile && openPile.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-[var(--mint)]/30 bg-black/40 p-2">
+                    <div className="mb-1 text-[9px] uppercase tracking-widest text-white/50">
+                      Pile {(openIdx ?? 0) + 1} — {openPile.length} cards
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {openPile.map((c) => (
+                        <PlayingCard key={c.id} card={c} width={32} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
