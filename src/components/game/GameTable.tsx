@@ -943,6 +943,10 @@ export function GameTable({
           </div>
         </div>
       )}
+
+      {showViewAll && (
+        <ViewAllCardsModal state={state} onClose={() => setShowViewAll(false)} />
+      )}
     </div>
   );
 }
