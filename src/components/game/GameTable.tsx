@@ -1013,6 +1013,7 @@ function PlayerSeat({
   selectedHandCardId,
   sortEnabled,
   zoom = 1,
+  revealAll = false,
 }: {
   player: Player;
   position: SeatPos;
@@ -1029,6 +1030,7 @@ function PlayerSeat({
   selectedHandCardId?: string | null;
   sortEnabled?: boolean;
   zoom?: number;
+  revealAll?: boolean;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
