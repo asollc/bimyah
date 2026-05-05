@@ -11,7 +11,7 @@ import socialTiktok from "@/assets/social-tiktok.png";
 import socialFacebook from "@/assets/social-facebook.png";
 import socialEmail from "@/assets/social-email.png";
 import { sfx } from "@/game/sfx";
-import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon } from "lucide-react";
+import { Bot, Users, Plus, Trophy, Swords, LogIn, Share2, Twitter, Facebook, Linkedin, MessageCircle, Send, Mail, Link as LinkIcon, GraduationCap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { createInitialGame } from "@/game/engine";
