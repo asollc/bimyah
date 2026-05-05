@@ -226,7 +226,7 @@ function HomePage() {
         {!showSolo && !showJoin && !showHost && (
           <>
             <button
-              onClick={() => requireAuth(() => setShowHost(true))}
+              onClick={() => requireAuth(() => { setForcedMode(null); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
@@ -243,6 +243,19 @@ function HomePage() {
               className="btn-3d btn-3d-dark w-full text-base"
             >
               <Users className="mr-2 h-5 w-5" /> Join with Code
+            </button>
+            <button
+              onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
+              disabled={hosting}
+              className="btn-3d btn-3d-mint w-full text-base disabled:opacity-60"
+            >
+              <GraduationCap className="mr-2 h-5 w-5" />
+              <span className="flex flex-col items-center leading-tight">
+                <span>Training</span>
+                <span className="text-[10px] font-normal opacity-80 normal-case">
+                  All cards face up — practice mode
+                </span>
+              </span>
             </button>
             <Link
               to="/plus"
