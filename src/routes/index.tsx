@@ -981,6 +981,7 @@ function HostFlow({
   onStart,
   profileName,
   userEmail,
+  forcedMode,
 }: {
   hosting: boolean;
   error: string | null;
@@ -993,9 +994,10 @@ function HostFlow({
   ) => void;
   profileName: string | null;
   userEmail: string | null;
+  forcedMode?: GameMode | null;
 }) {
-  const [step, setStep] = useState<HostStep>("mode");
-  const [mode, setMode] = useState<GameMode>("standard");
+  const [step, setStep] = useState<HostStep>(forcedMode ? "seats" : "mode");
+  const [mode, setMode] = useState<GameMode>(forcedMode ?? "standard");
   const name = deriveDisplayName(profileName, userEmail, "Host");
   const [pointLimit, setPointLimit] = useState<number | null>(null);
   const [isPlus, setIsPlus] = useState(false);
