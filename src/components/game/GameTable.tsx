@@ -1211,6 +1211,25 @@ function PlayerSeat({
                   </div>
                 );
               }
+              if (revealAll && !isOpen) {
+                const top = pile[pile.length - 1];
+                return (
+                  <div key={i} className="relative inline-block">
+                    {top ? (
+                      <PlayingCard
+                        card={top}
+                        width={pileWidth}
+                        onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                      />
+                    ) : null}
+                    {pile.length > 1 && (
+                      <span className="pointer-events-none absolute -bottom-1 -right-1 rounded-full bg-black/70 px-1 py-px text-[8px] font-bold text-white ring-1 ring-white/30">
+                        {pile.length}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
               return (
                 <CardBack
                   key={i}
