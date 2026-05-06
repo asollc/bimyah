@@ -837,6 +837,12 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
   const [rejoining, setRejoining] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Autofill last joined room code if its match hasn't ended.
+  useEffect(() => {
+    const last = loadLastRoom();
+    if (last && /^\d{4}$/.test(last)) setCode(last);
+  }, []);
+
   async function startReentry() {
     if (code.length !== 4) return;
     setErr(null);
