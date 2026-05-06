@@ -899,6 +899,8 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
       sessionStorage.setItem(`bimyah_name_${code}`, seat.name);
       saveIdentity(code, { meId: seat.id, name: seat.name, role: "joiner" });
       saveReentryCode(code, reentry);
+      const { saveLastRoom } = await import("@/game/reentry");
+      saveLastRoom(code);
       void navigate({ to: "/game/$gameId", params: { gameId: code } });
     } catch {
       setErr("Could not connect. Try again.");
