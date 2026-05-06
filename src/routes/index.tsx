@@ -117,6 +117,8 @@ function HomePage() {
       if (hostPlayer?.reentryCode) {
         saveReentryCode(session.code, hostPlayer.reentryCode);
       }
+      const { saveLastRoom } = await import("@/game/reentry");
+      saveLastRoom(session.code);
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
