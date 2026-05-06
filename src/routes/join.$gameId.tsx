@@ -110,7 +110,7 @@ function JoinGame() {
           name: existingSeat.name,
           role: "joiner",
         });
-        saveReentryCode(gameId, savedReentry);
+        saveReentryCode(gameId, savedReentry!);
         saveLastRoom(gameId);
         void navigate({ to: "/game/$gameId", params: { gameId } });
         return;
