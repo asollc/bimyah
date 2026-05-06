@@ -545,13 +545,15 @@ export function GameTable({
             <ScoreDisplay limit={state.pointLimit} />
           )}
         </div>
-        <button
-          onClick={() => setShowViewAll(true)}
-          className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-          aria-label="View all cards"
-        >
-          👁 View All Cards
-        </button>
+        {state.mode === "training" && (
+          <button
+            onClick={() => setShowViewAll(true)}
+            className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+            aria-label="View all cards"
+          >
+            👁 View All Cards
+          </button>
+        )}
         {state.status === "lobby" &&
           isHost &&
           state.players.length < (state.maxSeats ?? 4) && (
