@@ -545,13 +545,15 @@ export function GameTable({
             <ScoreDisplay limit={state.pointLimit} />
           )}
         </div>
-        <button
-          onClick={() => setShowViewAll(true)}
-          className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-          aria-label="View all cards"
-        >
-          👁 View All Cards
-        </button>
+        {state.mode === "training" && (
+          <button
+            onClick={() => setShowViewAll(true)}
+            className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+            aria-label="View all cards"
+          >
+            👁 View All Cards
+          </button>
+        )}
         {state.status === "lobby" &&
           isHost &&
           state.players.length < (state.maxSeats ?? 4) && (
@@ -1221,25 +1223,6 @@ function PlayerSeat({
                     <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
                       OPEN
                     </span>
-                  </div>
-                );
-              }
-              if (revealAll && !isOpen) {
-                const top = pile[pile.length - 1];
-                return (
-                  <div key={i} className="relative inline-block">
-                    {top ? (
-                      <PlayingCard
-                        card={top}
-                        width={pileWidth}
-                        onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
-                      />
-                    ) : null}
-                    {pile.length > 1 && (
-                      <span className="pointer-events-none absolute -bottom-1 -right-1 rounded-full bg-black/70 px-1 py-px text-[8px] font-bold text-white ring-1 ring-white/30">
-                        {pile.length}
-                      </span>
-                    )}
                   </div>
                 );
               }
