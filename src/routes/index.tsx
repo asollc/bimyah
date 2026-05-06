@@ -908,7 +908,7 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
     return (
       <>
         <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
-          Enter Reentry Code
+          Your Reentry Code
         </div>
         <input
           autoFocus
