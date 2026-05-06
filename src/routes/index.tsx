@@ -18,7 +18,7 @@ import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
-import { saveReentryCode, loadReentryCode } from "@/game/reentry";
+import { saveReentryCode, loadReentryCode, loadLastRoom } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
