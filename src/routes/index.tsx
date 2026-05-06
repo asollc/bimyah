@@ -310,7 +310,7 @@ function HomePage() {
 }
 
 const SOCIAL_LINKS = [
-  { src: socialYoutube, alt: "YouTube", href: "https://youtube.com" },
+  { src: socialYoutube, alt: "YouTube", href: "https://www.youtube.com/@playbimyah?sub_confirmation=1" },
   { src: socialDiscord, alt: "Discord", href: "https://discord.gg/5xs5pWFrxp" },
   { src: socialTiktok, alt: "TikTok", href: "https://www.tiktok.com/@playbimyah" },
   { src: socialFacebook, alt: "Facebook", href: "https://www.facebook.com/share/1EeyG6PVAp/" },
