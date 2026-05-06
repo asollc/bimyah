@@ -8,6 +8,32 @@ function key(gameId: string) {
   return `bimyah_reentry_${gameId}`;
 }
 
+const LAST_ROOM_KEY = "bimyah_last_room";
+
+export function saveLastRoom(gameId: string): void {
+  try {
+    localStorage.setItem(LAST_ROOM_KEY, gameId);
+  } catch {
+    // ignore
+  }
+}
+
+export function loadLastRoom(): string | null {
+  try {
+    return localStorage.getItem(LAST_ROOM_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearLastRoom(): void {
+  try {
+    localStorage.removeItem(LAST_ROOM_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function saveReentryCode(gameId: string, code: string): void {
   try {
     localStorage.setItem(key(gameId), code);

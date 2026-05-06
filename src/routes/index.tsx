@@ -18,7 +18,7 @@ import { createInitialGame } from "@/game/engine";
 import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
-import { saveReentryCode, loadReentryCode } from "@/game/reentry";
+import { saveReentryCode, loadReentryCode, loadLastRoom } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
@@ -117,6 +117,8 @@ function HomePage() {
       if (hostPlayer?.reentryCode) {
         saveReentryCode(session.code, hostPlayer.reentryCode);
       }
+      const { saveLastRoom } = await import("@/game/reentry");
+      saveLastRoom(session.code);
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
@@ -837,6 +839,12 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
   const [rejoining, setRejoining] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Autofill last joined room code if its match hasn't ended.
+  useEffect(() => {
+    const last = loadLastRoom();
+    if (last && /^\d{4}$/.test(last)) setCode(last);
+  }, []);
+
   async function startReentry() {
     if (code.length !== 4) return;
     setErr(null);
@@ -891,6 +899,8 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
       sessionStorage.setItem(`bimyah_name_${code}`, seat.name);
       saveIdentity(code, { meId: seat.id, name: seat.name, role: "joiner" });
       saveReentryCode(code, reentry);
+      const { saveLastRoom } = await import("@/game/reentry");
+      saveLastRoom(code);
       void navigate({ to: "/game/$gameId", params: { gameId: code } });
     } catch {
       setErr("Could not connect. Try again.");
@@ -902,7 +912,7 @@ function JoinPicker({ onCancel }: { onCancel: () => void }) {
     return (
       <>
         <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
-          Enter Reentry Code
+          Your Reentry Code
         </div>
         <input
           autoFocus
