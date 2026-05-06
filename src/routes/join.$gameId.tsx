@@ -4,7 +4,7 @@ import { joinGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
-import { saveReentryCode } from "@/game/reentry";
+import { saveReentryCode, loadReentryCode, saveLastRoom } from "@/game/reentry";
 import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
