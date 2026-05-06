@@ -92,6 +92,30 @@ function JoinGame() {
         startedRef.current = false;
         return;
       }
+
+      // If we already have a seat in this room (saved reentry code matches a
+      // current player), take it over instead of creating a duplicate seat.
+      // This works whether the match is in the lobby, mid-play, or finished —
+      // the player is reclaiming a seat they already own.
+      const savedReentry = loadReentryCode(gameId);
+      const existingSeat = savedReentry
+        ? state.players.find((p) => p.reentryCode === savedReentry)
+        : null;
+      if (existingSeat) {
+        registerSession(session);
+        sessionStorage.setItem(`bimyah_me_${gameId}`, existingSeat.id);
+        sessionStorage.setItem(`bimyah_name_${gameId}`, existingSeat.name);
+        saveIdentity(gameId, {
+          meId: existingSeat.id,
+          name: existingSeat.name,
+          role: "joiner",
+        });
+        saveReentryCode(gameId, savedReentry);
+        saveLastRoom(gameId);
+        void navigate({ to: "/game/$gameId", params: { gameId } });
+        return;
+      }
+
       if (state.status !== "lobby") {
         setErr("Game already started");
         setBusy(false);
@@ -138,6 +162,7 @@ function JoinGame() {
       sessionStorage.setItem(`bimyah_name_${gameId}`, newPlayer.name);
       saveIdentity(gameId, { meId: myId, name: newPlayer.name, role: "joiner" });
       saveReentryCode(gameId, reentryCode);
+      saveLastRoom(gameId);
       void navigate({ to: "/game/$gameId", params: { gameId } });
     } catch (e) {
       console.error(e);
