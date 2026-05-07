@@ -289,6 +289,19 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
   };
 }
 
+/** Toggle a player's "ready for the next match" flag on the win screen. */
+export function setReadyForNext(
+  state: GameState,
+  playerId: string,
+  ready: boolean,
+): GameState {
+  if (state.status !== "won") return state;
+  const players = state.players.map((p) =>
+    p.id === playerId ? { ...p, readyForNext: ready } : p,
+  );
+  return { ...state, players };
+}
+
 /**
  * Standard mode "Play Again" — wipes scores too (they were never used).
  * Resets to lobby with the same players.
