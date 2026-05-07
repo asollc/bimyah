@@ -61,6 +61,7 @@ export function GameTable({
   const [codeCopied, setCodeCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
@@ -137,6 +138,15 @@ export function GameTable({
       setShowPlayAgain(false);
     }
   }, [state.status, state.winnerId, state.players]);
+
+  // Tick "now" while the win overlay is up so the host's restart-cooldown
+  // countdown updates each second.
+  useEffect(() => {
+    if (state.status !== "won") return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [state.status]);
 
   // Countdown SFX
   const lastCountRef = useRef<number>(0);
@@ -349,6 +359,14 @@ export function GameTable({
   };
 
   const onReady = () => dispatch({ kind: "ready", playerId: meId, ready: true });
+
+  // Match-end "ready up" toggle for non-host players. Host uses this same
+  // intent so its avatar lights up too (keepReadyPlayers always preserves
+  // the host, but this keeps the visual consistent).
+  const onReadyForNext = () => {
+    if (!me) return;
+    dispatch({ kind: "readyForNext", playerId: meId, ready: !me.readyForNext });
+  };
 
   const onPlayAgain = () => {
     dispatch({ kind: "playAgain" });
@@ -742,10 +760,76 @@ export function GameTable({
           : (isMeWinner
               ? `You Win! +${state.lastMatchPoints ?? 0} pts`
               : `${winnerName} Wins! +${state.lastMatchPoints ?? 0} pts`);
+        // Determine host status + restart cooldown.
+        const hostId = state.hostId;
+        const amHost = !!hostId && meId === hostId;
+        const RESTART_COOLDOWN_MS = 7000;
+        const wonAt = state.wonAt ?? 0;
+        const cooldownLeft = Math.max(
+          0,
+          Math.ceil((wonAt + RESTART_COOLDOWN_MS - now) / 1000),
+        );
+        const cooldownActive = cooldownLeft > 0;
+
+        // Real (non-bot) players, in seat order.
+        const humans = state.players.filter((p) => !p.isBot);
+        const meReady = !!me?.readyForNext || amHost;
+
+        const hostStartLabel = !isTournament
+          ? "Start Next Match"
+          : isChampion
+          ? "Start New Tournament"
+          : "Start Next Match";
+        const onHostStart = () => {
+          if (cooldownActive) return;
+          if (!isTournament) {
+            onPlayAgain();
+          } else if (isChampion) {
+            setShowNewTournyPicker(true);
+          } else {
+            onNextMatch();
+          }
+        };
+
         return (
           <>
             <Confetti />
             <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
+              {/* Ready status row — shown above the winner announcement
+                  whenever there's more than one human in the lobby. */}
+              {showPlayAgain && humans.length > 1 && (
+                <div className="pointer-events-none flex flex-wrap items-center justify-center gap-2 animate-float-up">
+                  {humans.map((p) => {
+                    const ready = !!p.readyForNext || p.id === hostId;
+                    const color = PLAYER_COLOR_HEX[p.color];
+                    return (
+                      <div
+                        key={p.id}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition",
+                          ready
+                            ? "bg-black/60 text-white"
+                            : "bg-black/40 text-white/50",
+                        )}
+                        style={{
+                          borderColor: ready ? color : `${color}55`,
+                          boxShadow: ready ? `0 0 12px ${color}66` : "none",
+                        }}
+                      >
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ background: ready ? color : `${color}55` }}
+                        />
+                        <span>{p.name}</span>
+                        <span className="opacity-70">
+                          {p.id === hostId ? "host" : ready ? "ready" : "waiting"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div
                 className="win-popup animate-float-up"
                 style={{
@@ -763,29 +847,37 @@ export function GameTable({
                   )}
                 </div>
               </div>
-              {showPlayAgain && !isTournament && (
+
+              {showPlayAgain && amHost && (
                 <button
-                  onClick={onPlayAgain}
-                  className="btn-3d btn-3d-mint pointer-events-auto animate-float-up"
+                  onClick={onHostStart}
+                  disabled={cooldownActive}
+                  className={cn(
+                    "btn-3d pointer-events-auto animate-float-up",
+                    isTournament && isChampion ? "btn-3d-gold" : "btn-3d-mint",
+                    cooldownActive && "opacity-60",
+                  )}
                 >
-                  Play Again?
+                  {cooldownActive ? `${hostStartLabel} (${cooldownLeft}s)` : hostStartLabel}
                 </button>
               )}
-              {showPlayAgain && isTournament && !isChampion && (
+
+              {showPlayAgain && !amHost && (
                 <button
-                  onClick={onNextMatch}
-                  className="btn-3d btn-3d-mint pointer-events-auto animate-float-up"
+                  onClick={onReadyForNext}
+                  className={cn(
+                    "btn-3d pointer-events-auto animate-float-up",
+                    meReady ? "btn-3d-gold" : "btn-3d-mint",
+                  )}
                 >
-                  Next Match?
+                  {meReady ? "Ready ✓ (tap to cancel)" : "Ready Up"}
                 </button>
               )}
-              {showPlayAgain && isTournament && isChampion && (
-                <button
-                  onClick={() => setShowNewTournyPicker(true)}
-                  className="btn-3d btn-3d-gold pointer-events-auto animate-float-up"
-                >
-                  New Tournament?
-                </button>
+
+              {showPlayAgain && !amHost && (
+                <div className="text-center text-[11px] uppercase tracking-widest text-white/60 animate-float-up">
+                  Waiting for host to start the next match…
+                </div>
               )}
             </div>
           </>

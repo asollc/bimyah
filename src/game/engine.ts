@@ -79,6 +79,8 @@ export function createInitialGame(
     lastMatchPoints: null,
     championId: null,
     maxSeats: opts.maxSeats ?? 4,
+    hostId: players.find((p) => !p.isBot)?.id ?? players[0]?.id,
+    wonAt: null,
   };
 }
 
@@ -257,7 +259,7 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
   if (!winner) return state;
 
   if (state.mode !== "tournament") {
-    return { ...state, status: "won", winnerId: playerId };
+    return { ...state, status: "won", winnerId: playerId, wonAt: Date.now() };
   }
 
   const earned = computeMatchPoints(winner);
@@ -279,6 +281,7 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
     ...state,
     status: "won",
     winnerId: playerId,
+    wonAt: Date.now(),
     scores,
     matchHistory: [...state.matchHistory, record],
     lastMatchPoints: earned,
@@ -286,25 +289,48 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
   };
 }
 
+/** Toggle a player's "ready for the next match" flag on the win screen. */
+export function setReadyForNext(
+  state: GameState,
+  playerId: string,
+  ready: boolean,
+): GameState {
+  if (state.status !== "won") return state;
+  const players = state.players.map((p) =>
+    p.id === playerId ? { ...p, readyForNext: ready } : p,
+  );
+  return { ...state, players };
+}
+
 /**
  * Standard mode "Play Again" — wipes scores too (they were never used).
  * Resets to lobby with the same players.
  */
+/** Filter players for the next match: keep host, bots, and anyone who readied up. */
+function keepReadyPlayers(state: GameState): Player[] {
+  return state.players.filter(
+    (p) => p.isBot || p.id === state.hostId || p.readyForNext,
+  );
+}
+
 export function resetToLobby(state: GameState): GameState {
+  const kept = keepReadyPlayers(state);
   return {
     ...state,
     status: "lobby",
     winnerId: null,
     countdownEndsAt: null,
+    wonAt: null,
     center: [],
     matchNumber: 1,
-    scores: Object.fromEntries(state.players.map((p) => [p.id, 0])),
+    scores: Object.fromEntries(kept.map((p) => [p.id, 0])),
     matchHistory: [],
     lastMatchPoints: null,
     championId: null,
-    players: state.players.map((p) => ({
+    players: kept.map((p) => ({
       ...p,
       ready: p.isBot,
+      readyForNext: false,
       piles: [],
       pileLocked: [],
       hand: [],
@@ -318,17 +344,24 @@ export function resetToLobby(state: GameState): GameState {
  * Increments match number; players must ready up again.
  */
 export function nextMatch(state: GameState): GameState {
+  const kept = keepReadyPlayers(state);
+  const keptIds = new Set(kept.map((p) => p.id));
   return {
     ...state,
     status: "lobby",
     winnerId: null,
     countdownEndsAt: null,
+    wonAt: null,
     center: [],
     matchNumber: state.matchNumber + 1,
     lastMatchPoints: null,
-    players: state.players.map((p) => ({
+    scores: Object.fromEntries(
+      Object.entries(state.scores).filter(([id]) => keptIds.has(id)),
+    ),
+    players: kept.map((p) => ({
       ...p,
       ready: p.isBot,
+      readyForNext: false,
       piles: [],
       pileLocked: [],
       hand: [],
@@ -342,21 +375,24 @@ export function nextMatch(state: GameState): GameState {
  * mode, and (optionally) updates the point limit.
  */
 export function newTournament(state: GameState, pointLimit: number | null): GameState {
+  const kept = keepReadyPlayers(state);
   return {
     ...state,
     status: "lobby",
     winnerId: null,
     countdownEndsAt: null,
+    wonAt: null,
     center: [],
     matchNumber: 1,
     pointLimit,
-    scores: Object.fromEntries(state.players.map((p) => [p.id, 0])),
+    scores: Object.fromEntries(kept.map((p) => [p.id, 0])),
     matchHistory: [],
     lastMatchPoints: null,
     championId: null,
-    players: state.players.map((p) => ({
+    players: kept.map((p) => ({
       ...p,
       ready: p.isBot,
+      readyForNext: false,
       piles: [],
       pileLocked: [],
       hand: [],

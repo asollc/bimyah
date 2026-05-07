@@ -36,6 +36,9 @@ export type Player = {
   // hand: cards currently being examined from openPileIndex (max 5)
   hand: Card[];
   openPileIndex: number | null;
+  /** True when this player has tapped "ready" on the post-match win screen.
+   *  Used by the host to decide who to keep when starting the next match. */
+  readyForNext?: boolean;
 };
 
 export type CenterSlot = {
@@ -85,4 +88,8 @@ export type GameState = {
   championId: string | null;
   /** Maximum number of seats this lobby allows (2-8). Defaults to 4. */
   maxSeats?: number;
+  /** Player id of the host. Only the host may start the next match. */
+  hostId?: string;
+  /** Timestamp (ms) when the current match was won. Used to gate restarts. */
+  wonAt?: number | null;
 };

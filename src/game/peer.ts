@@ -11,6 +11,7 @@ import {
   PLAYER_COLORS,
   resetToLobby,
   setReady,
+  setReadyForNext,
   swapCard,
 } from "./engine";
 
@@ -43,6 +44,7 @@ export type Intent =
   | { kind: "playAgain" }
   | { kind: "nextMatch" }
   | { kind: "newTournament"; pointLimit: number | null }
+  | { kind: "readyForNext"; playerId: string; ready: boolean }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
@@ -112,6 +114,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return nextMatch(state);
     case "newTournament":
       return newTournament(state, intent.pointLimit);
+    case "readyForNext":
+      return setReadyForNext(state, intent.playerId, intent.ready);
     case "replaceState":
       return intent.state;
   }
