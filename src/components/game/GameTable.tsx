@@ -61,6 +61,7 @@ export function GameTable({
   const [codeCopied, setCodeCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
@@ -137,6 +138,15 @@ export function GameTable({
       setShowPlayAgain(false);
     }
   }, [state.status, state.winnerId, state.players]);
+
+  // Tick "now" while the win overlay is up so the host's restart-cooldown
+  // countdown updates each second.
+  useEffect(() => {
+    if (state.status !== "won") return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [state.status]);
 
   // Countdown SFX
   const lastCountRef = useRef<number>(0);
