@@ -350,6 +350,14 @@ export function GameTable({
 
   const onReady = () => dispatch({ kind: "ready", playerId: meId, ready: true });
 
+  // Match-end "ready up" toggle for non-host players. Host uses this same
+  // intent so its avatar lights up too (keepReadyPlayers always preserves
+  // the host, but this keeps the visual consistent).
+  const onReadyForNext = () => {
+    if (!me) return;
+    dispatch({ kind: "readyForNext", playerId: meId, ready: !me.readyForNext });
+  };
+
   const onPlayAgain = () => {
     dispatch({ kind: "playAgain" });
     setShowPlayAgain(false);
