@@ -259,7 +259,7 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
   if (!winner) return state;
 
   if (state.mode !== "tournament") {
-    return { ...state, status: "won", winnerId: playerId };
+    return { ...state, status: "won", winnerId: playerId, wonAt: Date.now() };
   }
 
   const earned = computeMatchPoints(winner);
@@ -281,6 +281,7 @@ export function declareBimyah(state: GameState, playerId: string): GameState {
     ...state,
     status: "won",
     winnerId: playerId,
+    wonAt: Date.now(),
     scores,
     matchHistory: [...state.matchHistory, record],
     lastMatchPoints: earned,
