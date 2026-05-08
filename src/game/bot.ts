@@ -325,6 +325,58 @@ function pickThrowaway(
   return null;
 }
 
+/**
+ * Pick the best straggler-rank card to flush from the hand into the center.
+ * Used during consolidation: we WANT to throw away cards of `flushRank`.
+ */
+function pickFlushCard(
+  bot: Player,
+  mem: BotMemory,
+  centerIdx: number,
+  flushRank: Rank,
+): Card | null {
+  for (const c of bot.hand) {
+    if (c.rank !== flushRank) continue;
+    if (!swapBlocked(mem, bot.id, c.id, centerIdx)) return c;
+  }
+  return null;
+}
+
+/**
+ * Find the best consolidation opportunity for `bot`: a "rich" pile with 3+
+ * cards of some rank R, and another pile holding 1–2 stragglers of rank R.
+ * Returns null if no such opportunity exists.
+ */
+function findConsolidation(
+  bot: Player,
+): { richPile: number; stragglerPile: number; rank: Rank } | null {
+  // Effective per-pile contents: when a pile is open, its cards live in `hand`.
+  const pileContents = (i: number): Card[] =>
+    i === bot.openPileIndex ? bot.hand : bot.piles[i] ?? [];
+
+  let best: { richPile: number; stragglerPile: number; rank: Rank; rich: number } | null = null;
+
+  for (let r = 0; r < bot.piles.length; r++) {
+    if (bot.pileLocked[r]) continue;
+    const rich = pileContents(r);
+    const counts = rankCounts(rich);
+    for (const [rank, n] of counts) {
+      if (n < 3) continue;
+      for (let s = 0; s < bot.piles.length; s++) {
+        if (s === r) continue;
+        if (bot.pileLocked[s]) continue;
+        const sn = pileContents(s).filter((c) => c.rank === rank).length;
+        if (sn === 0 || sn >= n) continue;
+        if (!best || n > best.rich) {
+          best = { richPile: r, stragglerPile: s, rank, rich: n };
+        }
+      }
+    }
+  }
+  if (!best) return null;
+  return { richPile: best.richPile, stragglerPile: best.stragglerPile, rank: best.rank };
+}
+
 export function stepBots(
   state: GameState,
   memory: BotMemory,
