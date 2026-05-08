@@ -65,6 +65,15 @@ type BotMemory = {
 
   // Rule 8 last donation timestamp to throttle altruistic moves.
   lastHelpAt: Map<string, number>;
+
+  // Consolidation plan: when bot has 3-of-a-kind of a target in a "rich"
+  // pile and a straggler copy of that rank lives in another pile, we detour
+  // through the straggler pile to push that card into the center, then
+  // re-open the rich pile to claim it.
+  flushPlan: Map<
+    string,
+    { richPile: number; stragglerPile: number; rank: Rank } | null
+  >;
 };
 
 export function createBotMemory(): BotMemory {
@@ -76,6 +85,7 @@ export function createBotMemory(): BotMemory {
     swapCount: new Map(),
     lastSwapAt: new Map(),
     lastHelpAt: new Map(),
+    flushPlan: new Map(),
   };
 }
 
@@ -202,6 +212,35 @@ function pileWithMostOf(bot: Player, rank: Rank, exclude: number): { idx: number
   return best;
 }
 
+/** Find any (other) pile of the bot that holds at least one of `rank`. */
+function pileWithAnyOf(bot: Player, rank: Rank, exclude: number): { idx: number; count: number } {
+  let best = { idx: -1, count: 0 };
+  for (let i = 0; i < bot.piles.length; i++) {
+    if (i === exclude) continue;
+    if (bot.pileLocked[i]) continue;
+    let c = 0;
+    for (const card of bot.piles[i]) if (card.rank === rank) c++;
+    if (c > 0 && (best.idx === -1 || c < best.count)) best = { idx: i, count: c };
+  }
+  return best;
+}
+
+/**
+ * Total copies of `rank` the bot currently controls across its hand and all
+ * unlocked piles. Used to enforce: never hold more than 4 of the same rank.
+ * (With a single deck this should naturally cap at 4, but we still guard.)
+ */
+function ownedRankCount(bot: Player, rank: Rank): number {
+  let n = 0;
+  for (const c of bot.hand) if (c.rank === rank) n++;
+  for (let i = 0; i < bot.piles.length; i++) {
+    if (i === bot.openPileIndex) continue;
+    if (bot.pileLocked[i]) continue;
+    for (const c of bot.piles[i]) if (c.rank === rank) n++;
+  }
+  return n;
+}
+
 /** Rule 10: bots must wait at least 1.5s after a card lands in a slot. */
 const BOT_CENTER_COOLDOWN_MS = 1500;
 
@@ -286,6 +325,58 @@ function pickThrowaway(
   return null;
 }
 
+/**
+ * Pick the best straggler-rank card to flush from the hand into the center.
+ * Used during consolidation: we WANT to throw away cards of `flushRank`.
+ */
+function pickFlushCard(
+  bot: Player,
+  mem: BotMemory,
+  centerIdx: number,
+  flushRank: Rank,
+): Card | null {
+  for (const c of bot.hand) {
+    if (c.rank !== flushRank) continue;
+    if (!swapBlocked(mem, bot.id, c.id, centerIdx)) return c;
+  }
+  return null;
+}
+
+/**
+ * Find the best consolidation opportunity for `bot`: a "rich" pile with 3+
+ * cards of some rank R, and another pile holding 1–2 stragglers of rank R.
+ * Returns null if no such opportunity exists.
+ */
+function findConsolidation(
+  bot: Player,
+): { richPile: number; stragglerPile: number; rank: Rank } | null {
+  // Effective per-pile contents: when a pile is open, its cards live in `hand`.
+  const pileContents = (i: number): Card[] =>
+    i === bot.openPileIndex ? bot.hand : bot.piles[i] ?? [];
+
+  let best: { richPile: number; stragglerPile: number; rank: Rank; rich: number } | null = null;
+
+  for (let r = 0; r < bot.piles.length; r++) {
+    if (bot.pileLocked[r]) continue;
+    const rich = pileContents(r);
+    const counts = rankCounts(rich);
+    for (const [rank, n] of counts) {
+      if (n < 3) continue;
+      for (let s = 0; s < bot.piles.length; s++) {
+        if (s === r) continue;
+        if (bot.pileLocked[s]) continue;
+        const sn = pileContents(s).filter((c) => c.rank === rank).length;
+        if (sn === 0 || sn >= n) continue;
+        if (!best || n > best.rich) {
+          best = { richPile: r, stragglerPile: s, rank, rich: n };
+        }
+      }
+    }
+  }
+  if (!best) return null;
+  return { richPile: best.richPile, stragglerPile: best.stragglerPile, rank: best.rank };
+}
+
 export function stepBots(
   state: GameState,
   memory: BotMemory,
@@ -327,12 +418,33 @@ export function stepBots(
     // Rule 3: re-evaluate target if the rank we're chasing isn't reachable.
     maybeRetarget(state, bot, memory);
 
+    // Consolidation plan: detect "rich pile + straggler pile of same rank".
+    // Refresh each tick so we always reflect current state.
+    let plan = memory.flushPlan.get(bot.id) ?? null;
+    if (
+      plan &&
+      (bot.pileLocked[plan.richPile] || bot.pileLocked[plan.stragglerPile])
+    ) {
+      plan = null;
+    }
+    if (!plan) {
+      plan = findConsolidation(bot);
+      memory.flushPlan.set(bot.id, plan);
+    }
+
     // Step A: Complete an in-flight hold (we already grabbed a center card).
     const heldIdx = state.center.findIndex((sl) => sl.heldBy === bot.id);
     if (heldIdx !== -1) {
       if (bot.hand.length === 0) continue;
       const target = currentTarget(bot, memory);
-      const throwaway = pickThrowaway(bot, memory, heldIdx, target);
+      // If we have a flush plan AND we're currently open on the straggler
+      // pile, prefer dumping a straggler-rank card into the center so it
+      // leaves our hand entirely.
+      let throwaway: Card | null = null;
+      if (plan && bot.openPileIndex === plan.stragglerPile) {
+        throwaway = pickFlushCard(bot, memory, heldIdx, plan.rank);
+      }
+      if (!throwaway) throwaway = pickThrowaway(bot, memory, heldIdx, target);
       if (!throwaway) {
         // Can't swap without violating rule 7 — let the hold expire.
         continue;
@@ -344,6 +456,19 @@ export function stepBots(
 
     // Step B: open a pile if none is open.
     if (bot.openPileIndex === null) {
+      // Consolidation override: if we have a flush plan, open the straggler
+      // pile so we can dump its straggler-rank cards into the center. Once
+      // the straggler is gone, on a later tick we'll naturally re-open the
+      // rich pile (which will then have the higher target score).
+      if (plan && bot.piles[plan.stragglerPile]?.length) {
+        // Re-target the straggler pile to the rich rank so future swaps
+        // funnel that rank's leftovers out.
+        memory.pileTarget.set(`${bot.id}:${plan.richPile}`, plan.rank);
+        apply((s) => openPile(s, bot.id, plan!.stragglerPile));
+        memory.closeAfter.set(bot.id, now + rand(1800, 2800));
+        continue;
+      }
+
       // Prefer a pile whose target rank still has reachable copies.
       const candidates: Array<{ i: number; score: number }> = [];
       for (let i = 0; i < bot.piles.length; i++) {
@@ -372,6 +497,39 @@ export function stepBots(
     // Rule 7: if we haven't swapped in >=5s, try harder to make ANY useful swap.
     const lastSwap = memory.lastSwapAt.get(bot.id) ?? state.startedAt ?? now;
     const overdueSwap = now - lastSwap >= 5000;
+
+    // ===== Step C0: drive consolidation plan =====
+    if (plan) {
+      const stragglersInHand = handCounts.get(plan.rank) ?? 0;
+      const stragglersInPile =
+        (bot.piles[plan.stragglerPile] ?? []).filter((c) => c.rank === plan.rank).length;
+      const totalStragglers =
+        bot.openPileIndex === plan.stragglerPile ? stragglersInHand : stragglersInPile;
+
+      if (totalStragglers === 0) {
+        memory.flushPlan.set(bot.id, null);
+      } else if (bot.openPileIndex === plan.stragglerPile && stragglersInHand > 0) {
+        // Grab any claimable center slot so we can flush a straggler-rank card.
+        for (let i = 0; i < state.center.length; i++) {
+          if (!slotClaimable(state, i, now)) continue;
+          const slotRank = state.center[i].card?.rank;
+          if (!slotRank) continue;
+          // 4-of-a-kind cap: don't pick up a card we already have 4 of.
+          if (slotRank !== plan.rank && ownedRankCount(bot, slotRank) >= 4) continue;
+          const probe = pickFlushCard(bot, memory, i, plan.rank);
+          if (!probe) continue;
+          apply((s) => holdCenterCard(s, bot.id, i));
+          memory.closeAfter.set(bot.id, now + rand(1500, 2500));
+          break;
+        }
+        continue;
+      } else if (bot.openPileIndex !== plan.richPile) {
+        // We're on neither the rich nor (useful) straggler pile — close so we
+        // can reopen the right one next tick.
+        apply((s) => closePile(s, bot.id));
+        continue;
+      }
+    }
 
     // ===== Build wanted-rank set based on phase =====
     const wantedRanks = new Set<Rank>();
@@ -421,8 +579,14 @@ export function stepBots(
     }
 
     if (centerIdx !== -1) {
-      // Rule 4 (early phase): only proceed if this is genuinely build-helpful
-      // OR a relocation move OR we're overdue.
+      const centerRank = state.center[centerIdx].card?.rank;
+      // 4-of-a-kind cap: never grab a card whose rank we already own 4 of.
+      if (centerRank && ownedRankCount(bot, centerRank) >= 4) {
+        centerIdx = -1;
+      }
+    }
+
+    if (centerIdx !== -1) {
       const centerRank = state.center[centerIdx].card?.rank;
       const helpful =
         (target && centerRank === target) ||
@@ -430,7 +594,6 @@ export function stepBots(
         (phasePivot && target && haveOfTarget >= 3) ||
         overdueSwap;
       if (helpful || phaseAggressive) {
-        // Make sure we have a non-blocked throwaway available BEFORE holding.
         const probe = pickThrowaway(bot, memory, centerIdx, target);
         if (probe) {
           apply((s) => holdCenterCard(s, bot.id, centerIdx));
