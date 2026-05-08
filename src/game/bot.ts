@@ -579,8 +579,14 @@ export function stepBots(
     }
 
     if (centerIdx !== -1) {
-      // Rule 4 (early phase): only proceed if this is genuinely build-helpful
-      // OR a relocation move OR we're overdue.
+      const centerRank = state.center[centerIdx].card?.rank;
+      // 4-of-a-kind cap: never grab a card whose rank we already own 4 of.
+      if (centerRank && ownedRankCount(bot, centerRank) >= 4) {
+        centerIdx = -1;
+      }
+    }
+
+    if (centerIdx !== -1) {
       const centerRank = state.center[centerIdx].card?.rank;
       const helpful =
         (target && centerRank === target) ||
@@ -588,7 +594,6 @@ export function stepBots(
         (phasePivot && target && haveOfTarget >= 3) ||
         overdueSwap;
       if (helpful || phaseAggressive) {
-        // Make sure we have a non-blocked throwaway available BEFORE holding.
         const probe = pickThrowaway(bot, memory, centerIdx, target);
         if (probe) {
           apply((s) => holdCenterCard(s, bot.id, centerIdx));
