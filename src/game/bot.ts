@@ -456,6 +456,19 @@ export function stepBots(
 
     // Step B: open a pile if none is open.
     if (bot.openPileIndex === null) {
+      // Consolidation override: if we have a flush plan, open the straggler
+      // pile so we can dump its straggler-rank cards into the center. Once
+      // the straggler is gone, on a later tick we'll naturally re-open the
+      // rich pile (which will then have the higher target score).
+      if (plan && bot.piles[plan.stragglerPile]?.length) {
+        // Re-target the straggler pile to the rich rank so future swaps
+        // funnel that rank's leftovers out.
+        memory.pileTarget.set(`${bot.id}:${plan.richPile}`, plan.rank);
+        apply((s) => openPile(s, bot.id, plan!.stragglerPile));
+        memory.closeAfter.set(bot.id, now + rand(1800, 2800));
+        continue;
+      }
+
       // Prefer a pile whose target rank still has reachable copies.
       const candidates: Array<{ i: number; score: number }> = [];
       for (let i = 0; i < bot.piles.length; i++) {
