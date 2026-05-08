@@ -418,12 +418,33 @@ export function stepBots(
     // Rule 3: re-evaluate target if the rank we're chasing isn't reachable.
     maybeRetarget(state, bot, memory);
 
+    // Consolidation plan: detect "rich pile + straggler pile of same rank".
+    // Refresh each tick so we always reflect current state.
+    let plan = memory.flushPlan.get(bot.id) ?? null;
+    if (
+      plan &&
+      (bot.pileLocked[plan.richPile] || bot.pileLocked[plan.stragglerPile])
+    ) {
+      plan = null;
+    }
+    if (!plan) {
+      plan = findConsolidation(bot);
+      memory.flushPlan.set(bot.id, plan);
+    }
+
     // Step A: Complete an in-flight hold (we already grabbed a center card).
     const heldIdx = state.center.findIndex((sl) => sl.heldBy === bot.id);
     if (heldIdx !== -1) {
       if (bot.hand.length === 0) continue;
       const target = currentTarget(bot, memory);
-      const throwaway = pickThrowaway(bot, memory, heldIdx, target);
+      // If we have a flush plan AND we're currently open on the straggler
+      // pile, prefer dumping a straggler-rank card into the center so it
+      // leaves our hand entirely.
+      let throwaway: Card | null = null;
+      if (plan && bot.openPileIndex === plan.stragglerPile) {
+        throwaway = pickFlushCard(bot, memory, heldIdx, plan.rank);
+      }
+      if (!throwaway) throwaway = pickThrowaway(bot, memory, heldIdx, target);
       if (!throwaway) {
         // Can't swap without violating rule 7 — let the hold expire.
         continue;
