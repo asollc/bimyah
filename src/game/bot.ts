@@ -66,12 +66,14 @@ type BotMemory = {
   // Rule 8 last donation timestamp to throttle altruistic moves.
   lastHelpAt: Map<string, number>;
 
-  // Consolidation plan: when bot has 3-of-a-kind of a target in its open
-  // (rich) pile and a straggler copy of that rank lives in another pile,
-  // remember to detour through the straggler pile and flush that card into
-  // the center so the rich pile can pick it up next.
-  // Key = botId, value = { stragglerPile, rank }.
-  flushPlan: Map<string, { pileIndex: number; rank: Rank } | null>;
+  // Consolidation plan: when bot has 3-of-a-kind of a target in a "rich"
+  // pile and a straggler copy of that rank lives in another pile, we detour
+  // through the straggler pile to push that card into the center, then
+  // re-open the rich pile to claim it.
+  flushPlan: Map<
+    string,
+    { richPile: number; stragglerPile: number; rank: Rank } | null
+  >;
 };
 
 export function createBotMemory(): BotMemory {
