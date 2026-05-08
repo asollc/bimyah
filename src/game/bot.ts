@@ -498,6 +498,39 @@ export function stepBots(
     const lastSwap = memory.lastSwapAt.get(bot.id) ?? state.startedAt ?? now;
     const overdueSwap = now - lastSwap >= 5000;
 
+    // ===== Step C0: drive consolidation plan =====
+    if (plan) {
+      const stragglersInHand = handCounts.get(plan.rank) ?? 0;
+      const stragglersInPile =
+        (bot.piles[plan.stragglerPile] ?? []).filter((c) => c.rank === plan.rank).length;
+      const totalStragglers =
+        bot.openPileIndex === plan.stragglerPile ? stragglersInHand : stragglersInPile;
+
+      if (totalStragglers === 0) {
+        memory.flushPlan.set(bot.id, null);
+      } else if (bot.openPileIndex === plan.stragglerPile && stragglersInHand > 0) {
+        // Grab any claimable center slot so we can flush a straggler-rank card.
+        for (let i = 0; i < state.center.length; i++) {
+          if (!slotClaimable(state, i, now)) continue;
+          const slotRank = state.center[i].card?.rank;
+          if (!slotRank) continue;
+          // 4-of-a-kind cap: don't pick up a card we already have 4 of.
+          if (slotRank !== plan.rank && ownedRankCount(bot, slotRank) >= 4) continue;
+          const probe = pickFlushCard(bot, memory, i, plan.rank);
+          if (!probe) continue;
+          apply((s) => holdCenterCard(s, bot.id, i));
+          memory.closeAfter.set(bot.id, now + rand(1500, 2500));
+          break;
+        }
+        continue;
+      } else if (bot.openPileIndex !== plan.richPile) {
+        // We're on neither the rich nor (useful) straggler pile — close so we
+        // can reopen the right one next tick.
+        apply((s) => closePile(s, bot.id));
+        continue;
+      }
+    }
+
     // ===== Build wanted-rank set based on phase =====
     const wantedRanks = new Set<Rank>();
     if (target) wantedRanks.add(target);
