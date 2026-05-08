@@ -210,6 +210,35 @@ function pileWithMostOf(bot: Player, rank: Rank, exclude: number): { idx: number
   return best;
 }
 
+/** Find any (other) pile of the bot that holds at least one of `rank`. */
+function pileWithAnyOf(bot: Player, rank: Rank, exclude: number): { idx: number; count: number } {
+  let best = { idx: -1, count: 0 };
+  for (let i = 0; i < bot.piles.length; i++) {
+    if (i === exclude) continue;
+    if (bot.pileLocked[i]) continue;
+    let c = 0;
+    for (const card of bot.piles[i]) if (card.rank === rank) c++;
+    if (c > 0 && (best.idx === -1 || c < best.count)) best = { idx: i, count: c };
+  }
+  return best;
+}
+
+/**
+ * Total copies of `rank` the bot currently controls across its hand and all
+ * unlocked piles. Used to enforce: never hold more than 4 of the same rank.
+ * (With a single deck this should naturally cap at 4, but we still guard.)
+ */
+function ownedRankCount(bot: Player, rank: Rank): number {
+  let n = 0;
+  for (const c of bot.hand) if (c.rank === rank) n++;
+  for (let i = 0; i < bot.piles.length; i++) {
+    if (i === bot.openPileIndex) continue;
+    if (bot.pileLocked[i]) continue;
+    for (const c of bot.piles[i]) if (c.rank === rank) n++;
+  }
+  return n;
+}
+
 /** Rule 10: bots must wait at least 1.5s after a card lands in a slot. */
 const BOT_CENTER_COOLDOWN_MS = 1500;
 
