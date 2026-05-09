@@ -64,6 +64,7 @@ export function GameTable({
   const [now, setNow] = useState(() => Date.now());
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [sortEnabled, setSortEnabled] = useState(false);
@@ -363,9 +364,13 @@ export function GameTable({
   // Match-end "ready up" toggle for non-host players. Host uses this same
   // intent so its avatar lights up too (keepReadyPlayers always preserves
   // the host, but this keeps the visual consistent).
+  // Readying up for the next match is permanent — once set, players cannot
+  // un-ready. This prevents accidental cancels and keeps the host's view of
+  // who's in for the next match stable.
   const onReadyForNext = () => {
     if (!me) return;
-    dispatch({ kind: "readyForNext", playerId: meId, ready: !me.readyForNext });
+    if (me.readyForNext) return;
+    dispatch({ kind: "readyForNext", playerId: meId, ready: true });
   };
 
   const onPlayAgain = () => {
@@ -780,8 +785,9 @@ export function GameTable({
           : isChampion
           ? "Start New Tournament"
           : "Start Next Match";
-        const onHostStart = () => {
-          if (cooldownActive) return;
+        const nonHostHumans = humans.filter((p) => p.id !== hostId);
+        const allHumansReady = nonHostHumans.every((p) => !!p.readyForNext);
+        const startNow = () => {
           if (!isTournament) {
             onPlayAgain();
           } else if (isChampion) {
@@ -789,6 +795,14 @@ export function GameTable({
           } else {
             onNextMatch();
           }
+        };
+        const onHostStart = () => {
+          if (cooldownActive) return;
+          if (nonHostHumans.length > 0 && !allHumansReady) {
+            setShowStartConfirm(true);
+            return;
+          }
+          startNow();
         };
 
         return (
@@ -865,18 +879,60 @@ export function GameTable({
               {showPlayAgain && !amHost && (
                 <button
                   onClick={onReadyForNext}
+                  disabled={meReady}
                   className={cn(
                     "btn-3d pointer-events-auto animate-float-up",
-                    meReady ? "btn-3d-gold" : "btn-3d-mint",
+                    meReady ? "btn-3d-gold opacity-90" : "btn-3d-mint",
                   )}
                 >
-                  {meReady ? "Ready ✓ (tap to cancel)" : "Ready Up"}
+                  {meReady ? "Ready ✓" : "Ready Up"}
                 </button>
               )}
 
               {showPlayAgain && !amHost && (
                 <div className="text-center text-[11px] uppercase tracking-widest text-white/60 animate-float-up">
                   Waiting for host to start the next match…
+                </div>
+              )}
+
+              {showPlayAgain && amHost && showStartConfirm && (
+                <div
+                  className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                  onClick={() => setShowStartConfirm(false)}
+                >
+                  <div
+                    className="w-full max-w-sm rounded-xl border border-white/15 bg-zinc-900 p-5 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-2 text-base font-bold text-white">
+                      Not everyone is ready
+                    </div>
+                    <div className="mb-4 text-sm text-white/70">
+                      {nonHostHumans
+                        .filter((p) => !p.readyForNext)
+                        .map((p) => p.name)
+                        .join(", ")}{" "}
+                      hasn't readied up yet. Players who aren't ready will be
+                      removed from the next match.
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <button
+                        onClick={() => setShowStartConfirm(false)}
+                        className="btn-3d btn-3d-mint"
+                      >
+                        Wait
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowStartConfirm(false);
+                          startNow();
+                        }}
+                        className="btn-3d btn-3d-gold"
+                      >
+                        Continue anyway
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
