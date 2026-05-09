@@ -785,8 +785,9 @@ export function GameTable({
           : isChampion
           ? "Start New Tournament"
           : "Start Next Match";
-        const onHostStart = () => {
-          if (cooldownActive) return;
+        const nonHostHumans = humans.filter((p) => p.id !== hostId);
+        const allHumansReady = nonHostHumans.every((p) => !!p.readyForNext);
+        const startNow = () => {
           if (!isTournament) {
             onPlayAgain();
           } else if (isChampion) {
@@ -794,6 +795,14 @@ export function GameTable({
           } else {
             onNextMatch();
           }
+        };
+        const onHostStart = () => {
+          if (cooldownActive) return;
+          if (nonHostHumans.length > 0 && !allHumansReady) {
+            setShowStartConfirm(true);
+            return;
+          }
+          startNow();
         };
 
         return (
