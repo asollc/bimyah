@@ -64,6 +64,7 @@ export function GameTable({
   const [now, setNow] = useState(() => Date.now());
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [sortEnabled, setSortEnabled] = useState(false);
