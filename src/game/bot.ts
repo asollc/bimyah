@@ -364,47 +364,68 @@ function findConsolidation(
     | { richPile: number; stragglerPile: number; rank: Rank; rich: number; stragglers: number }
     | null = null;
 
-  for (let r = 0; r < bot.piles.length; r++) {
-    if (bot.pileLocked[r]) continue;
-    const rich = pileContents(r);
-    const counts = rankCounts(rich);
-    for (const [rank, n] of counts) {
-      // Need at least 2 of the rank in the rich pile to make consolidation
-      // worthwhile (a single card isn't a meaningful "lead").
-      if (n < 2) continue;
-      // Already have 4 — no consolidation needed.
-      if (n >= 4) continue;
-      // Sum stragglers across all OTHER piles for this rank.
-      let totalStragglers = 0;
-      let bestStragglerPile = -1;
-      let bestStragglerCount = 0;
-      for (let s = 0; s < bot.piles.length; s++) {
-        if (s === r) continue;
-        if (bot.pileLocked[s]) continue;
-        const sn = pileContents(s).filter((c) => c.rank === rank).length;
-        if (sn === 0) continue;
-        totalStragglers += sn;
-        // Prefer the pile with the most stragglers — more bang per detour.
-        if (sn > bestStragglerCount) {
-          bestStragglerCount = sn;
-          bestStragglerPile = s;
-        }
+  // Build per-rank distribution: how many of each rank live in each pile.
+  // Trigger consolidation any time a rank is split across 2+ piles (collective
+  // count >= 2). The pile with the most copies becomes the destination ("rich"),
+  // any other pile holding that rank is a straggler source.
+  const allRanks = new Set<Rank>();
+  const perPileCounts: Map<Rank, number>[] = [];
+  for (let i = 0; i < bot.piles.length; i++) {
+    const counts = bot.pileLocked[i] ? new Map<Rank, number>() : rankCounts(pileContents(i));
+    perPileCounts.push(counts);
+    for (const r of counts.keys()) allRanks.add(r);
+  }
+
+  for (const rank of allRanks) {
+    let richPile = -1;
+    let richCount = 0;
+    let totalAcross = 0;
+    let pilesTouched = 0;
+    for (let i = 0; i < bot.piles.length; i++) {
+      if (bot.pileLocked[i]) continue;
+      const n = perPileCounts[i].get(rank) ?? 0;
+      if (n === 0) continue;
+      totalAcross += n;
+      pilesTouched++;
+      if (n > richCount) {
+        richCount = n;
+        richPile = i;
       }
-      if (bestStragglerPile === -1) continue;
-      // Score: prioritize biggest rich pile, then most stragglers we can move.
-      if (
-        !best ||
-        n > best.rich ||
-        (n === best.rich && totalStragglers > best.stragglers)
-      ) {
-        best = {
-          richPile: r,
-          stragglerPile: bestStragglerPile,
-          rank,
-          rich: n,
-          stragglers: totalStragglers,
-        };
+    }
+    // Need the rank to live in 2+ piles to be a consolidation opportunity.
+    if (pilesTouched < 2) continue;
+    if (totalAcross >= 4 && richCount >= 4) continue; // already done
+
+    // Pick straggler pile: the OTHER pile holding this rank with the FEWEST
+    // copies (easiest to drain). Tiebreak: most stragglers if equal.
+    let bestStragglerPile = -1;
+    let bestStragglerCount = Infinity;
+    let totalStragglers = 0;
+    for (let s = 0; s < bot.piles.length; s++) {
+      if (s === richPile || bot.pileLocked[s]) continue;
+      const sn = perPileCounts[s].get(rank) ?? 0;
+      if (sn === 0) continue;
+      totalStragglers += sn;
+      if (sn < bestStragglerCount) {
+        bestStragglerCount = sn;
+        bestStragglerPile = s;
       }
+    }
+    if (bestStragglerPile === -1) continue;
+
+    // Score: prefer biggest rich lead, then most total stragglers to move.
+    if (
+      !best ||
+      richCount > best.rich ||
+      (richCount === best.rich && totalStragglers > best.stragglers)
+    ) {
+      best = {
+        richPile,
+        stragglerPile: bestStragglerPile,
+        rank,
+        rich: richCount,
+        stragglers: totalStragglers,
+      };
     }
   }
   if (!best) return null;
