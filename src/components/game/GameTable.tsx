@@ -364,9 +364,13 @@ export function GameTable({
   // Match-end "ready up" toggle for non-host players. Host uses this same
   // intent so its avatar lights up too (keepReadyPlayers always preserves
   // the host, but this keeps the visual consistent).
+  // Readying up for the next match is permanent — once set, players cannot
+  // un-ready. This prevents accidental cancels and keeps the host's view of
+  // who's in for the next match stable.
   const onReadyForNext = () => {
     if (!me) return;
-    dispatch({ kind: "readyForNext", playerId: meId, ready: !me.readyForNext });
+    if (me.readyForNext) return;
+    dispatch({ kind: "readyForNext", playerId: meId, ready: true });
   };
 
   const onPlayAgain = () => {
