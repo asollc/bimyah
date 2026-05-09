@@ -343,8 +343,14 @@ function pickFlushCard(
 }
 
 /**
- * Find the best consolidation opportunity for `bot`: a "rich" pile with 3+
- * cards of some rank R, and another pile holding 1–2 stragglers of rank R.
+ * Find the best consolidation opportunity for `bot`: a "rich" pile with 2+
+ * cards of some rank R, and another pile holding fewer (but at least 1)
+ * stragglers of rank R. The bot will route the stragglers through the center
+ * so the rich pile can collect them, building toward 4-of-a-kind.
+ *
+ * Example: rich pile has 2 Kings, straggler pile has 1 King → flush the
+ * straggler King to center, then reopen the rich pile to claim it.
+ *
  * Returns null if no such opportunity exists.
  */
 function findConsolidation(
@@ -354,22 +360,50 @@ function findConsolidation(
   const pileContents = (i: number): Card[] =>
     i === bot.openPileIndex ? bot.hand : bot.piles[i] ?? [];
 
-  let best: { richPile: number; stragglerPile: number; rank: Rank; rich: number } | null = null;
+  let best:
+    | { richPile: number; stragglerPile: number; rank: Rank; rich: number; stragglers: number }
+    | null = null;
 
   for (let r = 0; r < bot.piles.length; r++) {
     if (bot.pileLocked[r]) continue;
     const rich = pileContents(r);
     const counts = rankCounts(rich);
     for (const [rank, n] of counts) {
-      if (n < 3) continue;
+      // Need at least 2 of the rank in the rich pile to make consolidation
+      // worthwhile (a single card isn't a meaningful "lead").
+      if (n < 2) continue;
+      // Already have 4 — no consolidation needed.
+      if (n >= 4) continue;
+      // Sum stragglers across all OTHER piles for this rank.
+      let totalStragglers = 0;
+      let bestStragglerPile = -1;
+      let bestStragglerCount = 0;
       for (let s = 0; s < bot.piles.length; s++) {
         if (s === r) continue;
         if (bot.pileLocked[s]) continue;
         const sn = pileContents(s).filter((c) => c.rank === rank).length;
-        if (sn === 0 || sn >= n) continue;
-        if (!best || n > best.rich) {
-          best = { richPile: r, stragglerPile: s, rank, rich: n };
+        if (sn === 0) continue;
+        totalStragglers += sn;
+        // Prefer the pile with the most stragglers — more bang per detour.
+        if (sn > bestStragglerCount) {
+          bestStragglerCount = sn;
+          bestStragglerPile = s;
         }
+      }
+      if (bestStragglerPile === -1) continue;
+      // Score: prioritize biggest rich pile, then most stragglers we can move.
+      if (
+        !best ||
+        n > best.rich ||
+        (n === best.rich && totalStragglers > best.stragglers)
+      ) {
+        best = {
+          richPile: r,
+          stragglerPile: bestStragglerPile,
+          rank,
+          rich: n,
+          stragglers: totalStragglers,
+        };
       }
     }
   }
