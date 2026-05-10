@@ -423,3 +423,154 @@ export const getShareStats = createServerFn({ method: "GET" })
       })),
     };
   });
+
+// ---------- Per-user admin profile editor ----------
+const userIdSchema = z.object({ user_id: z.string().uuid() });
+
+export const getAdminUserDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => userIdSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const [profileRes, rolesRes, subRes, founderRes, cardBackRes, userRes] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("id, display_name, avatar_url, created_at")
+        .eq("id", data.user_id)
+        .maybeSingle(),
+      supabaseAdmin.from("user_roles").select("role").eq("user_id", data.user_id),
+      supabaseAdmin
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", data.user_id)
+        .eq("status", "active")
+        .maybeSingle(),
+      supabaseAdmin
+        .from("founding_members")
+        .select("user_id")
+        .eq("user_id", data.user_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("card_backs")
+        .select("image_url")
+        .eq("user_id", data.user_id)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabaseAdmin.auth.admin.getUserById(data.user_id),
+    ]);
+    if (!profileRes.data) throw new Error("User not found");
+    return {
+      id: profileRes.data.id,
+      display_name: profileRes.data.display_name,
+      avatar_url: profileRes.data.avatar_url as string | null,
+      created_at: profileRes.data.created_at,
+      email: userRes.data?.user?.email ?? null,
+      roles: (rolesRes.data ?? []).map((r) => r.role),
+      active_plan: subRes.data?.plan ?? null,
+      founding_member: !!founderRes.data,
+      active_card_back_url: (cardBackRes.data?.image_url as string | undefined) ?? null,
+    };
+  });
+
+const setAvatarSchema = z.object({
+  user_id: z.string().uuid(),
+  avatar_url: z.string().url().nullable(),
+});
+export const adminSetAvatar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => setAvatarSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ avatar_url: data.avatar_url })
+      .eq("id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const setDisplayNameSchema = z.object({
+  user_id: z.string().uuid(),
+  display_name: z.string().min(1).max(14).regex(/^[\S ]+$/, "Invalid characters"),
+});
+export const adminSetDisplayName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => setDisplayNameSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const trimmed = data.display_name.trim();
+    if (!trimmed) throw new Error("Display name cannot be empty");
+    const { data: existing } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .ilike("display_name", trimmed)
+      .neq("id", data.user_id)
+      .maybeSingle();
+    if (existing) throw new Error("That display name is already taken");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ display_name: trimmed })
+      .eq("id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const setCardBackSchema = z.object({
+  user_id: z.string().uuid(),
+  image_url: z.string().url(),
+});
+export const adminSetCardBack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => setCardBackSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    await supabaseAdmin
+      .from("card_backs")
+      .update({ is_active: false })
+      .eq("user_id", data.user_id)
+      .eq("is_active", true);
+    const { error } = await supabaseAdmin
+      .from("card_backs")
+      .insert({ user_id: data.user_id, image_url: data.image_url, is_active: true });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminClearCardBack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => userIdSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    await supabaseAdmin
+      .from("card_backs")
+      .update({ is_active: false })
+      .eq("user_id", data.user_id)
+      .eq("is_active", true);
+    return { ok: true };
+  });
+
+const uploadSchema = z.object({
+  user_id: z.string().uuid(),
+  bucket: z.enum(["avatars", "card-backs"]),
+  filename: z.string().min(1).max(64).regex(/^[a-zA-Z0-9._-]+$/),
+  content_base64: z.string().min(1),
+  content_type: z.string().min(1).max(100),
+});
+export const adminUploadAsset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => uploadSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const buffer = Buffer.from(data.content_base64, "base64");
+    const maxBytes = data.bucket === "avatars" ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (buffer.byteLength > maxBytes) {
+      throw new Error(`File too large (max ${Math.floor(maxBytes / 1024 / 1024)} MB)`);
+    }
+    const path = `${data.user_id}/${data.filename}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(data.bucket)
+      .upload(path, buffer, { upsert: true, contentType: data.content_type });
+    if (upErr) throw new Error(upErr.message);
+    const { data: pub } = supabaseAdmin.storage.from(data.bucket).getPublicUrl(path);
+    return { url: pub.publicUrl };
+  });
