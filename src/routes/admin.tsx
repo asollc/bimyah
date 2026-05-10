@@ -443,7 +443,13 @@ function UsersTab() {
                 <tr key={u.id} className="border-t">
                   <td className="p-2">
                     <div className="font-medium flex items-center gap-1">
-                      {u.display_name}
+                      <Link
+                        to="/admin/users/$userId"
+                        params={{ userId: u.id }}
+                        className="hover:underline text-primary"
+                      >
+                        {u.display_name}
+                      </Link>
                       {u.founding_member && <Crown className="h-3 w-3 text-amber-500" />}
                     </div>
                     <div className="text-xs text-muted-foreground truncate max-w-[220px]">
