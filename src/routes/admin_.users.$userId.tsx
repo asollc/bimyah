@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/admin/users/$userId")({
+export const Route = createFileRoute("/admin_/users/$userId")({
   head: () => ({
     meta: [
       { title: "Edit user — Admin" },
