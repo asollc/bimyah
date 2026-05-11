@@ -404,3 +404,160 @@ export function newTournament(state: GameState, pointLimit: number | null): Game
     })),
   };
 }
+
+/* ============================ Inactive / Free Cards ============================ */
+
+/** Grace window after disconnect before a player's piles become public. */
+export const INACTIVE_GRACE_MS = 45_000;
+/** How long a free-card hold lasts before auto-releasing (mirrors center). */
+export const FREE_CARD_HOLD_MS = 5_000;
+
+/** Mark a player as currently disconnected. No-op if already inactive. */
+export function markDisconnected(state: GameState, playerId: string): GameState {
+  const players = state.players.map((p) => {
+    if (p.id !== playerId) return p;
+    if (p.disconnectedAt) return p;
+    return { ...p, disconnectedAt: Date.now() };
+  });
+  return { ...state, players };
+}
+
+/** Clear the disconnected flag (player came back). Has no effect once the
+ *  player has already been promoted to free-cards. */
+export function markReconnected(state: GameState, playerId: string): GameState {
+  const players = state.players.map((p) => {
+    if (p.id !== playerId) return p;
+    if (p.freeCards) return p;
+    if (!p.disconnectedAt) return p;
+    return { ...p, disconnectedAt: null };
+  });
+  return { ...state, players };
+}
+
+/** Promote any player past the grace window to free-cards. Auto-closes
+ *  their open pile so all their cards live in piles. */
+export function tickInactive(state: GameState): GameState {
+  const now = Date.now();
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (p.freeCards) return p;
+    if (!p.disconnectedAt) return p;
+    if (now - p.disconnectedAt < INACTIVE_GRACE_MS) return p;
+    changed = true;
+    // Close any open pile so cards return to piles.
+    let next = p;
+    if (next.openPileIndex !== null) {
+      const idx = next.openPileIndex;
+      const newPiles = next.piles.map((pile, i) => (i === idx ? [...next.hand] : pile));
+      next = { ...next, piles: newPiles, hand: [], openPileIndex: null };
+    }
+    return {
+      ...next,
+      freeCards: true,
+      freePileHolds: new Array(next.piles.length).fill(null),
+    };
+  });
+  if (!changed) return state;
+  return { ...state, players };
+}
+
+function viewerHasAnyHold(state: GameState, viewerId: string): boolean {
+  if (state.center.some((s) => s.heldBy === viewerId)) return true;
+  for (const p of state.players) {
+    if (!p.freePileHolds) continue;
+    if (p.freePileHolds.some((h) => h?.heldBy === viewerId)) return true;
+  }
+  return false;
+}
+
+/** Hold a card from an inactive player's pile. The card stays in the pile
+ *  but is marked as held with a 5s timer. Only one hold per viewer (across
+ *  center + free-cards), and only one held card per pile. */
+export function holdFreeCard(
+  state: GameState,
+  viewerId: string,
+  ownerId: string,
+  pileIndex: number,
+  cardId: string,
+): GameState {
+  if (state.status !== "playing") return state;
+  const viewer = state.players.find((p) => p.id === viewerId);
+  if (!viewer || viewer.freeCards) return state;
+  if (viewer.openPileIndex === null) return state;
+  if (viewer.hand.length === 0) return state;
+  if (viewer.hand.length > MAX_HAND) return state;
+  if (viewerHasAnyHold(state, viewerId)) return state;
+  const owner = state.players.find((p) => p.id === ownerId);
+  if (!owner || !owner.freeCards) return state;
+  const pile = owner.piles[pileIndex];
+  if (!pile || !pile.some((c) => c.id === cardId)) return state;
+  const holds = owner.freePileHolds ?? new Array(owner.piles.length).fill(null);
+  if (holds[pileIndex]) return state;
+  const newHolds = holds.slice();
+  newHolds[pileIndex] = { cardId, heldBy: viewerId, heldUntil: Date.now() + FREE_CARD_HOLD_MS };
+  const players = state.players.map((p) =>
+    p.id === ownerId ? { ...p, freePileHolds: newHolds } : p,
+  );
+  return { ...state, players };
+}
+
+/** Complete a swap of the viewer's currently-held free card with one of
+ *  their own hand cards. */
+export function swapFreeCard(
+  state: GameState,
+  viewerId: string,
+  handCardId: string,
+): GameState {
+  // Find the held free card
+  let ownerId: string | null = null;
+  let pileIndex = -1;
+  let heldCardId: string | null = null;
+  for (const p of state.players) {
+    if (!p.freePileHolds) continue;
+    const idx = p.freePileHolds.findIndex((h) => h?.heldBy === viewerId);
+    if (idx !== -1) {
+      ownerId = p.id;
+      pileIndex = idx;
+      heldCardId = p.freePileHolds[idx]!.cardId;
+      break;
+    }
+  }
+  if (!ownerId || !heldCardId) return state;
+  const viewer = state.players.find((p) => p.id === viewerId);
+  if (!viewer) return state;
+  const handCard = viewer.hand.find((c) => c.id === handCardId);
+  if (!handCard) return state;
+  const owner = state.players.find((p) => p.id === ownerId)!;
+  const pile = owner.piles[pileIndex];
+  const heldCard = pile.find((c) => c.id === heldCardId);
+  if (!heldCard) return state;
+  const newOwnerPile = pile.map((c) => (c.id === heldCardId ? handCard : c));
+  const newOwnerPiles = owner.piles.map((pl, i) => (i === pileIndex ? newOwnerPile : pl));
+  const newHolds = (owner.freePileHolds ?? []).map((h, i) => (i === pileIndex ? null : h));
+  const newViewerHand = viewer.hand.map((c) => (c.id === handCardId ? heldCard : c));
+  const players = state.players.map((p) => {
+    if (p.id === ownerId) return { ...p, piles: newOwnerPiles, freePileHolds: newHolds };
+    if (p.id === viewerId) return { ...p, hand: newViewerHand };
+    return p;
+  });
+  return { ...state, players };
+}
+
+/** Release any expired free-card holds. */
+export function tickFreeCardHolds(state: GameState): GameState {
+  const now = Date.now();
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (!p.freePileHolds) return p;
+    let mutated = false;
+    const newHolds = p.freePileHolds.map((h) => {
+      if (h && h.heldUntil <= now) { mutated = true; return null; }
+      return h;
+    });
+    if (!mutated) return p;
+    changed = true;
+    return { ...p, freePileHolds: newHolds };
+  });
+  if (!changed) return state;
+  return { ...state, players };
+}
