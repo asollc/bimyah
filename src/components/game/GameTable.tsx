@@ -799,6 +799,11 @@ export function GameTable({
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
             revealAll={state.mode === "training"}
+            freeView={!isMe && freeView?.ownerId === player.id ? freeView.pileIndex : null}
+            onFreePileTap={!isMe && player.freeCards ? (i) => handleFreePileTap(player.id, i) : undefined}
+            onFreeCardTap={!isMe && player.freeCards ? (i, cardId) => handleFreeCardTap(player.id, i, cardId) : undefined}
+            colorMap={PLAYER_COLOR_HEX}
+            players={state.players}
           />
         );
       })}
