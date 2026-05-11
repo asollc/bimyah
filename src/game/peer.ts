@@ -284,17 +284,31 @@ function tryHost(
       });
       conn.on("data", (raw) => {
         const msg = raw as Message;
+        if (msg.type === "hello" && msg.playerId) {
+          peerToPlayer.set(conn.peer, msg.playerId);
+          // Player just (re)connected — clear any inactive flag.
+          applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+          return;
+        }
         if (msg.type === "intent") {
-          if (msg.intent.kind === "replaceState") {
+          // Reject host-only / local-only intents from remotes.
+          if (
+            msg.intent.kind === "replaceState" ||
+            msg.intent.kind === "markDisconnected" ||
+            msg.intent.kind === "markReconnected"
+          ) {
             return;
           }
-          // Apply the joiner's intent against current authoritative state.
           applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
-        // Ignore "state" from joiners — joiners are no longer authoritative.
       });
       conn.on("close", () => {
         conns.delete(conn.peer);
+        const playerId = peerToPlayer.get(conn.peer);
+        peerToPlayer.delete(conn.peer);
+        if (playerId) {
+          applyAndBroadcast((s) => markDisconnected(s, playerId));
+        }
       });
     });
 
