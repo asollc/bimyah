@@ -340,6 +340,9 @@ export function resetToLobby(state: GameState): GameState {
       pileLocked: [],
       hand: [],
       openPileIndex: null,
+      disconnectedAt: null,
+      freeCards: false,
+      freePileHolds: undefined,
     })),
   };
 }
@@ -371,6 +374,9 @@ export function nextMatch(state: GameState): GameState {
       pileLocked: [],
       hand: [],
       openPileIndex: null,
+      disconnectedAt: null,
+      freeCards: false,
+      freePileHolds: undefined,
     })),
   };
 }
@@ -402,6 +408,9 @@ export function newTournament(state: GameState, pointLimit: number | null): Game
       pileLocked: [],
       hand: [],
       openPileIndex: null,
+      disconnectedAt: null,
+      freeCards: false,
+      freePileHolds: undefined,
     })),
   };
 }
