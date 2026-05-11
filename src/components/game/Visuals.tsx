@@ -296,6 +296,11 @@ export function Scoreboard({
                           {p.name}
                         </span>
                       </div>
+                      {(p.freeCards || p.disconnectedAt) && (
+                        <div className="text-[8px] font-bold uppercase tracking-widest text-white/60">
+                          (inactive)
+                        </div>
+                      )}
                       <div className="mt-0.5 text-[9px] font-normal text-white/60">
                         {state.scores[p.id] ?? 0} pts
                       </div>
