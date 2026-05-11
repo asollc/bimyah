@@ -43,12 +43,17 @@ export type Intent =
   | { kind: "closePile"; playerId: string }
   | { kind: "holdCenter"; playerId: string; centerIndex: number }
   | { kind: "swap"; playerId: string; cardId: string }
+  | { kind: "holdFreeCard"; viewerId: string; ownerId: string; pileIndex: number; cardId: string }
+  | { kind: "swapFreeCard"; viewerId: string; cardId: string }
   | { kind: "declareSet"; playerId: string }
   | { kind: "declareBimyah"; playerId: string }
   | { kind: "playAgain" }
   | { kind: "nextMatch" }
   | { kind: "newTournament"; pointLimit: number | null }
   | { kind: "readyForNext"; playerId: string; ready: boolean }
+  /** Host-only: connection lifecycle. Never accept from remote. */
+  | { kind: "markDisconnected"; playerId: string }
+  | { kind: "markReconnected"; playerId: string }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
