@@ -1235,6 +1235,11 @@ function PlayerSeat({
   sortEnabled,
   zoom = 1,
   revealAll = false,
+  freeView = null,
+  onFreePileTap,
+  onFreeCardTap,
+  colorMap,
+  players,
 }: {
   player: Player;
   position: SeatPos;
@@ -1252,6 +1257,13 @@ function PlayerSeat({
   sortEnabled?: boolean;
   zoom?: number;
   revealAll?: boolean;
+  /** When this seat belongs to an inactive player and the local viewer has
+   *  one of its piles expanded, this is that pile's index. */
+  freeView?: number | null;
+  onFreePileTap?: (pileIndex: number) => void;
+  onFreeCardTap?: (pileIndex: number, cardId: string) => void;
+  colorMap?: Record<PlayerColor, string>;
+  players?: Player[];
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
