@@ -1405,6 +1405,20 @@ function PlayerSeat({
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
+      {/* Inactive / Free-cards status badge */}
+      {!isMe && (player.disconnectedAt || player.freeCards) && status !== "lobby" && (
+        <div
+          className={cn(
+            "rounded-full px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest",
+            player.freeCards
+              ? "bg-[var(--gold)]/20 text-[var(--gold)] ring-1 ring-[var(--gold)]/50"
+              : "bg-white/10 text-white/70 ring-1 ring-white/20",
+          )}
+        >
+          {player.freeCards ? "Free Cards" : "Inactive"}
+        </div>
+      )}
+
       {/* Piles (with SET/SORT absolutely anchored below for the local player
           so opening a pile does NOT shift the piles upward) */}
       {status !== "lobby" && (
@@ -1423,6 +1437,8 @@ function PlayerSeat({
                 return <CascadeSet key={i} cards={pile} width={pileWidth} />;
               }
               const isOpen = isMe && player.openPileIndex === i;
+              const isFreeOpen = !isMe && player.freeCards && freeView === i;
+              const pileHold = player.freePileHolds?.[i] ?? null;
               if (pile.length === 0 && !isOpen) {
                 return (
                   <div
@@ -1443,6 +1459,53 @@ function PlayerSeat({
                       OPEN
                     </span>
                   </div>
+                );
+              }
+              // Inactive player's pile, expanded by viewer → render face-up cards.
+              if (isFreeOpen) {
+                const holderColor = pileHold && colorMap && players
+                  ? colorMap[players.find((pp) => pp.id === pileHold.heldBy)?.color ?? "green"]
+                  : undefined;
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-row gap-0.5 rounded-md bg-black/30 p-0.5 ring-1 ring-[var(--gold)]/40"
+                    onClick={(e) => {
+                      // Tapping empty area of expanded pile collapses it.
+                      if (e.target === e.currentTarget) onFreePileTap?.(i);
+                    }}
+                  >
+                    {pile.map((c) => {
+                      const heldHere = pileHold?.cardId === c.id;
+                      const ringColor = heldHere ? holderColor : undefined;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            if (pileHold) return;
+                            onFreeCardTap?.(i, c.id);
+                          }}
+                          className={cn("cursor-pointer", heldHere && "animate-pulse-ring rounded-md")}
+                          style={ringColor ? { boxShadow: `0 0 0 2px ${ringColor}` } : undefined}
+                        >
+                          <PlayingCard card={c} width={Math.max(18, pileWidth - 4)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              // Inactive player's pile, collapsed → tap to expand.
+              if (!isMe && player.freeCards && onFreePileTap) {
+                return (
+                  <CardBack
+                    key={i}
+                    width={pileWidth}
+                    count={pile.length}
+                    onClick={() => onFreePileTap(i)}
+                    highlight={!!pileHold}
+                    imageUrl={player.cardBackUrl}
+                  />
                 );
               }
               return (
