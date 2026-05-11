@@ -1,69 +1,53 @@
-## Goal
+# Inactive players + free-cards system
 
-In the admin back-office, make every user name in the **Users** table clickable, opening a per-user admin profile page where the admin can edit that user's avatar, display name, and active custom card back.
+## Behavior
 
-## 1. New admin route: `/admin/users/$userId`
+1. **Disconnect → instant `(inactive)` badge.** The host watches per-player WebRTC connection state. The moment a joiner's connection closes, the host stamps that player with `disconnectedAt = now()` and broadcasts. UI shows `(inactive)` near the player's hand/seat label.
+2. **Reconnect within 45s.** When the player's connection re-opens, the host clears `disconnectedAt` and the badge disappears. No state loss.
+3. **45s elapsed → `(free cards)`.** Host tick promotes the player to `freeCards: true`. Their `(inactive)` badge becomes `(free cards)`. Their open pile (if any) is auto-closed back into its slot so all cards live in piles.
+4. **Free-card piles are public.** Any other live player can tap one of an inactive player's pile stacks to flip it face-up for viewing (mirrors the existing pile-tap mechanic — tap to open, tap again to close). Only one inactive pile per viewer can be open at a time.
+5. **Swapping from a free-card pile.** When a viewer taps a card inside an opened free-card pile, that card is "held" with the same 5-second timer used for the center. Globally, a player can hold either one center card OR one free card — not both. Tapping a card in their own hand completes the swap (free-card pile receives the hand card; viewer's hand receives the free card). Hold expires after 5s, just like the center.
+6. **New match removes them.** `keepReadyPlayers` already filters by host/bot/`readyForNext`. We additionally drop any player whose `freeCards` flag is set so starting a new match permanently removes them from the lobby.
+7. **Tournament scoreboard.** Inactive/free-card players stay listed on the scoreboard with their accumulated points; their name row gets an `(inactive)` label above it.
 
-Create `src/routes/admin.users.$userId.tsx` (admin-gated, like `/admin`).
+## Technical changes
 
-Layout mirrors `/profile`, but it operates on the targeted user and skips Bimyah!+ gating (admins can edit anyone). Sections:
+### `src/game/types.ts`
+Extend `Player`:
+- `disconnectedAt?: number | null` — ms timestamp of last disconnect (cleared on reconnect)
+- `freeCards?: boolean` — true once 45s has elapsed without reconnect
+- Extend pile state with a per-player `pileHolds?: Array<{ cardId: string; heldBy: string; heldUntil: number } | null>` indexed by pile, used only when `freeCards` is true.
+- Extend `Player` with `pileOpenForViewer?: Record<string, number>` — viewerId → which inactive-pile index they currently have open. (Stored on the inactive player's record so it lives with the piles.)
 
-- **Header**: back link to `/admin`, user's email + UUID, joined date, roles, active plan, founding-member badge.
-- **Avatar**: shows current avatar; "Upload avatar" button and "Remove" button. Uploads to `avatars/<userId>/avatar.<ext>` then calls `adminSetAvatar`.
-- **Display name**: editable text input (max 14 chars to match `handle_new_user`); "Save" button calls `adminSetDisplayName`. Shows uniqueness error inline.
-- **Custom card back**: shows the user's currently active card back; upload to `card-backs/<userId>/<ts>.<ext>` then call `adminSetCardBack`; "Clear" button calls `adminClearCardBack`.
+### `src/game/engine.ts`
+New helpers:
+- `INACTIVE_GRACE_MS = 45_000`, `FREE_CARD_HOLD_MS = 5_000`
+- `markDisconnected(state, playerId)` / `markReconnected(state, playerId)`
+- `tickInactive(state)` — promote `disconnectedAt` players past the grace window to `freeCards: true`; auto-close their open pile.
+- `viewFreeCardPile(state, viewerId, ownerId, pileIndex)` — toggle which pile is open for that viewer (one at a time).
+- `holdFreeCard(state, viewerId, ownerId, pileIndex, cardId)` — sets a hold with `heldUntil = now + 5s`. Rejects if viewer already holds any center or free card.
+- `swapFreeCard(state, viewerId, handCardId)` — completes the swap with whichever free-card hold the viewer owns.
+- `tickFreeCardHolds(state)` — releases expired holds.
+- `keepReadyPlayers` updated to drop `freeCards` players; `setReady` and `nextMatch` already cascade.
 
-All uploads use the existing public buckets (`avatars`, `card-backs`). Storage RLS already allows the user's own folder; for the admin path, the upload runs through a new server function that uses `supabaseAdmin` to write the storage object and persist the URL.
+### `src/game/peer.ts`
+Host tracks `connId → playerId` mapping (joiner sends their `meId` in the existing `hello` message; we already have `playerId` in intents). On `conn.open` it dispatches `markReconnected(playerId)`; on `conn.close` it dispatches `markDisconnected(playerId)`. New intents: `viewFreePile`, `holdFreeCard`, `swapFreeCard`, plus internal host-only ticks.
 
-## 2. New admin server functions (`src/server/admin.functions.ts`)
+To learn each connection's playerId, joiners send a new `{ type: "hello"; playerId }` message immediately after the data channel opens (the message type already exists, we just add `playerId`).
 
-All gated by `assertAdmin(context.userId)`:
+### `src/components/game/GameTable.tsx`
+- Pass `inactivePlayers` info to `PlayerSeat`. Render `(inactive)` / `(free cards)` chip beneath the seat label.
+- For **other** seats whose player has `freeCards`, make their pile stacks tappable: route through new `viewFreePile` / `holdFreeCard` intents. Reuse the same flip animation. When a card from a free pile is held, draw the same outline ring used by the center hold; the timer animation reuses the existing held-card behavior.
+- Hand-card tap handler: if the viewer is currently holding a free card (not a center card), the swap routes to `swapFreeCard` instead of the regular `swap`.
+- Block taps when `state.status !== "playing"`.
 
-- `getAdminUserDetail({ user_id })` → returns `{ id, display_name, avatar_url, email, roles, active_plan, founding_member, created_at, active_card_back_url }`.
-- `adminSetAvatar({ user_id, avatar_url | null })` → updates `profiles.avatar_url`.
-- `adminSetDisplayName({ user_id, display_name })` → validates trimmed length 1–14 and unique (case-insensitive) via a `select` against `profiles`, then updates `profiles.display_name`. Uses `supabaseAdmin` so it bypasses RLS; works against the existing `lock_profile_display_name` trigger because that trigger already exempts admins (see Technical Notes for the small change needed).
-- `adminSetCardBack({ user_id, image_url })` → deactivates existing active row for that user, inserts new active row.
-- `adminClearCardBack({ user_id })` → deactivates active row.
-- `adminUploadAsset({ user_id, bucket: "avatars" | "card-backs", path, content_base64, content_type })` → uploads to storage via service role and returns the public URL. (Used so the browser doesn't need its own write permissions on someone else's folder.)
+### `src/components/game/Visuals.tsx` (Scoreboard)
+- For each row, if `player.freeCards` (or `disconnectedAt`), render a small `(inactive)` label above the name. Keep the score visible.
 
-## 3. Admin Users tab — clickable user
+### Host loop
+Add `setState((s) => tickInactive(s))` and `tickFreeCardHolds(s)` to the existing 250ms interval in `GameTable`.
 
-In `src/routes/admin.tsx` (`UsersTab`, around line 444–452):
-
-- Wrap `{u.display_name}` in `<Link to="/admin/users/$userId" params={{ userId: u.id }}>` styled as a hover-underlined link.
-- Keep the founding-member crown and the email/UUID line as-is.
-- Import `Link` from `@tanstack/react-router`.
-
-## 4. Trigger adjustment for admin-driven display name updates
-
-The existing `lock_profile_display_name` trigger uses `auth.uid()` to detect admins. When the new `adminSetDisplayName` server function runs through `supabaseAdmin` (service role), `auth.uid()` is NULL and the trigger would block the update.
-
-Migration: replace the trigger function so it also passes when `auth.role() = 'service_role'`:
-
-```sql
-CREATE OR REPLACE FUNCTION public.lock_profile_display_name()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
-AS $$
-BEGIN
-  IF NEW.display_name IS DISTINCT FROM OLD.display_name THEN
-    IF auth.role() = 'service_role' THEN
-      RETURN NEW;
-    END IF;
-    IF NOT public.has_role(auth.uid(), 'admin') THEN
-      RAISE EXCEPTION 'Display name is locked and cannot be changed';
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-```
-
-This preserves the lock for normal users while letting admin server functions (and any future service-role tooling) update the field.
-
-## Technical Notes
-
-- New route uses the same admin gate pattern as `/admin` (calls `getMyAdminStatus` in `useEffect`, redirects non-admins).
-- Display-name uniqueness check is case-insensitive (`ilike`) and excludes the target user's own row.
-- File size limits mirror `/profile`: 2 MB for avatars, 5 MB for card backs. Validation runs both client-side and inside `adminUploadAsset`.
-- Avatar URL is cache-busted with `?v=<ts>` after upload so the change is visible immediately.
-- No changes to public profile visibility; this is a back-office-only view.
+## Out of scope
+- Solo mode (no real disconnects possible).
+- Host disconnect (host owns state; existing rehost flow is unchanged).
+- Persisting disconnected timestamps across host refresh — host already keeps the authoritative state in memory and re-broadcasts it.
