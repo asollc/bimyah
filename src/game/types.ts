@@ -39,6 +39,14 @@ export type Player = {
   /** True when this player has tapped "ready" on the post-match win screen.
    *  Used by the host to decide who to keep when starting the next match. */
   readyForNext?: boolean;
+  /** Host-tracked: ms timestamp of last disconnect, null if currently connected. */
+  disconnectedAt?: number | null;
+  /** Host-tracked: true once the player has been disconnected past the grace
+   *  period. Their piles become public for swapping. */
+  freeCards?: boolean;
+  /** Per-pile hold state for free-card swaps (only used when freeCards = true).
+   *  null entry means no card held in that pile. */
+  freePileHolds?: Array<{ cardId: string; heldBy: string; heldUntil: number } | null>;
 };
 
 export type CenterSlot = {
