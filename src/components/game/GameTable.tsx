@@ -72,6 +72,8 @@ export function GameTable({
   const [sortEnabled, setSortEnabled] = useState(false);
   const [showViewAll, setShowViewAll] = useState(false);
   const [showKeybinds, setShowKeybinds] = useState(false);
+  /** Which inactive player's pile is currently expanded for me to view (one at a time). */
+  const [freeView, setFreeView] = useState<{ ownerId: string; pileIndex: number } | null>(null);
   const [keybinds, setKeybinds] = useState<Keybinds>(() =>
     typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
   );
