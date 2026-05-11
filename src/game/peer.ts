@@ -5,6 +5,9 @@ import {
   declareBimyah,
   declareSet,
   holdCenterCard,
+  holdFreeCard,
+  markDisconnected,
+  markReconnected,
   newTournament,
   nextMatch,
   openPile,
@@ -13,6 +16,7 @@ import {
   setReady,
   setReadyForNext,
   swapCard,
+  swapFreeCard,
 } from "./engine";
 
 /**
