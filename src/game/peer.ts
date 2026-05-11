@@ -159,7 +159,7 @@ export type PeerSession = {
 type Message =
   | { type: "state"; state: GameState }
   | { type: "intent"; intent: Intent }
-  | { type: "hello"; name: string };
+  | { type: "hello"; name: string; playerId?: string };
 
 function fourDigitCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
