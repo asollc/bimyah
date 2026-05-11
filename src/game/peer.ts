@@ -220,6 +220,8 @@ function tryHost(
   return new Promise((resolve, reject) => {
     const peer = new Peer(peerIdFor(code), PEER_OPTS);
     const conns = new Map<string, DataConnection>();
+    /** Maps PeerJS conn.peer → game playerId (learned from the joiner's hello). */
+    const peerToPlayer = new Map<string, string>();
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
 
