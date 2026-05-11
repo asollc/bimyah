@@ -4,6 +4,8 @@ import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
   tickCountdown,
   tickHolds,
+  tickInactive,
+  tickFreeCardHolds,
   canDeclareBimyah,
   COUNTDOWN_MS,
 } from "@/game/engine";
