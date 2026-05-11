@@ -113,6 +113,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return holdCenterCard(state, intent.playerId, intent.centerIndex);
     case "swap":
       return swapCard(state, intent.playerId, intent.cardId);
+    case "holdFreeCard":
+      return holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId);
+    case "swapFreeCard":
+      return swapFreeCard(state, intent.viewerId, intent.cardId);
+    case "markDisconnected":
+      return markDisconnected(state, intent.playerId);
+    case "markReconnected":
+      return markReconnected(state, intent.playerId);
     case "declareSet":
       return declareSet(state, intent.playerId);
     case "declareBimyah":
