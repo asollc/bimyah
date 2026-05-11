@@ -306,10 +306,14 @@ export function setReadyForNext(
  * Standard mode "Play Again" — wipes scores too (they were never used).
  * Resets to lobby with the same players.
  */
-/** Filter players for the next match: keep host, bots, and anyone who readied up. */
+/** Filter players for the next match: keep host, bots, and anyone who readied
+ *  up. Drops players who are flagged as inactive (free-cards) so they're
+ *  permanently removed from the lobby when starting a new match. */
 function keepReadyPlayers(state: GameState): Player[] {
   return state.players.filter(
-    (p) => p.isBot || p.id === state.hostId || p.readyForNext,
+    (p) =>
+      !p.freeCards &&
+      (p.isBot || p.id === state.hostId || p.readyForNext),
   );
 }
 
