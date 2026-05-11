@@ -4,6 +4,8 @@ import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
   tickCountdown,
   tickHolds,
+  tickInactive,
+  tickFreeCardHolds,
   canDeclareBimyah,
   COUNTDOWN_MS,
 } from "@/game/engine";
@@ -70,6 +72,8 @@ export function GameTable({
   const [sortEnabled, setSortEnabled] = useState(false);
   const [showViewAll, setShowViewAll] = useState(false);
   const [showKeybinds, setShowKeybinds] = useState(false);
+  /** Which inactive player's pile is currently expanded for me to view (one at a time). */
+  const [freeView, setFreeView] = useState<{ ownerId: string; pileIndex: number } | null>(null);
   const [keybinds, setKeybinds] = useState<Keybinds>(() =>
     typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
   );
@@ -116,6 +120,8 @@ export function GameTable({
     const t = setInterval(() => {
       setState((s) => tickCountdown(s));
       setState((s) => tickHolds(s));
+      setState((s) => tickInactive(s));
+      setState((s) => tickFreeCardHolds(s));
       stepBots(state, botMemory.current, (m) => setState(m));
     }, 250);
     return () => clearInterval(t);
@@ -320,8 +326,28 @@ export function GameTable({
     dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
   };
 
+  // True when "I" am currently holding a card from an inactive player's pile.
+  const myFreeHold = useMemo(() => {
+    for (const p of state.players) {
+      if (!p.freePileHolds) continue;
+      const idx = p.freePileHolds.findIndex((h) => h?.heldBy === meId);
+      if (idx !== -1) {
+        const h = p.freePileHolds[idx]!;
+        return { ownerId: p.id, pileIndex: idx, cardId: h.cardId, heldUntil: h.heldUntil };
+      }
+    }
+    return null;
+  }, [state.players, meId]);
+
   const handleHandCardTap = (cardId: string) => {
     if (!me) return;
+    // If we're holding a free card, that swap takes priority.
+    if (myFreeHold) {
+      sfx.swap();
+      dispatch({ kind: "swapFreeCard", viewerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
     const holding = state.center.some((sl) => sl.heldBy === meId);
     // If we're holding a center card, tapping a hand card completes the swap
     // immediately (keeps the original one-tap flow working).
@@ -333,6 +359,34 @@ export function GameTable({
     }
     // Otherwise, toggle selection so the player can pre-pick a card.
     setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
+  };
+
+  // Tap a free-card pile to expand/collapse it (one open at a time).
+  const handleFreePileTap = (ownerId: string, pileIndex: number) => {
+    if (state.status !== "playing") return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner || !owner.freeCards) return;
+    if (owner.pileLocked[pileIndex]) return;
+    sfx.flip();
+    setFreeView((cur) =>
+      cur && cur.ownerId === ownerId && cur.pileIndex === pileIndex
+        ? null
+        : { ownerId, pileIndex },
+    );
+  };
+
+  // Tap a card inside an expanded free-card pile to hold it.
+  const handleFreeCardTap = (ownerId: string, pileIndex: number, cardId: string) => {
+    if (state.status !== "playing") return;
+    if (!me || me.openPileIndex === null || me.hand.length === 0) return;
+    if (myFreeHold) return;
+    if (state.center.some((s) => s.heldBy === meId)) return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner) return;
+    const existing = owner.freePileHolds?.[pileIndex];
+    if (existing) return;
+    sfx.flip();
+    dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
   };
 
   const handleSet = () => {
@@ -745,6 +799,11 @@ export function GameTable({
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
             revealAll={state.mode === "training"}
+            freeView={!isMe && freeView?.ownerId === player.id ? freeView.pileIndex : null}
+            onFreePileTap={!isMe && player.freeCards ? (i) => handleFreePileTap(player.id, i) : undefined}
+            onFreeCardTap={!isMe && player.freeCards ? (i, cardId) => handleFreeCardTap(player.id, i, cardId) : undefined}
+            colorMap={PLAYER_COLOR_HEX}
+            players={state.players}
           />
         );
       })}
@@ -1176,6 +1235,11 @@ function PlayerSeat({
   sortEnabled,
   zoom = 1,
   revealAll = false,
+  freeView = null,
+  onFreePileTap,
+  onFreeCardTap,
+  colorMap,
+  players,
 }: {
   player: Player;
   position: SeatPos;
@@ -1193,6 +1257,13 @@ function PlayerSeat({
   sortEnabled?: boolean;
   zoom?: number;
   revealAll?: boolean;
+  /** When this seat belongs to an inactive player and the local viewer has
+   *  one of its piles expanded, this is that pile's index. */
+  freeView?: number | null;
+  onFreePileTap?: (pileIndex: number) => void;
+  onFreeCardTap?: (pileIndex: number, cardId: string) => void;
+  colorMap?: Record<PlayerColor, string>;
+  players?: Player[];
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -1334,6 +1405,20 @@ function PlayerSeat({
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
+      {/* Inactive / Free-cards status badge */}
+      {!isMe && (player.disconnectedAt || player.freeCards) && status !== "lobby" && (
+        <div
+          className={cn(
+            "rounded-full px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest",
+            player.freeCards
+              ? "bg-[var(--gold)]/20 text-[var(--gold)] ring-1 ring-[var(--gold)]/50"
+              : "bg-white/10 text-white/70 ring-1 ring-white/20",
+          )}
+        >
+          {player.freeCards ? "Free Cards" : "Inactive"}
+        </div>
+      )}
+
       {/* Piles (with SET/SORT absolutely anchored below for the local player
           so opening a pile does NOT shift the piles upward) */}
       {status !== "lobby" && (
@@ -1352,6 +1437,8 @@ function PlayerSeat({
                 return <CascadeSet key={i} cards={pile} width={pileWidth} />;
               }
               const isOpen = isMe && player.openPileIndex === i;
+              const isFreeOpen = !isMe && player.freeCards && freeView === i;
+              const pileHold = player.freePileHolds?.[i] ?? null;
               if (pile.length === 0 && !isOpen) {
                 return (
                   <div
@@ -1372,6 +1459,53 @@ function PlayerSeat({
                       OPEN
                     </span>
                   </div>
+                );
+              }
+              // Inactive player's pile, expanded by viewer → render face-up cards.
+              if (isFreeOpen) {
+                const holderColor = pileHold && colorMap && players
+                  ? colorMap[players.find((pp) => pp.id === pileHold.heldBy)?.color ?? "green"]
+                  : undefined;
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-row gap-0.5 rounded-md bg-black/30 p-0.5 ring-1 ring-[var(--gold)]/40"
+                    onClick={(e) => {
+                      // Tapping empty area of expanded pile collapses it.
+                      if (e.target === e.currentTarget) onFreePileTap?.(i);
+                    }}
+                  >
+                    {pile.map((c) => {
+                      const heldHere = pileHold?.cardId === c.id;
+                      const ringColor = heldHere ? holderColor : undefined;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            if (pileHold) return;
+                            onFreeCardTap?.(i, c.id);
+                          }}
+                          className={cn("cursor-pointer", heldHere && "animate-pulse-ring rounded-md")}
+                          style={ringColor ? { boxShadow: `0 0 0 2px ${ringColor}` } : undefined}
+                        >
+                          <PlayingCard card={c} width={Math.max(18, pileWidth - 4)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              // Inactive player's pile, collapsed → tap to expand.
+              if (!isMe && player.freeCards && onFreePileTap) {
+                return (
+                  <CardBack
+                    key={i}
+                    width={pileWidth}
+                    count={pile.length}
+                    onClick={() => onFreePileTap(i)}
+                    highlight={!!pileHold}
+                    imageUrl={player.cardBackUrl}
+                  />
                 );
               }
               return (

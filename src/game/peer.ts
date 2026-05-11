@@ -5,6 +5,9 @@ import {
   declareBimyah,
   declareSet,
   holdCenterCard,
+  holdFreeCard,
+  markDisconnected,
+  markReconnected,
   newTournament,
   nextMatch,
   openPile,
@@ -13,6 +16,7 @@ import {
   setReady,
   setReadyForNext,
   swapCard,
+  swapFreeCard,
 } from "./engine";
 
 /**
@@ -39,12 +43,17 @@ export type Intent =
   | { kind: "closePile"; playerId: string }
   | { kind: "holdCenter"; playerId: string; centerIndex: number }
   | { kind: "swap"; playerId: string; cardId: string }
+  | { kind: "holdFreeCard"; viewerId: string; ownerId: string; pileIndex: number; cardId: string }
+  | { kind: "swapFreeCard"; viewerId: string; cardId: string }
   | { kind: "declareSet"; playerId: string }
   | { kind: "declareBimyah"; playerId: string }
   | { kind: "playAgain" }
   | { kind: "nextMatch" }
   | { kind: "newTournament"; pointLimit: number | null }
   | { kind: "readyForNext"; playerId: string; ready: boolean }
+  /** Host-only: connection lifecycle. Never accept from remote. */
+  | { kind: "markDisconnected"; playerId: string }
+  | { kind: "markReconnected"; playerId: string }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
@@ -104,6 +113,14 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return holdCenterCard(state, intent.playerId, intent.centerIndex);
     case "swap":
       return swapCard(state, intent.playerId, intent.cardId);
+    case "holdFreeCard":
+      return holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId);
+    case "swapFreeCard":
+      return swapFreeCard(state, intent.viewerId, intent.cardId);
+    case "markDisconnected":
+      return markDisconnected(state, intent.playerId);
+    case "markReconnected":
+      return markReconnected(state, intent.playerId);
     case "declareSet":
       return declareSet(state, intent.playerId);
     case "declareBimyah":
@@ -142,7 +159,7 @@ export type PeerSession = {
 type Message =
   | { type: "state"; state: GameState }
   | { type: "intent"; intent: Intent }
-  | { type: "hello"; name: string };
+  | { type: "hello"; name: string; playerId?: string };
 
 function fourDigitCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -203,6 +220,8 @@ function tryHost(
   return new Promise((resolve, reject) => {
     const peer = new Peer(peerIdFor(code), PEER_OPTS);
     const conns = new Map<string, DataConnection>();
+    /** Maps PeerJS conn.peer → game playerId (learned from the joiner's hello). */
+    const peerToPlayer = new Map<string, string>();
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
 
@@ -265,17 +284,31 @@ function tryHost(
       });
       conn.on("data", (raw) => {
         const msg = raw as Message;
+        if (msg.type === "hello" && msg.playerId) {
+          peerToPlayer.set(conn.peer, msg.playerId);
+          // Player just (re)connected — clear any inactive flag.
+          applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+          return;
+        }
         if (msg.type === "intent") {
-          if (msg.intent.kind === "replaceState") {
+          // Reject host-only / local-only intents from remotes.
+          if (
+            msg.intent.kind === "replaceState" ||
+            msg.intent.kind === "markDisconnected" ||
+            msg.intent.kind === "markReconnected"
+          ) {
             return;
           }
-          // Apply the joiner's intent against current authoritative state.
           applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
-        // Ignore "state" from joiners — joiners are no longer authoritative.
       });
       conn.on("close", () => {
         conns.delete(conn.peer);
+        const playerId = peerToPlayer.get(conn.peer);
+        peerToPlayer.delete(conn.peer);
+        if (playerId) {
+          applyAndBroadcast((s) => markDisconnected(s, playerId));
+        }
       });
     });
 
@@ -378,6 +411,10 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
 
     function attachConn(c: DataConnection) {
       conn = c;
+      c.on("open", () => {
+        // Identify ourselves so the host can map this connection to our playerId.
+        try { c.send({ type: "hello", name: "", playerId: myId } satisfies Message); } catch { /* ignore */ }
+      });
       c.on("data", (raw) => {
         const msg = raw as Message;
         if (msg.type === "state") {
