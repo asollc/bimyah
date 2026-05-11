@@ -326,8 +326,28 @@ export function GameTable({
     dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
   };
 
+  // True when "I" am currently holding a card from an inactive player's pile.
+  const myFreeHold = useMemo(() => {
+    for (const p of state.players) {
+      if (!p.freePileHolds) continue;
+      const idx = p.freePileHolds.findIndex((h) => h?.heldBy === meId);
+      if (idx !== -1) {
+        const h = p.freePileHolds[idx]!;
+        return { ownerId: p.id, pileIndex: idx, cardId: h.cardId, heldUntil: h.heldUntil };
+      }
+    }
+    return null;
+  }, [state.players, meId]);
+
   const handleHandCardTap = (cardId: string) => {
     if (!me) return;
+    // If we're holding a free card, that swap takes priority.
+    if (myFreeHold) {
+      sfx.swap();
+      dispatch({ kind: "swapFreeCard", viewerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
     const holding = state.center.some((sl) => sl.heldBy === meId);
     // If we're holding a center card, tapping a hand card completes the swap
     // immediately (keeps the original one-tap flow working).
@@ -339,6 +359,34 @@ export function GameTable({
     }
     // Otherwise, toggle selection so the player can pre-pick a card.
     setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
+  };
+
+  // Tap a free-card pile to expand/collapse it (one open at a time).
+  const handleFreePileTap = (ownerId: string, pileIndex: number) => {
+    if (state.status !== "playing") return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner || !owner.freeCards) return;
+    if (owner.pileLocked[pileIndex]) return;
+    sfx.flip();
+    setFreeView((cur) =>
+      cur && cur.ownerId === ownerId && cur.pileIndex === pileIndex
+        ? null
+        : { ownerId, pileIndex },
+    );
+  };
+
+  // Tap a card inside an expanded free-card pile to hold it.
+  const handleFreeCardTap = (ownerId: string, pileIndex: number, cardId: string) => {
+    if (state.status !== "playing") return;
+    if (!me || me.openPileIndex === null || me.hand.length === 0) return;
+    if (myFreeHold) return;
+    if (state.center.some((s) => s.heldBy === meId)) return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner) return;
+    const existing = owner.freePileHolds?.[pileIndex];
+    if (existing) return;
+    sfx.flip();
+    dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
   };
 
   const handleSet = () => {
