@@ -313,6 +313,7 @@ function keepReadyPlayers(state: GameState): Player[] {
   return state.players.filter(
     (p) =>
       !p.freeCards &&
+      !p.disconnectedAt &&
       (p.isBot || p.id === state.hostId || p.readyForNext),
   );
 }
