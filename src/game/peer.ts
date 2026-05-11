@@ -411,6 +411,10 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
 
     function attachConn(c: DataConnection) {
       conn = c;
+      c.on("open", () => {
+        // Identify ourselves so the host can map this connection to our playerId.
+        try { c.send({ type: "hello", name: "", playerId: myId } satisfies Message); } catch { /* ignore */ }
+      });
       c.on("data", (raw) => {
         const msg = raw as Message;
         if (msg.type === "state") {
