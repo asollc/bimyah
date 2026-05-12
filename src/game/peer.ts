@@ -159,7 +159,15 @@ export type PeerSession = {
 type Message =
   | { type: "state"; state: GameState }
   | { type: "intent"; intent: Intent }
-  | { type: "hello"; name: string; playerId?: string };
+  | { type: "hello"; name: string; playerId?: string }
+  | { type: "ping"; playerId: string };
+
+/** Heartbeat: joiners ping host every PING_INTERVAL_MS; host marks
+ *  disconnected after PING_TIMEOUT_MS of silence. PeerJS DataConnection
+ *  "close" does NOT fire reliably when a remote tab is killed, so we cannot
+ *  rely on it alone. */
+const PING_INTERVAL_MS = 2500;
+const PING_TIMEOUT_MS = 6000;
 
 function fourDigitCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
