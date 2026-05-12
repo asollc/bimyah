@@ -697,8 +697,70 @@ export function GameTable({
             className="wood-table grid place-items-center rounded-full"
             style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
           >
-            {/* Inner content: center cards + BIMYAH */}
+            {/* Inner content: free-card piles + center cards + BIMYAH */}
             <div className="flex flex-col items-center justify-center gap-1.5">
+              {state.status !== "lobby" && (() => {
+                const freePlayers = state.players.filter((p) => p.freeCards && p.id !== meId);
+                if (freePlayers.length === 0) return null;
+                const fcWidth = 22;
+                return (
+                  <div className="flex flex-col items-center gap-1.5">
+                    {freePlayers.map((owner) => {
+                      const ownerColor = PLAYER_COLOR_HEX[owner.color];
+                      return (
+                        <div
+                          key={owner.id}
+                          className="flex flex-col items-center gap-0.5 rounded-md bg-black/30 px-1.5 py-1 ring-1 ring-[var(--gold)]/40"
+                        >
+                          <div
+                            className="text-[8px] font-bold uppercase tracking-widest text-white/80"
+                            style={{ borderBottom: `1px solid ${ownerColor}55` }}
+                          >
+                            {owner.name}
+                          </div>
+                          {owner.piles.map((pile, pi) => {
+                            const hold = owner.freePileHolds?.[pi] ?? null;
+                            const holderColor = hold
+                              ? PLAYER_COLOR_HEX[
+                                  state.players.find((pp) => pp.id === hold.heldBy)?.color ?? "green"
+                                ]
+                              : undefined;
+                            return (
+                              <div key={pi} className="flex flex-row gap-0.5">
+                                {pile.map((c) => {
+                                  const heldHere = hold?.cardId === c.id;
+                                  const ringColor = heldHere ? holderColor : undefined;
+                                  return (
+                                    <div
+                                      key={c.id}
+                                      onClick={() => {
+                                        if (hold) return;
+                                        handleFreeCardTap(owner.id, pi, c.id);
+                                      }}
+                                      className={cn(
+                                        "cursor-pointer",
+                                        heldHere && "animate-pulse-ring rounded-md",
+                                      )}
+                                      style={ringColor ? { boxShadow: `0 0 0 2px ${ringColor}` } : undefined}
+                                    >
+                                      <PlayingCard card={c} width={fcWidth} />
+                                    </div>
+                                  );
+                                })}
+                                {/* Pad with empty slots so locked/short piles still align as groups of 4 */}
+                                {pile.length < 4 &&
+                                  Array.from({ length: 4 - pile.length }).map((_, k) => (
+                                    <EmptySlot key={`pad-${k}`} width={fcWidth} />
+                                  ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {state.status === "lobby" && (
                 <div className="px-2 text-center font-display text-[11px] uppercase tracking-widest text-white/70">
                   {state.players.length < 2 ? (
@@ -1420,8 +1482,10 @@ function PlayerSeat({
       )}
 
       {/* Piles (with SET/SORT absolutely anchored below for the local player
-          so opening a pile does NOT shift the piles upward) */}
-      {status !== "lobby" && (
+          so opening a pile does NOT shift the piles upward).
+          When this player has gone to "free cards", their piles are rendered
+          in the center area instead — hide them at the seat. */}
+      {status !== "lobby" && !(player.freeCards && !isMe) && (
         <div className="relative">
           <div
             className={cn(
