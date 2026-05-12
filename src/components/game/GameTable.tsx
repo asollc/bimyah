@@ -1482,8 +1482,10 @@ function PlayerSeat({
       )}
 
       {/* Piles (with SET/SORT absolutely anchored below for the local player
-          so opening a pile does NOT shift the piles upward) */}
-      {status !== "lobby" && (
+          so opening a pile does NOT shift the piles upward).
+          When this player has gone to "free cards", their piles are rendered
+          in the center area instead — hide them at the seat. */}
+      {status !== "lobby" && !(player.freeCards && !isMe) && (
         <div className="relative">
           <div
             className={cn(
