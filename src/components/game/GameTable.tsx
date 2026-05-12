@@ -697,14 +697,14 @@ export function GameTable({
             className="wood-table grid place-items-center rounded-full"
             style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
           >
-            {/* Inner content: free-card piles + center cards + BIMYAH */}
-            <div className="flex flex-col items-center justify-center gap-1.5">
-              {state.status !== "lobby" && (() => {
-                const freePlayers = state.players.filter((p) => p.freeCards && p.id !== meId);
-                if (freePlayers.length === 0) return null;
-                const fcWidth = 22;
-                return (
-                  <div className="flex flex-col items-center gap-1.5">
+             {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
+             <div className="relative flex flex-col items-center justify-center gap-1.5">
+               {state.status !== "lobby" && (() => {
+                 const freePlayers = state.players.filter((p) => p.freeCards && p.id !== meId);
+                 if (freePlayers.length === 0) return null;
+                 const fcWidth = 22;
+                 return (
+                   <div className="pointer-events-auto absolute left-1/2 bottom-full mb-1 flex -translate-x-1/2 flex-col items-center gap-1.5">
                     {freePlayers.map((owner) => {
                       const ownerColor = PLAYER_COLOR_HEX[owner.color];
                       return (
