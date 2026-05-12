@@ -408,6 +408,11 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
     const listeners = new Set<(s: GameState) => void>();
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let initialTimer: ReturnType<typeof setTimeout> | null = null;
+    const pingTimer: ReturnType<typeof setInterval> = setInterval(() => {
+      if (conn && conn.open) {
+        try { conn.send({ type: "ping", playerId: myId } satisfies Message); } catch { /* ignore */ }
+      }
+    }, PING_INTERVAL_MS);
 
     function settleResolve() {
       if (settled) return;
