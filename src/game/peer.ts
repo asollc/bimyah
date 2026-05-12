@@ -159,7 +159,15 @@ export type PeerSession = {
 type Message =
   | { type: "state"; state: GameState }
   | { type: "intent"; intent: Intent }
-  | { type: "hello"; name: string; playerId?: string };
+  | { type: "hello"; name: string; playerId?: string }
+  | { type: "ping"; playerId: string };
+
+/** Heartbeat: joiners ping host every PING_INTERVAL_MS; host marks
+ *  disconnected after PING_TIMEOUT_MS of silence. PeerJS DataConnection
+ *  "close" does NOT fire reliably when a remote tab is killed, so we cannot
+ *  rely on it alone. */
+const PING_INTERVAL_MS = 2500;
+const PING_TIMEOUT_MS = 6000;
 
 function fourDigitCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -222,8 +230,24 @@ function tryHost(
     const conns = new Map<string, DataConnection>();
     /** Maps PeerJS conn.peer → game playerId (learned from the joiner's hello). */
     const peerToPlayer = new Map<string, string>();
+    /** Maps playerId → ms timestamp of last ping/hello/intent received. */
+    const lastSeen = new Map<string, number>();
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
+
+    function touch(playerId: string) {
+      lastSeen.set(playerId, Date.now());
+    }
+
+    // Liveness check: mark stale players disconnected.
+    const livenessTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [pid, ts] of lastSeen) {
+        if (now - ts > PING_TIMEOUT_MS) {
+          applyAndBroadcast((s) => markDisconnected(s, pid));
+        }
+      }
+    }, 1000);
 
     function broadcast() {
       const msg: Message = { type: "state", state };
@@ -263,6 +287,7 @@ function tryHost(
         },
         isConnected: () => !peer.disconnected && !peer.destroyed,
         destroy: () => {
+          clearInterval(livenessTimer);
           for (const c of conns.values()) {
             try {
               c.close();
@@ -286,8 +311,15 @@ function tryHost(
         const msg = raw as Message;
         if (msg.type === "hello" && msg.playerId) {
           peerToPlayer.set(conn.peer, msg.playerId);
+          touch(msg.playerId);
           // Player just (re)connected — clear any inactive flag.
           applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+          return;
+        }
+        if (msg.type === "ping") {
+          touch(msg.playerId);
+          // Implicit reconnect if they were previously marked.
+          applyAndBroadcast((s) => markReconnected(s, msg.playerId));
           return;
         }
         if (msg.type === "intent") {
@@ -299,6 +331,8 @@ function tryHost(
           ) {
             return;
           }
+          const pid = peerToPlayer.get(conn.peer);
+          if (pid) touch(pid);
           applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
       });
@@ -374,6 +408,11 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
     const listeners = new Set<(s: GameState) => void>();
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let initialTimer: ReturnType<typeof setTimeout> | null = null;
+    const pingTimer: ReturnType<typeof setInterval> = setInterval(() => {
+      if (conn && conn.open) {
+        try { conn.send({ type: "ping", playerId: myId } satisfies Message); } catch { /* ignore */ }
+      }
+    }, PING_INTERVAL_MS);
 
     function settleResolve() {
       if (settled) return;
@@ -507,6 +546,7 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
       isConnected: () => !!conn?.open,
       destroy: () => {
         destroyed = true;
+        clearInterval(pingTimer);
         if (reconnectTimer) {
           clearTimeout(reconnectTimer);
           reconnectTimer = null;
