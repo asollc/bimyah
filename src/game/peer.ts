@@ -546,6 +546,7 @@ function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
       isConnected: () => !!conn?.open,
       destroy: () => {
         destroyed = true;
+        clearInterval(pingTimer);
         if (reconnectTimer) {
           clearTimeout(reconnectTimer);
           reconnectTimer = null;
