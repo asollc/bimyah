@@ -230,8 +230,24 @@ function tryHost(
     const conns = new Map<string, DataConnection>();
     /** Maps PeerJS conn.peer → game playerId (learned from the joiner's hello). */
     const peerToPlayer = new Map<string, string>();
+    /** Maps playerId → ms timestamp of last ping/hello/intent received. */
+    const lastSeen = new Map<string, number>();
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
+
+    function touch(playerId: string) {
+      lastSeen.set(playerId, Date.now());
+    }
+
+    // Liveness check: mark stale players disconnected.
+    const livenessTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [pid, ts] of lastSeen) {
+        if (now - ts > PING_TIMEOUT_MS) {
+          applyAndBroadcast((s) => markDisconnected(s, pid));
+        }
+      }
+    }, 1000);
 
     function broadcast() {
       const msg: Message = { type: "state", state };
