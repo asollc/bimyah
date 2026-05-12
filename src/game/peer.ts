@@ -311,8 +311,15 @@ function tryHost(
         const msg = raw as Message;
         if (msg.type === "hello" && msg.playerId) {
           peerToPlayer.set(conn.peer, msg.playerId);
+          touch(msg.playerId);
           // Player just (re)connected — clear any inactive flag.
           applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+          return;
+        }
+        if (msg.type === "ping") {
+          touch(msg.playerId);
+          // Implicit reconnect if they were previously marked.
+          applyAndBroadcast((s) => markReconnected(s, msg.playerId));
           return;
         }
         if (msg.type === "intent") {
@@ -324,6 +331,8 @@ function tryHost(
           ) {
             return;
           }
+          const pid = peerToPlayer.get(conn.peer);
+          if (pid) touch(pid);
           applyAndBroadcast((s) => applyIntent(s, msg.intent));
         }
       });
