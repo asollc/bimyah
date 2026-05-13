@@ -123,9 +123,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
     case "markReconnected":
       return markReconnected(state, intent.playerId);
     case "declareSet":
-      return declareSet(state, intent.playerId);
+      return markActive(declareSet(state, intent.playerId), intent.playerId);
     case "declareBimyah":
-      return declareBimyah(state, intent.playerId);
+      return markActive(declareBimyah(state, intent.playerId), intent.playerId);
     case "playAgain":
       return resetToLobby(state);
     case "nextMatch":
