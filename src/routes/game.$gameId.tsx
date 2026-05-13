@@ -5,11 +5,13 @@ import type { GameState } from "@/game/types";
 import { getSession, registerSession } from "@/game/sessionStore";
 import { joinGame, rehostGame, type PeerSession } from "@/game/peer";
 import {
+  clearGame,
   loadIdentity,
   loadState,
   saveIdentity,
   saveState,
 } from "@/game/persistence";
+import { clearReentryCode } from "@/game/reentry";
 
 export const Route = createFileRoute("/game/$gameId")({
   head: () => ({
