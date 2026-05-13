@@ -6,6 +6,7 @@ import {
   declareSet,
   holdCenterCard,
   holdFreeCard,
+  markActive,
   markDisconnected,
   markReconnected,
   newTournament,
