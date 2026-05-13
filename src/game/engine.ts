@@ -114,7 +114,15 @@ export function setReady(state: GameState, playerId: string, ready: boolean): Ga
 export function tickCountdown(state: GameState): GameState {
   if (state.status !== "countdown") return state;
   if (state.countdownEndsAt && Date.now() >= state.countdownEndsAt) {
-    return { ...state, status: "playing", startedAt: Date.now(), countdownEndsAt: null };
+    const now = Date.now();
+    return {
+      ...state,
+      status: "playing",
+      startedAt: now,
+      countdownEndsAt: null,
+      // Seed activity timestamps so idle detection has a baseline.
+      players: state.players.map((p) => ({ ...p, lastActiveAt: now })),
+    };
   }
   return state;
 }
