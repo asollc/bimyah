@@ -385,6 +385,15 @@ export function GameTable({
     if (!owner) return;
     const existing = owner.freePileHolds?.[pileIndex];
     if (existing) return;
+    // If the player has pre-selected a hand card, perform hold + swap in one tap.
+    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+      const handCardId = selectedHandCardId;
+      sfx.swap();
+      dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
+      dispatch({ kind: "swapFreeCard", viewerId: meId, cardId: handCardId });
+      setSelectedHandCardId(null);
+      return;
+    }
     sfx.flip();
     dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
   };
