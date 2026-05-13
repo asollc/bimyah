@@ -107,17 +107,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
-      return openPile(state, intent.playerId, intent.stackIndex);
+      return markActive(openPile(state, intent.playerId, intent.stackIndex), intent.playerId);
     case "closePile":
-      return closePile(state, intent.playerId);
+      return markActive(closePile(state, intent.playerId), intent.playerId);
     case "holdCenter":
-      return holdCenterCard(state, intent.playerId, intent.centerIndex);
+      return markActive(holdCenterCard(state, intent.playerId, intent.centerIndex), intent.playerId);
     case "swap":
-      return swapCard(state, intent.playerId, intent.cardId);
+      return markActive(swapCard(state, intent.playerId, intent.cardId), intent.playerId);
     case "holdFreeCard":
-      return holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId);
+      return markActive(holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId), intent.viewerId);
     case "swapFreeCard":
-      return swapFreeCard(state, intent.viewerId, intent.cardId);
+      return markActive(swapFreeCard(state, intent.viewerId, intent.cardId), intent.viewerId);
     case "markDisconnected":
       return markDisconnected(state, intent.playerId);
     case "markReconnected":
