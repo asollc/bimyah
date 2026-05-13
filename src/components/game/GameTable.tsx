@@ -4,6 +4,7 @@ import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
   tickCountdown,
   tickHolds,
+  tickIdle,
   tickInactive,
   tickFreeCardHolds,
   canDeclareBimyah,
