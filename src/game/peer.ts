@@ -6,6 +6,7 @@ import {
   declareSet,
   holdCenterCard,
   holdFreeCard,
+  markActive,
   markDisconnected,
   markReconnected,
   newTournament,
@@ -106,25 +107,25 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
-      return openPile(state, intent.playerId, intent.stackIndex);
+      return markActive(openPile(state, intent.playerId, intent.stackIndex), intent.playerId);
     case "closePile":
-      return closePile(state, intent.playerId);
+      return markActive(closePile(state, intent.playerId), intent.playerId);
     case "holdCenter":
-      return holdCenterCard(state, intent.playerId, intent.centerIndex);
+      return markActive(holdCenterCard(state, intent.playerId, intent.centerIndex), intent.playerId);
     case "swap":
-      return swapCard(state, intent.playerId, intent.cardId);
+      return markActive(swapCard(state, intent.playerId, intent.cardId), intent.playerId);
     case "holdFreeCard":
-      return holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId);
+      return markActive(holdFreeCard(state, intent.viewerId, intent.ownerId, intent.pileIndex, intent.cardId), intent.viewerId);
     case "swapFreeCard":
-      return swapFreeCard(state, intent.viewerId, intent.cardId);
+      return markActive(swapFreeCard(state, intent.viewerId, intent.cardId), intent.viewerId);
     case "markDisconnected":
       return markDisconnected(state, intent.playerId);
     case "markReconnected":
       return markReconnected(state, intent.playerId);
     case "declareSet":
-      return declareSet(state, intent.playerId);
+      return markActive(declareSet(state, intent.playerId), intent.playerId);
     case "declareBimyah":
-      return declareBimyah(state, intent.playerId);
+      return markActive(declareBimyah(state, intent.playerId), intent.playerId);
     case "playAgain":
       return resetToLobby(state);
     case "nextMatch":
@@ -318,8 +319,11 @@ function tryHost(
         }
         if (msg.type === "ping") {
           touch(msg.playerId);
-          // Implicit reconnect if they were previously marked.
-          applyAndBroadcast((s) => markReconnected(s, msg.playerId));
+          // NOTE: ping no longer clears disconnectedAt. Only true
+          // reconnection (hello) or actual gameplay activity (intent +
+          // markActive) clears it. This preserves the 10s idle → inactive
+          // → free-cards promotion for players whose tab is open but who
+          // aren't taking any actions.
           return;
         }
         if (msg.type === "intent") {

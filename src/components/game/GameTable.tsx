@@ -4,6 +4,7 @@ import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
   tickCountdown,
   tickHolds,
+  tickIdle,
   tickInactive,
   tickFreeCardHolds,
   canDeclareBimyah,
@@ -120,6 +121,7 @@ export function GameTable({
     const t = setInterval(() => {
       setState((s) => tickCountdown(s));
       setState((s) => tickHolds(s));
+      setState((s) => tickIdle(s));
       setState((s) => tickInactive(s));
       setState((s) => tickFreeCardHolds(s));
       stepBots(state, botMemory.current, (m) => setState(m));

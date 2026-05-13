@@ -47,6 +47,9 @@ export type Player = {
   /** Per-pile hold state for free-card swaps (only used when freeCards = true).
    *  null entry means no card held in that pile. */
   freePileHolds?: Array<{ cardId: string; heldBy: string; heldUntil: number } | null>;
+  /** Host-tracked: ms timestamp of this player's last gameplay action.
+   *  Used to detect idle players (10s no action → disconnected). */
+  lastActiveAt?: number | null;
 };
 
 export type CenterSlot = {
