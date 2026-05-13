@@ -319,8 +319,11 @@ function tryHost(
         }
         if (msg.type === "ping") {
           touch(msg.playerId);
-          // Implicit reconnect if they were previously marked.
-          applyAndBroadcast((s) => markReconnected(s, msg.playerId));
+          // NOTE: ping no longer clears disconnectedAt. Only true
+          // reconnection (hello) or actual gameplay activity (intent +
+          // markActive) clears it. This preserves the 10s idle → inactive
+          // → free-cards promotion for players whose tab is open but who
+          // aren't taking any actions.
           return;
         }
         if (msg.type === "intent") {
