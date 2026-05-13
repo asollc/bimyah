@@ -5,11 +5,13 @@ import type { GameState } from "@/game/types";
 import { getSession, registerSession } from "@/game/sessionStore";
 import { joinGame, rehostGame, type PeerSession } from "@/game/peer";
 import {
+  clearGame,
   loadIdentity,
   loadState,
   saveIdentity,
   saveState,
 } from "@/game/persistence";
+import { clearReentryCode } from "@/game/reentry";
 
 export const Route = createFileRoute("/game/$gameId")({
   head: () => ({
@@ -142,6 +144,21 @@ function OnlineGame() {
       clearInterval(t);
     };
   }, [session]);
+
+  // ===== Detect being removed from the game (e.g. promoted to free-cards =====
+  // and dropped on next match start). For non-tournament modes, fully reset
+  // local identity and bounce through /join so the user comes back as a fresh
+  // seat. In tournament mode, removed players must stay out of the lobby.
+  useEffect(() => {
+    if (!session || !state || !meId) return;
+    if (session.isHost) return;
+    if (state.players.some((p) => p.id === meId)) return;
+    if (state.mode === "tournament") return;
+    clearGame(gameId);
+    clearReentryCode(gameId);
+    session.destroy();
+    void navigate({ to: "/join/$gameId", params: { gameId } });
+  }, [session, state, meId, gameId, navigate]);
 
   const setState = useCallback(
     (mutator: (s: GameState) => GameState) => {
