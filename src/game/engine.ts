@@ -454,7 +454,37 @@ export function markReconnected(state: GameState, playerId: string): GameState {
   return { ...state, players };
 }
 
-/** Promote any player past the grace window to free-cards. Auto-closes
+/** Stamp a player's last-active time. Also clears any idle-disconnected
+ *  flag (returning to play before free-cards promotion). No-op once the
+ *  player has been promoted to free-cards. */
+export function markActive(state: GameState, playerId: string): GameState {
+  const players = state.players.map((p) => {
+    if (p.id !== playerId) return p;
+    if (p.freeCards) return p;
+    return { ...p, lastActiveAt: Date.now(), disconnectedAt: null };
+  });
+  return { ...state, players };
+}
+
+/** Promote idle players (no gameplay action for IDLE_BEFORE_DISCONNECT_MS)
+ *  to disconnected. Skips bots, free-cards players, and already-disconnected
+ *  players. Only runs while a match is in progress. */
+export function tickIdle(state: GameState): GameState {
+  if (state.status !== "playing") return state;
+  const now = Date.now();
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (p.isBot) return p;
+    if (p.freeCards) return p;
+    if (p.disconnectedAt) return p;
+    if (!p.lastActiveAt) return p;
+    if (now - p.lastActiveAt < IDLE_BEFORE_DISCONNECT_MS) return p;
+    changed = true;
+    return { ...p, disconnectedAt: now };
+  });
+  if (!changed) return state;
+  return { ...state, players };
+}
  *  their open pile so all their cards live in piles. */
 export function tickInactive(state: GameState): GameState {
   const now = Date.now();
