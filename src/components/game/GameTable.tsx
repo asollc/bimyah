@@ -809,7 +809,8 @@ export function GameTable({
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </Movable>
                 );
               })()}
               {state.status === "lobby" && (
