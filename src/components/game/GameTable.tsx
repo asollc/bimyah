@@ -250,6 +250,9 @@ export function GameTable({
       return next;
     });
   };
+
+  // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
+  const movables = useMovableLayouts(state.mode, seatOrder.length);
   // Pinch handling: track 2 active pointers on the center container.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
