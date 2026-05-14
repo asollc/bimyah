@@ -693,20 +693,24 @@ export function GameTable({
 
       {/* Invite (lobby only) — show 4-digit code */}
       {state.status === "lobby" && inviteUrl && (
-        <div className="absolute left-1/2 top-2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
-          <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
-            Code
-          </span>
-          <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
-            {inviteUrl}
-          </span>
-          <button
-            onClick={copyInvite}
-            className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
-            aria-label="Copy code"
-          >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </button>
+        <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2">
+          <Movable id="invite-code" {...movables} origin="top center">
+            <div className="flex items-center gap-2 rounded-full border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
+              <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
+                Code
+              </span>
+              <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
+                {inviteUrl}
+              </span>
+              <button
+                onClick={copyInvite}
+                className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
+                aria-label="Copy code"
+              >
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
+          </Movable>
         </div>
       )}
 
@@ -718,7 +722,9 @@ export function GameTable({
           className="absolute left-1/2 z-20 -translate-x-1/2"
           style={{ top: "calc(50% - min(19vw, 16vh, 140px) - 32px)" }}
         >
-          <MatchBadge n={state.matchNumber} />
+          <Movable id="match-badge" {...movables} origin="top center">
+            <MatchBadge n={state.matchNumber} />
+          </Movable>
         </div>
       )}
 
