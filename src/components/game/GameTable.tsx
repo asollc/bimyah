@@ -500,8 +500,20 @@ export function GameTable({
       const action = keyToAction.get(k);
 
       // Sizing keys (work in any status)
-      if (action === "playerZoomIn") { e.preventDefault(); bumpPlayerZoom(0.1); return; }
-      if (action === "playerZoomOut") { e.preventDefault(); bumpPlayerZoom(-0.1); return; }
+      // Sizing keys (work in any status). Up/Down resize the last-moved
+      // Movable HUD element if there is one; otherwise fall back to player
+      // hand zoom so the existing default behavior is preserved. Left/Right
+      // always resize the table.
+      if (action === "playerZoomIn") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(0.1)) bumpPlayerZoom(0.1);
+        return;
+      }
+      if (action === "playerZoomOut") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(-0.1)) bumpPlayerZoom(-0.1);
+        return;
+      }
       if (action === "centerZoomIn") { e.preventDefault(); bumpCenterZoom(0.1); return; }
       if (action === "centerZoomOut") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
 
