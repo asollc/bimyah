@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
 import { KeybindEditor } from "./KeybindEditor";
+import { Movable, useMovableLayouts } from "./Movable";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
@@ -249,6 +250,9 @@ export function GameTable({
       return next;
     });
   };
+
+  // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
+  const movables = useMovableLayouts(state.mode, seatOrder.length);
   // Pinch handling: track 2 active pointers on the center container.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
@@ -496,8 +500,20 @@ export function GameTable({
       const action = keyToAction.get(k);
 
       // Sizing keys (work in any status)
-      if (action === "playerZoomIn") { e.preventDefault(); bumpPlayerZoom(0.1); return; }
-      if (action === "playerZoomOut") { e.preventDefault(); bumpPlayerZoom(-0.1); return; }
+      // Sizing keys (work in any status). Up/Down resize the last-moved
+      // Movable HUD element if there is one; otherwise fall back to player
+      // hand zoom so the existing default behavior is preserved. Left/Right
+      // always resize the table.
+      if (action === "playerZoomIn") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(0.1)) bumpPlayerZoom(0.1);
+        return;
+      }
+      if (action === "playerZoomOut") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(-0.1)) bumpPlayerZoom(-0.1);
+        return;
+      }
       if (action === "centerZoomIn") { e.preventDefault(); bumpCenterZoom(0.1); return; }
       if (action === "centerZoomOut") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
 
@@ -622,63 +638,79 @@ export function GameTable({
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+          <Movable id="settings-cog" {...movables}>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+              aria-label="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </Movable>
           {isTournament && state.pointLimit !== null && (
-            <ScoreDisplay limit={state.pointLimit} />
+            <Movable id="score-display" {...movables}>
+              <ScoreDisplay limit={state.pointLimit} />
+            </Movable>
           )}
         </div>
         {state.mode === "training" && (
-          <button
-            onClick={() => setShowViewAll(true)}
-            className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-            aria-label="View all cards"
-          >
-            👁 View All Cards
-          </button>
+          <Movable id="view-all" {...movables}>
+            <button
+              onClick={() => setShowViewAll(true)}
+              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+              aria-label="View all cards"
+            >
+              👁 View All Cards
+            </button>
+          </Movable>
         )}
         {state.status === "lobby" &&
           isHost &&
           state.players.length < (state.maxSeats ?? 4) && (
-            <button
-              onClick={() => dispatch({ kind: "addBot" })}
-              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-              aria-label="Add a bot to the lobby"
-            >
-              🤖 Add Bot
-            </button>
+            <Movable id="add-bot" {...movables}>
+              <button
+                onClick={() => dispatch({ kind: "addBot" })}
+                className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+                aria-label="Add a bot to the lobby"
+              >
+                🤖 Add Bot
+              </button>
+            </Movable>
           )}
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
-        <HowToPlayButton />
+        <Movable id="how-to-play" {...movables}>
+          <HowToPlayButton />
+        </Movable>
         {isTournament && (
-          <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+          <Movable id="scoreboard-btn" {...movables}>
+            <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+          </Movable>
         )}
       </div>
 
       {/* Invite (lobby only) — show 4-digit code */}
       {state.status === "lobby" && inviteUrl && (
-        <div className="absolute left-1/2 top-2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
-          <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
-            Code
-          </span>
-          <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
-            {inviteUrl}
-          </span>
-          <button
-            onClick={copyInvite}
-            className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
-            aria-label="Copy code"
-          >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </button>
+        <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2">
+          <Movable id="invite-code" {...movables} origin="top center">
+            <div className="flex items-center gap-2 rounded-full border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
+              <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
+                Code
+              </span>
+              <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
+                {inviteUrl}
+              </span>
+              <button
+                onClick={copyInvite}
+                className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
+                aria-label="Copy code"
+              >
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
+          </Movable>
         </div>
       )}
 
@@ -690,7 +722,9 @@ export function GameTable({
           className="absolute left-1/2 z-20 -translate-x-1/2"
           style={{ top: "calc(50% - min(19vw, 16vh, 140px) - 32px)" }}
         >
-          <MatchBadge n={state.matchNumber} />
+          <Movable id="match-badge" {...movables} origin="top center">
+            <MatchBadge n={state.matchNumber} />
+          </Movable>
         </div>
       )}
 
@@ -715,7 +749,13 @@ export function GameTable({
                  if (freePlayers.length === 0) return null;
                  const fcWidth = 31;
                  return (
-                   <div className="pointer-events-auto absolute left-1/2 bottom-full mb-1 flex -translate-x-1/2 flex-col items-center gap-1.5">
+                   <Movable
+                     id="free-cards-box"
+                     {...movables}
+                     origin="bottom center"
+                     className="pointer-events-auto absolute left-1/2 bottom-full mb-1 -translate-x-1/2"
+                   >
+                    <div className="flex flex-col items-center gap-1.5">
                     {freePlayers.map((owner) => {
                       const ownerColor = PLAYER_COLOR_HEX[owner.color];
                       return (
@@ -769,7 +809,8 @@ export function GameTable({
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </Movable>
                 );
               })()}
               {state.status === "lobby" && (
