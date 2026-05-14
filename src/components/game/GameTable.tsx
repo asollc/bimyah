@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
 import { KeybindEditor } from "./KeybindEditor";
+import { Movable, useMovableLayouts } from "./Movable";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
