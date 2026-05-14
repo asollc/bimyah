@@ -638,44 +638,56 @@ export function GameTable({
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+          <Movable id="settings-cog" {...movables}>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+              aria-label="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </Movable>
           {isTournament && state.pointLimit !== null && (
-            <ScoreDisplay limit={state.pointLimit} />
+            <Movable id="score-display" {...movables}>
+              <ScoreDisplay limit={state.pointLimit} />
+            </Movable>
           )}
         </div>
         {state.mode === "training" && (
-          <button
-            onClick={() => setShowViewAll(true)}
-            className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-            aria-label="View all cards"
-          >
-            👁 View All Cards
-          </button>
+          <Movable id="view-all" {...movables}>
+            <button
+              onClick={() => setShowViewAll(true)}
+              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+              aria-label="View all cards"
+            >
+              👁 View All Cards
+            </button>
+          </Movable>
         )}
         {state.status === "lobby" &&
           isHost &&
           state.players.length < (state.maxSeats ?? 4) && (
-            <button
-              onClick={() => dispatch({ kind: "addBot" })}
-              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-              aria-label="Add a bot to the lobby"
-            >
-              🤖 Add Bot
-            </button>
+            <Movable id="add-bot" {...movables}>
+              <button
+                onClick={() => dispatch({ kind: "addBot" })}
+                className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+                aria-label="Add a bot to the lobby"
+              >
+                🤖 Add Bot
+              </button>
+            </Movable>
           )}
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
-        <HowToPlayButton />
+        <Movable id="how-to-play" {...movables}>
+          <HowToPlayButton />
+        </Movable>
         {isTournament && (
-          <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+          <Movable id="scoreboard-btn" {...movables}>
+            <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+          </Movable>
         )}
       </div>
 
