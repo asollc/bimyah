@@ -749,7 +749,13 @@ export function GameTable({
                  if (freePlayers.length === 0) return null;
                  const fcWidth = 31;
                  return (
-                   <div className="pointer-events-auto absolute left-1/2 bottom-full mb-1 flex -translate-x-1/2 flex-col items-center gap-1.5">
+                   <Movable
+                     id="free-cards-box"
+                     {...movables}
+                     origin="bottom center"
+                     className="pointer-events-auto absolute left-1/2 bottom-full mb-1 -translate-x-1/2"
+                   >
+                    <div className="flex flex-col items-center gap-1.5">
                     {freePlayers.map((owner) => {
                       const ownerColor = PLAYER_COLOR_HEX[owner.color];
                       return (
