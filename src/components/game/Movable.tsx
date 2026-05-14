@@ -14,13 +14,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type MovableLayout = { dx: number; dy: number; s: number };
 export type MovableLayoutMap = Record<string, MovableLayout>;
+export type LastMovedRef = { current: string | null };
 
 const DEFAULT_LAYOUT: MovableLayout = { dx: 0, dy: 0, s: 1 };
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 const DRAG_THRESHOLD_PX = 6;
 
-export type LastMovedRef = { current: string | null };
+function clampScale(s: number) {
+  if (!Number.isFinite(s) || s <= 0) return 1;
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+}
 
 export function useMovableLayouts(mode: string, seatCount: number) {
   const key = `bimyah_movables_${mode}_${seatCount}`;
@@ -65,10 +69,7 @@ export function useMovableLayouts(mode: string, seatCount: number) {
       if (!id) return false;
       setLayouts((cur) => {
         const prev = cur[id] ?? DEFAULT_LAYOUT;
-        const merged: MovableLayout = {
-          ...prev,
-          s: clampScale(prev.s + delta),
-        };
+        const merged: MovableLayout = { ...prev, s: clampScale(prev.s + delta) };
         const next = { ...cur, [id]: merged };
         try {
           localStorage.setItem(key, JSON.stringify(next));
@@ -83,11 +84,6 @@ export function useMovableLayouts(mode: string, seatCount: number) {
   );
 
   return { layouts, update, lastMovedRef, bumpLastMovedScale };
-}
-
-function clampScale(s: number) {
-  if (!Number.isFinite(s) || s <= 0) return 1;
-  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 }
 
 export function Movable({
@@ -110,12 +106,11 @@ export function Movable({
   zIndex?: number;
 }) {
   const layout = layouts[id] ?? DEFAULT_LAYOUT;
-  const ref = useRef<HTMLDivElement>(null);
 
-  // Track active pointers for drag + pinch.
   const stateRef = useRef<{
     a?: { id: number; x: number; y: number };
     b?: { id: number; x: number; y: number };
+    origin?: { x: number; y: number };
     startDx: number;
     startDy: number;
     startScale: number;
@@ -133,10 +128,10 @@ export function Movable({
 
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
-    // Ignore right-click / middle-click drags.
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (!st.a) {
       st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      st.origin = { x: e.clientX, y: e.clientY };
       st.startDx = layout.dx;
       st.startDy = layout.dy;
       st.startScale = layout.s;
@@ -161,74 +156,8 @@ export function Movable({
   const onPointerMove = (e: React.PointerEvent) => {
     const st = stateRef.current;
     if (!st.a) return;
-    if (st.a.id === e.pointerId) {
-      st.a = { id: st.a.id, x: e.clientX, y: e.clientY };
-    } else if (st.b && st.b.id === e.pointerId) {
-      st.b = { id: st.b.id, x: e.clientX, y: e.clientY };
-    } else {
-      return;
-    }
 
-    // Pinch resize (two touch pointers).
-    if (st.pinching && st.a && st.b) {
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const next = clampScale(st.startScale * (dist / st.startDist));
-      e.preventDefault();
-      update(id, { s: next });
-      lastMovedRef.current = id;
-      return;
-    }
-
-    // Single-pointer drag with threshold.
-    if (st.b) return;
-    const start = { x: st.a.x, y: st.a.y };
-    const cardEl = ref.current;
-    if (!cardEl) return;
-    // Compute movement since pointerdown using rect ref of element
-    // Simpler: track delta through accumulated movement using movementX/Y
-    const totalDx = e.clientX - (st.a.x - (e.clientX - start.x));
-    void totalDx;
-
-    // Use the currently observed pointer position vs the original start.
-    // We stored st.a.x updated above, so reconstruct original from
-    // (currentDx - startDx) is unreliable. Use a separate field instead:
-  };
-
-  // We need accurate movement tracking — restructure: track origin separately.
-  const originRef = useRef<{ x: number; y: number } | null>(null);
-  const onPointerDown2 = (e: React.PointerEvent) => {
-    const st = stateRef.current;
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    if (!st.a) {
-      st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      originRef.current = { x: e.clientX, y: e.clientY };
-      st.startDx = layout.dx;
-      st.startDy = layout.dy;
-      st.startScale = layout.s;
-      st.dragging = false;
-      st.pinching = false;
-      try {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-    } else if (!st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      st.startDist = Math.hypot(dx, dy) || 1;
-      st.startScale = layout.s;
-      st.pinching = true;
-      st.dragging = false;
-    }
-  };
-
-  const onPointerMove2 = (e: React.PointerEvent) => {
-    const st = stateRef.current;
-    if (!st.a) return;
-    // Pinch path
+    // Pinch path (two touch pointers).
     if (st.pinching && st.b) {
       if (st.a.id === e.pointerId) st.a = { id: st.a.id, x: e.clientX, y: e.clientY };
       else if (st.b.id === e.pointerId) st.b = { id: st.b.id, x: e.clientX, y: e.clientY };
@@ -242,9 +171,10 @@ export function Movable({
       lastMovedRef.current = id;
       return;
     }
-    // Drag path — only the primary pointer
+
+    // Drag path (single primary pointer).
     if (st.a.id !== e.pointerId) return;
-    const orig = originRef.current;
+    const orig = st.origin;
     if (!orig) return;
     const ddx = e.clientX - orig.x;
     const ddy = e.clientY - orig.y;
@@ -257,12 +187,12 @@ export function Movable({
     lastMovedRef.current = id;
   };
 
-  const onPointerUp2 = (e: React.PointerEvent) => {
+  const onPointerUp = (e: React.PointerEvent) => {
     const st = stateRef.current;
     const wasDragging = st.dragging;
     if (st.a?.id === e.pointerId) {
       st.a = undefined;
-      originRef.current = null;
+      st.origin = undefined;
     }
     if (st.b?.id === e.pointerId) st.b = undefined;
     if (!st.a && !st.b) {
@@ -282,13 +212,8 @@ export function Movable({
     }
   };
 
-  // Suppress the unused stub handlers from the first draft.
-  void onPointerDown;
-  void onPointerMove;
-
   return (
     <div
-      ref={ref}
       className={className}
       style={{
         transform: `translate(${layout.dx}px, ${layout.dy}px) scale(${layout.s})`,
@@ -296,10 +221,10 @@ export function Movable({
         touchAction: "none",
         zIndex,
       }}
-      onPointerDown={onPointerDown2}
-      onPointerMove={onPointerMove2}
-      onPointerUp={onPointerUp2}
-      onPointerCancel={onPointerUp2}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       {children}
     </div>
