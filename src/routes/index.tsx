@@ -4,6 +4,7 @@ import { PowLogo } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { BplusIcon } from "@/components/BplusIcon";
+import { BulletinBell } from "@/components/BulletinBell";
 import foundingMemberCard from "@/assets/founding-member-card.jpg";
 import socialYoutube from "@/assets/social-youtube.png";
 import socialDiscord from "@/assets/social-discord.png";
@@ -178,6 +179,7 @@ function HomePage() {
             </Link>
           )}
           <SharePopover userId={user?.id ?? null} />
+          <BulletinBell userId={user?.id ?? null} />
 
         </div>
         <div className="flex items-center gap-2">

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, Crown, Trash2, Plus } from "lucide-react";
+import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -96,12 +97,13 @@ function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+          <TabsList className="grid w-full max-w-3xl grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subs">Subscriptions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="gifts">Gifts</TabsTrigger>
             <TabsTrigger value="shares">Shares</TabsTrigger>
+            <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
 
@@ -119,6 +121,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="shares" className="mt-6">
             <SharesTab />
+          </TabsContent>
+          <TabsContent value="bulletins" className="mt-6">
+            <BulletinsAdminTab />
           </TabsContent>
           <TabsContent value="config" className="mt-6">
             <ConfigTab />
