@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, Crown, Trash2, Plus } from "lucide-react";
+import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
