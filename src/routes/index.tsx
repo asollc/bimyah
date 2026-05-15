@@ -178,6 +178,7 @@ function HomePage() {
             </Link>
           )}
           <SharePopover userId={user?.id ?? null} />
+          <BulletinBell userId={user?.id ?? null} />
 
         </div>
         <div className="flex items-center gap-2">
