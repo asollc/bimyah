@@ -24,6 +24,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { getMyAdminStatus, recordShareEvent } from "@/server/admin.functions";
+import { createPublicMatch } from "@/server/publicMatches.functions";
 import type { GameMode } from "@/game/types";
 import {
   Select,
@@ -80,7 +81,7 @@ function HomePage() {
   }
 
 
-  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number) {
+  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number, isPublic: boolean) {
     setHosting(true);
     setHostErr(null);
     try {
@@ -124,6 +125,20 @@ function HomePage() {
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
       saveIdentity(session.code, { meId: hostId, name: myName, role: "host" });
+      if (isPublic) {
+        try {
+          await createPublicMatch({
+            data: {
+              game_id: session.code,
+              host_name: myName,
+              mode,
+              max_seats: maxSeats,
+            },
+          });
+        } catch {
+          /* non-fatal */
+        }
+      }
       void navigate({ to: "/game/$gameId", params: { gameId: session.code } });
     } catch (e) {
       console.error(e);
@@ -249,6 +264,12 @@ function HomePage() {
               <Users className="mr-2 h-5 w-5" /> Join with Code
             </button>
             <button
+              onClick={() => requireAuth(() => void navigate({ to: "/public" }))}
+              className="btn-3d btn-3d-dark w-full text-base"
+            >
+              <Users className="mr-2 h-5 w-5" /> Join Public Match
+            </button>
+            <button
               onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-mint w-full text-base disabled:opacity-60"
@@ -300,8 +321,8 @@ function HomePage() {
               setHostErr(null);
               setForcedMode(null);
             }}
-            onStart={(name, mode, limit, seats) => {
-              void hostMultiplayer(name, mode, limit, seats);
+            onStart={(name, mode, limit, seats, isPublic) => {
+              void hostMultiplayer(name, mode, limit, seats, isPublic);
             }}
           />
         )}
@@ -1003,6 +1024,7 @@ function HostFlow({
     mode: GameMode,
     pointLimit: number | null,
     maxSeats: number,
+    isPublic: boolean,
   ) => void;
   profileName: string | null;
   userEmail: string | null;
@@ -1066,8 +1088,9 @@ function HostFlow({
       isPlus={isPlus}
       hosting={hosting}
       error={error}
+      allowPublic={mode !== "training"}
       onCancel={onCancel}
-      onStart={(additional) => onStart(name, mode, pointLimit, additional + 1)}
+      onStart={(additional, isPublic) => onStart(name, mode, pointLimit, additional + 1, isPublic)}
     />
   );
 }
@@ -1076,22 +1099,66 @@ function SeatsStep({
   isPlus,
   hosting,
   error,
+  allowPublic,
   onCancel,
   onStart,
 }: {
   isPlus: boolean;
   hosting: boolean;
   error: string | null;
+  allowPublic: boolean;
   onCancel: () => void;
-  onStart: (additionalSeats: number) => void;
+  onStart: (additionalSeats: number, isPublic: boolean) => void;
 }) {
   const navigate = useNavigate();
   const [additional, setAdditional] = useState<number>(2);
+  const [isPublic, setIsPublic] = useState<boolean>(true);
   const isPlusTier = additional >= 4; // 4 additional = 5 players total
   const locked = isPlusTier && !isPlus;
   const totalPlayers = additional + 1;
   return (
     <>
+      {allowPublic && (
+        <>
+          <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
+            Visibility
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label
+              className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-widest transition ${
+                isPublic
+                  ? "border-[var(--mint)] bg-[var(--mint)]/15 text-[var(--mint)]"
+                  : "border-white/20 bg-black/40 text-white/60"
+              }`}
+            >
+              <input
+                type="radio"
+                name="visibility"
+                className="sr-only"
+                checked={isPublic}
+                onChange={() => setIsPublic(true)}
+              />
+              Public
+            </label>
+            <label
+              className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-widest transition ${
+                !isPublic
+                  ? "border-[var(--mint)] bg-[var(--mint)]/15 text-[var(--mint)]"
+                  : "border-white/20 bg-black/40 text-white/60"
+              }`}
+            >
+              <input
+                type="radio"
+                name="visibility"
+                className="sr-only"
+                checked={!isPublic}
+                onChange={() => setIsPublic(false)}
+              />
+              Private
+            </label>
+          </div>
+        </>
+      )}
       <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
         Opponent count
       </div>
@@ -1152,7 +1219,7 @@ function SeatsStep({
         </button>
       ) : (
         <button
-          onClick={() => onStart(additional)}
+          onClick={() => onStart(additional, allowPublic ? isPublic : false)}
           disabled={hosting}
           className={`btn-3d ${isPlusTier ? "btn-3d-gold" : "btn-3d-mint"} w-full text-sm disabled:opacity-50`}
         >

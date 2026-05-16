@@ -422,6 +422,33 @@ export type Database = {
         }
         Relationships: []
       }
+      public_matches: {
+        Row: {
+          created_at: string
+          game_id: string
+          host_id: string
+          host_name: string
+          max_seats: number
+          mode: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          host_id: string
+          host_name: string
+          max_seats: number
+          mode: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          host_id?: string
+          host_name?: string
+          max_seats?: number
+          mode?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
