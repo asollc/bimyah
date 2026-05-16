@@ -1082,8 +1082,9 @@ function HostFlow({
       isPlus={isPlus}
       hosting={hosting}
       error={error}
+      allowPublic={mode !== "training"}
       onCancel={onCancel}
-      onStart={(additional) => onStart(name, mode, pointLimit, additional + 1)}
+      onStart={(additional, isPublic) => onStart(name, mode, pointLimit, additional + 1, isPublic)}
     />
   );
 }
