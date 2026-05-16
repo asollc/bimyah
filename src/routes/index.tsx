@@ -1018,6 +1018,7 @@ function HostFlow({
     mode: GameMode,
     pointLimit: number | null,
     maxSeats: number,
+    isPublic: boolean,
   ) => void;
   profileName: string | null;
   userEmail: string | null;
