@@ -124,7 +124,7 @@ function HomePage() {
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
-      saveIdentity(session.code, { meId: hostId, name: myName, role: "joiner" });
+      saveIdentity(session.code, { meId: hostId, name: myName, role: "host" });
       if (isPublic) {
         try {
           await createPublicMatch({
