@@ -315,8 +315,8 @@ function HomePage() {
               setHostErr(null);
               setForcedMode(null);
             }}
-            onStart={(name, mode, limit, seats) => {
-              void hostMultiplayer(name, mode, limit, seats);
+            onStart={(name, mode, limit, seats, isPublic) => {
+              void hostMultiplayer(name, mode, limit, seats, isPublic);
             }}
           />
         )}
