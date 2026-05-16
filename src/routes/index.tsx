@@ -1213,7 +1213,7 @@ function SeatsStep({
         </button>
       ) : (
         <button
-          onClick={() => onStart(additional)}
+          onClick={() => onStart(additional, allowPublic ? isPublic : false)}
           disabled={hosting}
           className={`btn-3d ${isPlusTier ? "btn-3d-gold" : "btn-3d-mint"} w-full text-sm disabled:opacity-50`}
         >
