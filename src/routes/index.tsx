@@ -81,7 +81,7 @@ function HomePage() {
   }
 
 
-  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number) {
+  async function hostMultiplayer(rawName: string, mode: GameMode, pointLimit: number | null, maxSeats: number, isPublic: boolean) {
     setHosting(true);
     setHostErr(null);
     try {
@@ -124,7 +124,21 @@ function HomePage() {
       registerSession(session);
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
-      saveIdentity(session.code, { meId: hostId, name: myName, role: "host" });
+      saveIdentity(session.code, { meId: hostId, name: myName, role: "joiner" });
+      if (isPublic) {
+        try {
+          await createPublicMatch({
+            data: {
+              game_id: session.code,
+              host_name: myName,
+              mode,
+              max_seats: maxSeats,
+            },
+          });
+        } catch {
+          /* non-fatal */
+        }
+      }
       void navigate({ to: "/game/$gameId", params: { gameId: session.code } });
     } catch (e) {
       console.error(e);
