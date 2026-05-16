@@ -24,6 +24,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { getMyAdminStatus, recordShareEvent } from "@/server/admin.functions";
+import { createPublicMatch } from "@/server/publicMatches.functions";
 import type { GameMode } from "@/game/types";
 import {
   Select,
