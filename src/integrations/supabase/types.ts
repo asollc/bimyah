@@ -430,6 +430,7 @@ export type Database = {
           host_name: string
           max_seats: number
           mode: string
+          seats_taken: number
         }
         Insert: {
           created_at?: string
@@ -438,6 +439,7 @@ export type Database = {
           host_name: string
           max_seats: number
           mode: string
+          seats_taken?: number
         }
         Update: {
           created_at?: string
@@ -446,6 +448,7 @@ export type Database = {
           host_name?: string
           max_seats?: number
           mode?: string
+          seats_taken?: number
         }
         Relationships: []
       }

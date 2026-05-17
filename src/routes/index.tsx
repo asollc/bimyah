@@ -133,8 +133,10 @@ function HomePage() {
               host_name: myName,
               mode,
               max_seats: maxSeats,
+              seats_taken: 1,
             },
           });
+          sessionStorage.setItem(`bimyah_public_${session.code}`, "1");
         } catch {
           /* non-fatal */
         }

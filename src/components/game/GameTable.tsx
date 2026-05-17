@@ -106,6 +106,37 @@ export function GameTable({
     }
   }, [me, sortEnabled]);
 
+  // Keep the public match listing in sync: update seat count while in lobby,
+  // and remove the listing as soon as the match starts. Host-only.
+  useEffect(() => {
+    if (!isHost) return;
+    if (typeof window === "undefined") return;
+    if (!inviteUrl) return;
+    const code = inviteUrl;
+    const flag = sessionStorage.getItem(`bimyah_public_${code}`);
+    if (flag !== "1") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (state.status === "lobby") {
+          const { updatePublicMatch } = await import("@/server/publicMatches.functions");
+          if (cancelled) return;
+          await updatePublicMatch({
+            data: { game_id: code, seats_taken: Math.max(1, state.players.length) },
+          });
+        } else {
+          const { removePublicMatch } = await import("@/server/publicMatches.functions");
+          if (cancelled) return;
+          await removePublicMatch({ data: { game_id: code } });
+          sessionStorage.removeItem(`bimyah_public_${code}`);
+        }
+      } catch {
+        /* non-fatal */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isHost, inviteUrl, state.status, state.players.length]);
+
   // Helper: route an action either through the structured intent (preferred,
   // joiner→host) or fall back to local setState (host / solo).
   const dispatch = (intent: Intent) => {
