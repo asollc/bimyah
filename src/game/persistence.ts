@@ -13,7 +13,7 @@ import type { GameState } from "./types";
 type StoredIdentity = {
   meId: string;
   name: string;
-  role: "host" | "joiner";
+  role: "host" | "joiner" | "spectator";
   updatedAt: number;
 };
 
