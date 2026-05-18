@@ -409,29 +409,26 @@ function isFatalPeerError(err: unknown): boolean {
   );
 }
 
-export async function joinGame(code: string, myId: string): Promise<PeerSession> {
-  // Retry the entire connect flow several times because PeerJS's public broker
-  // (and the host peer's WebRTC negotiation) can fail transiently — especially
-  // right after the host page loads, on flaky mobile networks, or if the
-  // browser was just woken from sleep. A single hard reject here is what
-  // produced the "Could not connect. Check the code." error users see even
-  // when the code is correct.
+export async function joinGame(
+  code: string,
+  myId: string,
+  opts: { asSpectator?: boolean } = {},
+): Promise<PeerSession> {
   const MAX_ATTEMPTS = 5;
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
-      return await tryJoinOnce(code, myId);
+      return await tryJoinOnce(code, myId, opts.asSpectator ?? false);
     } catch (err) {
       lastErr = err;
       if (isFatalPeerError(err)) break;
-      // Backoff before next attempt (gives broker time to recover / host to come online).
       await new Promise((r) => setTimeout(r, 600 + attempt * 400));
     }
   }
   throw lastErr ?? new Error("Could not connect to host");
 }
 
-function tryJoinOnce(code: string, myId: string): Promise<PeerSession> {
+function tryJoinOnce(code: string, myId: string, asSpectator: boolean): Promise<PeerSession> {
   return new Promise((resolve, reject) => {
     let peer: Peer = new Peer(PEER_OPTS);
     let conn: DataConnection | null = null;
