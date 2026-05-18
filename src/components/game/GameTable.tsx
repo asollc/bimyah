@@ -669,7 +669,7 @@ export function GameTable({
 
 
   return (
-    <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden">
+    <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden" data-spectator={spectator ? "1" : undefined}>
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
