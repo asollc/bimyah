@@ -23,7 +23,7 @@ import {
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
@@ -48,6 +48,7 @@ export function GameTable({
   isHost = true,
   meId,
   inviteUrl,
+  spectator = false,
 }: {
   state: GameState;
   setState: (mutator: (s: GameState) => GameState) => void;
@@ -55,6 +56,7 @@ export function GameTable({
   isHost?: boolean;
   meId: string;
   inviteUrl?: string;
+  spectator?: boolean;
 }) {
   const me = state.players.find((p) => p.id === meId);
   const others = state.players.filter((p) => p.id !== meId);
@@ -62,6 +64,8 @@ export function GameTable({
   const [muted, setMuted] = useState(sfx.isMuted());
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showViewers, setShowViewers] = useState(false);
+  const spectators = state.spectators ?? [];
   const [codeCopied, setCodeCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
   const [showPlayAgain, setShowPlayAgain] = useState(false);
