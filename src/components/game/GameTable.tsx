@@ -688,6 +688,20 @@ export function GameTable({
             </Movable>
           )}
         </div>
+        {/* 3D eyeball — viewer count + click to list */}
+        <Movable id="viewers-eye" {...movables}>
+          <button
+            onClick={() => setShowViewers(true)}
+            className="relative grid h-9 min-w-9 place-items-center gap-1 rounded-full bg-gradient-to-b from-white/15 to-black/40 px-2 text-white/90 ring-1 ring-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_3px_6px_rgba(0,0,0,0.45)] backdrop-blur active:scale-90"
+            aria-label={`Viewers (${spectators.length})`}
+            title={`${spectators.length} viewer${spectators.length === 1 ? "" : "s"}`}
+          >
+            <Eye className="h-4 w-4 drop-shadow" />
+            <span className="font-display text-[10px] font-bold tabular-nums leading-none text-white">
+              {spectators.length}
+            </span>
+          </button>
+        </Movable>
         {state.mode === "training" && (
           <Movable id="view-all" {...movables}>
             <button
