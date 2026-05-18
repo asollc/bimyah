@@ -74,6 +74,13 @@ function OnlineGame() {
             return;
           }
           s = await rehostGame(gameId, cached, identity.meId);
+        } else if (identity.role === "spectator") {
+          s = await joinGame(gameId, identity.meId, { asSpectator: true });
+          // Re-announce ourselves so the host re-adds us to the spectator list.
+          s.sendIntent({
+            kind: "addSpectator",
+            spectator: { id: identity.meId, name: identity.name },
+          });
         } else {
           s = await joinGame(gameId, identity.meId);
         }
@@ -145,20 +152,34 @@ function OnlineGame() {
     };
   }, [session]);
 
-  // ===== Detect being removed from the game (e.g. promoted to free-cards =====
-  // and dropped on next match start). For non-tournament modes, fully reset
-  // local identity and bounce through /join so the user comes back as a fresh
-  // seat. In tournament mode, removed players must stay out of the lobby.
+  // Determine if we're a spectator (never owned a seat in this room).
+  const identity = loadIdentity(gameId);
+  const isSpectator = identity?.role === "spectator";
+
+  // ===== Detect being removed from the game =====
   useEffect(() => {
     if (!session || !state || !meId) return;
     if (session.isHost) return;
+    if (isSpectator) return;
     if (state.players.some((p) => p.id === meId)) return;
     if (state.mode === "tournament") return;
     clearGame(gameId);
     clearReentryCode(gameId);
     session.destroy();
     void navigate({ to: "/join/$gameId", params: { gameId } });
-  }, [session, state, meId, gameId, navigate]);
+  }, [session, state, meId, gameId, navigate, isSpectator]);
+
+  // ===== Spectator leave: notify host on unmount =====
+  useEffect(() => {
+    if (!session || !isSpectator || !meId) return;
+    return () => {
+      try {
+        session.sendIntent({ kind: "removeSpectator", spectatorId: meId });
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [session, isSpectator, meId]);
 
   const setState = useCallback(
     (mutator: (s: GameState) => GameState) => {
@@ -183,6 +204,7 @@ function OnlineGame() {
       isHost={session.isHost}
       meId={meId}
       inviteUrl={session.code}
+      spectator={isSpectator}
     />
   );
 }
