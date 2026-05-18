@@ -440,7 +440,7 @@ function tryJoinOnce(code: string, myId: string, asSpectator: boolean): Promise<
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let initialTimer: ReturnType<typeof setTimeout> | null = null;
     const pingTimer: ReturnType<typeof setInterval> = setInterval(() => {
-      if (conn && conn.open) {
+      if (conn && conn.open && !asSpectator) {
         try { conn.send({ type: "ping", playerId: myId } satisfies Message); } catch { /* ignore */ }
       }
     }, PING_INTERVAL_MS);
@@ -483,7 +483,12 @@ function tryJoinOnce(code: string, myId: string, asSpectator: boolean): Promise<
       conn = c;
       c.on("open", () => {
         // Identify ourselves so the host can map this connection to our playerId.
-        try { c.send({ type: "hello", name: "", playerId: myId } satisfies Message); } catch { /* ignore */ }
+        try {
+          const hello: Message = asSpectator
+            ? { type: "hello", name: "", spectatorId: myId }
+            : { type: "hello", name: "", playerId: myId };
+          c.send(hello);
+        } catch { /* ignore */ }
       });
       c.on("data", (raw) => {
         const msg = raw as Message;
