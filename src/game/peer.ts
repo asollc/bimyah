@@ -178,7 +178,7 @@ export type PeerSession = {
 type Message =
   | { type: "state"; state: GameState }
   | { type: "intent"; intent: Intent }
-  | { type: "hello"; name: string; playerId?: string }
+  | { type: "hello"; name: string; playerId?: string; spectatorId?: string }
   | { type: "ping"; playerId: string };
 
 /** Heartbeat: joiners ping host every PING_INTERVAL_MS; host marks
@@ -254,6 +254,9 @@ function tryHost(
     const listeners = new Set<(s: GameState) => void>();
     let state: GameState = { ...initialState, id: code };
 
+    /** Maps PeerJS conn.peer → spectator id (learned from hello). */
+    const peerToSpectator = new Map<string, string>();
+
     function touch(playerId: string) {
       lastSeen.set(playerId, Date.now());
     }
@@ -328,11 +331,15 @@ function tryHost(
       });
       conn.on("data", (raw) => {
         const msg = raw as Message;
-        if (msg.type === "hello" && msg.playerId) {
-          peerToPlayer.set(conn.peer, msg.playerId);
-          touch(msg.playerId);
-          // Player just (re)connected — clear any inactive flag.
-          applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+        if (msg.type === "hello") {
+          if (msg.playerId) {
+            peerToPlayer.set(conn.peer, msg.playerId);
+            touch(msg.playerId);
+            applyAndBroadcast((s) => markReconnected(s, msg.playerId!));
+          }
+          if (msg.spectatorId) {
+            peerToSpectator.set(conn.peer, msg.spectatorId);
+          }
           return;
         }
         if (msg.type === "ping") {
@@ -364,6 +371,11 @@ function tryHost(
         peerToPlayer.delete(conn.peer);
         if (playerId) {
           applyAndBroadcast((s) => markDisconnected(s, playerId));
+        }
+        const spectatorId = peerToSpectator.get(conn.peer);
+        peerToSpectator.delete(conn.peer);
+        if (spectatorId) {
+          applyAndBroadcast((s) => applyIntent(s, { kind: "removeSpectator", spectatorId }));
         }
       });
     });
