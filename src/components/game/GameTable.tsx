@@ -1319,6 +1319,54 @@ export function GameTable({
       {showViewAll && (
         <ViewAllCardsModal state={state} onClose={() => setShowViewAll(false)} />
       )}
+
+      {showViewers && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowViewers(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-white/20 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-widest text-[var(--mint)]">
+                <Eye className="h-4 w-4" />
+                Viewers ({spectators.length})
+              </div>
+              <button
+                onClick={() => setShowViewers(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close viewers"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {spectators.length === 0 ? (
+              <div className="py-6 text-center text-xs text-white/50">
+                No one is watching this room.
+              </div>
+            ) : (
+              <ul className="max-h-[50vh] divide-y divide-white/10 overflow-y-auto">
+                {spectators.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-center gap-2 py-2 text-sm text-white/90"
+                  >
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px] font-bold uppercase">
+                      {s.name.slice(0, 1)}
+                    </span>
+                    <span className="truncate">{s.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-3 text-center text-[10px] uppercase tracking-widest text-white/40">
+              Up to 20 viewers per room
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
