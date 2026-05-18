@@ -36,6 +36,8 @@ import {
  * selections / unresponsive center cards.
  */
 
+export const MAX_SPECTATORS = 20;
+
 export type Intent =
   | { kind: "addPlayer"; player: Player }
   | { kind: "addBot" }
@@ -55,6 +57,11 @@ export type Intent =
   /** Host-only: connection lifecycle. Never accept from remote. */
   | { kind: "markDisconnected"; playerId: string }
   | { kind: "markReconnected"; playerId: string }
+  /** Spectator lifecycle. addSpectator may come from a joining viewer;
+   *  removeSpectator is sent by the spectator on leave OR by the host when
+   *  the spectator's transport closes. */
+  | { kind: "addSpectator"; spectator: { id: string; name: string } }
+  | { kind: "removeSpectator"; spectatorId: string }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
@@ -134,6 +141,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return newTournament(state, intent.pointLimit);
     case "readyForNext":
       return setReadyForNext(state, intent.playerId, intent.ready);
+    case "addSpectator": {
+      const cur = state.spectators ?? [];
+      if (cur.some((s) => s.id === intent.spectator.id)) return state;
+      if (cur.length >= MAX_SPECTATORS) return state;
+      return { ...state, spectators: [...cur, intent.spectator] };
+    }
+    case "removeSpectator": {
+      const cur = state.spectators ?? [];
+      if (!cur.some((s) => s.id === intent.spectatorId)) return state;
+      return { ...state, spectators: cur.filter((s) => s.id !== intent.spectatorId) };
+    }
     case "replaceState":
       return intent.state;
   }
