@@ -62,6 +62,13 @@ export type CenterSlot = {
 
 export type GameStatus = "lobby" | "countdown" | "playing" | "won";
 
+/** A non-playing observer of a room. Stays through every match until they
+ *  leave. Limited to MAX_SPECTATORS per room. */
+export type Spectator = {
+  id: string;
+  name: string;
+};
+
 export type GameMode = "standard" | "tournament" | "training";
 
 /** A single completed match within a tournament. */
@@ -103,4 +110,6 @@ export type GameState = {
   hostId?: string;
   /** Timestamp (ms) when the current match was won. Used to gate restarts. */
   wonAt?: number | null;
+  /** Non-playing observers currently watching the room. */
+  spectators?: Spectator[];
 };
