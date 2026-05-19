@@ -68,7 +68,11 @@ function JoinGame() {
         to: "/auth",
         search: { redirect: `/join/${gameId}` } as never,
       });
+      return;
     }
+    // Auto-join immediately — selection happens on the public matches page
+    // (or defaults to play for direct invite links).
+    if (!startedRef.current) void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, gameId]);
 
@@ -224,23 +228,22 @@ function JoinGame() {
         <div className="text-center font-display text-xs uppercase tracking-widest text-white/60">
           Room <span className="text-[var(--mint)]">{gameId}</span>
         </div>
-        {err && <div className="text-center text-xs text-[var(--player-red)]">{err}</div>}
-        <button
-          onClick={join}
-          disabled={busy || authLoading || !user}
-          className="btn-3d btn-3d-mint w-full text-base disabled:opacity-50"
-        >
-          {busy
-            ? "Connecting…"
-            : mode === "play"
-            ? "Join Game"
-            : "Spectate Game"}
-        </button>
-        <p className="text-center text-[10px] leading-snug text-white/40">
-          {mode === "play"
-            ? "Take an open seat and play this match."
-            : `Watch the room without taking a seat (up to ${MAX_SPECTATORS} viewers).`}
-        </p>
+        {err ? (
+          <>
+            <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
+            <button
+              onClick={join}
+              disabled={busy || authLoading || !user}
+              className="btn-3d btn-3d-mint w-full text-base disabled:opacity-50"
+            >
+              {busy ? "Connecting…" : "Try Again"}
+            </button>
+          </>
+        ) : (
+          <div className="text-center font-display text-sm uppercase tracking-widest text-white/80">
+            {mode === "play" ? "Joining game…" : "Joining as spectator…"}
+          </div>
+        )}
       </div>
       <div />
     </div>
