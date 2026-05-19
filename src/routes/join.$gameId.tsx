@@ -11,6 +11,9 @@ import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { useAuth } from "@/auth/AuthProvider";
 
 export const Route = createFileRoute("/join/$gameId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: (search.mode === "spectate" ? "spectate" : "play") as "play" | "spectate",
+  }),
   head: () => {
     const title = "Join a Bimyah! game";
     const description = "You've been invited to a Bimyah! game. Jump in — it's fast, free, and no turns!";
