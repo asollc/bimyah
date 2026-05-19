@@ -33,6 +33,7 @@ function PublicMatchesPage() {
   const [rows, setRows] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [mode, setMode] = useState<"play" | "spectate">("play");
 
   useEffect(() => {
     if (authLoading) return;
@@ -93,6 +94,44 @@ function PublicMatchesPage() {
       <div className="mt-2 font-display text-base font-black uppercase tracking-widest text-[var(--mint)]">
         Public Matches
       </div>
+
+      {/* Play / Spectate selector — applies to whichever listing the user taps */}
+      <div
+        role="radiogroup"
+        aria-label="Join mode"
+        className="mt-4 flex w-full max-w-md items-stretch gap-2 rounded-2xl border border-white/15 bg-black/40 p-1.5 backdrop-blur"
+      >
+        {(["play", "spectate"] as const).map((opt) => {
+          const selected = mode === opt;
+          return (
+            <button
+              key={opt}
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setMode(opt)}
+              className={
+                "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 font-display text-xs font-black uppercase tracking-widest transition " +
+                (selected
+                  ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow"
+                  : "text-white/70 hover:text-white")
+              }
+            >
+              <span
+                className={
+                  "grid h-3.5 w-3.5 place-items-center rounded-full border " +
+                  (selected ? "border-[oklch(0.18_0.04_165)]" : "border-white/40")
+                }
+              >
+                {selected && (
+                  <span className="h-2 w-2 rounded-full bg-[oklch(0.18_0.04_165)]" />
+                )}
+              </span>
+              {opt === "play" ? "Play" : "Spectate"}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mt-4 flex w-full max-w-md flex-col gap-2">
         {err && (
           <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
@@ -104,11 +143,18 @@ function PublicMatchesPage() {
         )}
         {rows.map((r) => {
           const full = r.seats_taken >= r.max_seats;
+          const disabled = mode === "play" && full;
           return (
             <button
               key={r.game_id}
-              disabled={full}
-              onClick={() => void navigate({ to: "/join/$gameId", params: { gameId: r.game_id } })}
+              disabled={disabled}
+              onClick={() =>
+                void navigate({
+                  to: "/join/$gameId",
+                  params: { gameId: r.game_id },
+                  search: { mode } as never,
+                })
+              }
               className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--mint)]/30 bg-black/50 px-4 py-3 text-left transition hover:bg-[var(--mint)]/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <div className="min-w-0 flex-1">
