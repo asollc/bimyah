@@ -60,7 +60,6 @@ function JoinGame() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const startedRef = useRef(false);
-  const startedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
