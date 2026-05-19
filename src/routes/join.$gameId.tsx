@@ -54,11 +54,12 @@ function deriveJoinName(
 
 function JoinGame() {
   const { gameId } = Route.useParams();
+  const { mode } = Route.useSearch();
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [mode, setMode] = useState<"play" | "spectate">("play");
+  const startedRef = useRef(false);
   const startedRef = useRef(false);
 
   useEffect(() => {
