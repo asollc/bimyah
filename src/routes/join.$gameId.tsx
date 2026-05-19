@@ -216,45 +216,8 @@ function JoinGame() {
         <HowToPlayButton />
       </div>
 
-      {/* Play / Spectate radios under the logo */}
       <div className="flex w-full max-w-xs flex-col items-center gap-4">
         <PowLogo size={220} />
-        <div
-          role="radiogroup"
-          aria-label="Join mode"
-          className="flex w-full items-stretch gap-2 rounded-xl border border-white/15 bg-black/30 p-1 backdrop-blur"
-        >
-          {(["play", "spectate"] as const).map((opt) => {
-            const selected = mode === opt;
-            return (
-              <button
-                key={opt}
-                role="radio"
-                aria-checked={selected}
-                disabled={busy}
-                onClick={() => setMode(opt)}
-                className={
-                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 font-display text-xs uppercase tracking-widest transition " +
-                  (selected
-                    ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow"
-                    : "text-white/70 hover:text-white")
-                }
-              >
-                <span
-                  className={
-                    "grid h-3.5 w-3.5 place-items-center rounded-full border " +
-                    (selected ? "border-[oklch(0.18_0.04_165)]" : "border-white/40")
-                  }
-                >
-                  {selected && (
-                    <span className="h-2 w-2 rounded-full bg-[oklch(0.18_0.04_165)]" />
-                  )}
-                </span>
-                {opt === "play" ? "Play" : "Spectate"}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">
