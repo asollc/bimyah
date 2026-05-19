@@ -119,11 +119,14 @@ function OnlineGame() {
     if (!session || !meId) return;
     const name =
       sessionStorage.getItem(`bimyah_name_${gameId}`) ?? "Player";
-    saveIdentity(gameId, {
-      meId,
-      name,
-      role: session.isHost ? "host" : "joiner",
-    });
+    const existing = loadIdentity(gameId);
+    const role: "host" | "joiner" | "spectator" = session.isHost
+      ? "host"
+      : existing?.role === "spectator" ||
+          sessionStorage.getItem(`bimyah_spec_${gameId}`) === "1"
+        ? "spectator"
+        : "joiner";
+    saveIdentity(gameId, { meId, name, role });
   }, [gameId, session, meId]);
 
   // ===== Visibility / online recovery =====
