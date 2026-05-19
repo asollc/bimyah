@@ -68,7 +68,11 @@ function JoinGame() {
         to: "/auth",
         search: { redirect: `/join/${gameId}` } as never,
       });
+      return;
     }
+    // Auto-join immediately — selection happens on the public matches page
+    // (or defaults to play for direct invite links).
+    if (!startedRef.current) void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, gameId]);
 
