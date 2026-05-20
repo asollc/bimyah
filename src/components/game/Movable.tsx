@@ -186,6 +186,13 @@ export function Movable({
     if (!st.dragging) {
       if (Math.hypot(ddx, ddy) < DRAG_THRESHOLD_PX) return;
       st.dragging = true;
+      // Now that we've actually started dragging, capture the pointer so
+      // subsequent moves stay with this wrapper even if the cursor leaves it.
+      try {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
     e.preventDefault();
     update(id, { dx: st.startDx + ddx, dy: st.startDy + ddy });
