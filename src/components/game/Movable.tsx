@@ -137,13 +137,18 @@ export function Movable({
       st.startScale = layout.s;
       st.dragging = false;
       st.pinching = false;
+      // NOTE: do NOT setPointerCapture here. On desktop (mouse), capturing
+      // on this wrapper reroutes the subsequent `click` event to the wrapper
+      // instead of the inner button, so child <button onClick> never fires.
+      // We defer capture until the drag threshold is actually exceeded
+      // (see onPointerMove) or a second touch arrives (pinch).
+    } else if (!st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
       try {
         (e.currentTarget as Element).setPointerCapture(e.pointerId);
       } catch {
         /* ignore */
       }
-    } else if (!st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
       const dx = st.b.x - st.a.x;
       const dy = st.b.y - st.a.y;
       st.startDist = Math.hypot(dx, dy) || 1;
