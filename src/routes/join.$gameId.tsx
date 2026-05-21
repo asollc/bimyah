@@ -108,9 +108,16 @@ function JoinGame() {
           startedRef.current = false;
           return;
         }
+        let specAvatar: string | null = null;
+        try {
+          const cos = await getMyCosmetics();
+          specAvatar = cos.avatarUrl;
+        } catch {
+          /* ignore */
+        }
         session.sendIntent({
           kind: "addSpectator",
-          spectator: { id: specId, name: playerName },
+          spectator: { id: specId, name: playerName, avatarUrl: specAvatar },
         });
         registerSession(session);
         sessionStorage.setItem(`bimyah_me_${gameId}`, specId);
@@ -121,6 +128,7 @@ function JoinGame() {
         void navigate({ to: "/game/$gameId", params: { gameId } });
         return;
       }
+
 
       const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
       const session = await joinGame(gameId, myId);
