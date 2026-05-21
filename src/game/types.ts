@@ -127,4 +127,6 @@ export type GameState = {
   wonAt?: number | null;
   /** Non-playing observers currently watching the room. */
   spectators?: Spectator[];
+  /** Chat messages (both match and spectator channels). Capped to last 200. */
+  chat?: ChatMessage[];
 };
