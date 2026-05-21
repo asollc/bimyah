@@ -1391,6 +1391,33 @@ export function GameTable({
           </div>
         </div>
       )}
+
+      {showChat && (
+        <ChatPanel
+          state={state}
+          meId={meId}
+          isSpectator={spectator}
+          onClose={() => setShowChat(false)}
+          onSend={(channel: ChatChannel, text: string) => {
+            const author = me ?? null;
+            const spec = (state.spectators ?? []).find((s) => s.id === meId);
+            dispatch({
+              kind: "chat",
+              message: {
+                id: `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+                channel,
+                authorId: meId,
+                authorName: author?.name ?? spec?.name ?? "Player",
+                avatarUrl: author?.avatarUrl ?? spec?.avatarUrl ?? null,
+                color: author?.color ?? null,
+                isSpectator: spectator,
+                text,
+                ts: Date.now(),
+              },
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
