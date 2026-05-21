@@ -743,6 +743,27 @@ export function GameTable({
         )}
       </div>
 
+      {/* Bottom-right: 3D chat button */}
+      <div className="absolute bottom-3 right-3 z-30">
+        <Movable id="chat-button" {...movables} origin="bottom right">
+          <button
+            onClick={() => setShowChat(true)}
+            className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[var(--mint)] to-[oklch(0.45_0.13_170)] text-[oklch(0.14_0.04_165)] ring-1 ring-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_6px_14px_rgba(0,0,0,0.55)] active:scale-90"
+            aria-label="Open chat"
+          >
+            <MessageCircle className="h-5 w-5 drop-shadow" />
+            {(() => {
+              const total = (state.chat ?? []).length;
+              return total > 0 ? (
+                <span className="absolute -top-1 -right-1 grid min-w-5 h-5 place-items-center rounded-full bg-[var(--player-red)] px-1 text-[10px] font-bold text-white ring-2 ring-[oklch(0.18_0.04_165)]">
+                  {total > 99 ? "99+" : total}
+                </span>
+              ) : null;
+            })()}
+          </button>
+        </Movable>
+      </div>
+
       {/* Invite (lobby only) — show 4-digit code */}
       {state.status === "lobby" && inviteUrl && (
         <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2">
