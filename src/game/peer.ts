@@ -60,8 +60,9 @@ export type Intent =
   /** Spectator lifecycle. addSpectator may come from a joining viewer;
    *  removeSpectator is sent by the spectator on leave OR by the host when
    *  the spectator's transport closes. */
-  | { kind: "addSpectator"; spectator: { id: string; name: string } }
+  | { kind: "addSpectator"; spectator: { id: string; name: string; avatarUrl?: string | null } }
   | { kind: "removeSpectator"; spectatorId: string }
+  | { kind: "chat"; message: import("./types").ChatMessage }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
