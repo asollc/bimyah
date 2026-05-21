@@ -67,6 +67,21 @@ export type GameStatus = "lobby" | "countdown" | "playing" | "won";
 export type Spectator = {
   id: string;
   name: string;
+  avatarUrl?: string | null;
+};
+
+export type ChatChannel = "match" | "spectator";
+
+export type ChatMessage = {
+  id: string;
+  channel: ChatChannel;
+  authorId: string;
+  authorName: string;
+  avatarUrl?: string | null;
+  color?: PlayerColor | null;
+  isSpectator: boolean;
+  text: string;
+  ts: number;
 };
 
 export type GameMode = "standard" | "tournament" | "training";
