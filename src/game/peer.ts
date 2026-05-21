@@ -60,8 +60,9 @@ export type Intent =
   /** Spectator lifecycle. addSpectator may come from a joining viewer;
    *  removeSpectator is sent by the spectator on leave OR by the host when
    *  the spectator's transport closes. */
-  | { kind: "addSpectator"; spectator: { id: string; name: string } }
+  | { kind: "addSpectator"; spectator: { id: string; name: string; avatarUrl?: string | null } }
   | { kind: "removeSpectator"; spectatorId: string }
+  | { kind: "chat"; message: import("./types").ChatMessage }
   /** Local-only fallback. Never accept this from remote clients. */
   | { kind: "replaceState"; state: GameState };
 
@@ -151,6 +152,23 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const cur = state.spectators ?? [];
       if (!cur.some((s) => s.id === intent.spectatorId)) return state;
       return { ...state, spectators: cur.filter((s) => s.id !== intent.spectatorId) };
+    }
+    case "chat": {
+      const m = intent.message;
+      const text = (m.text ?? "").trim();
+      if (!text) return state;
+      const safeText = text.slice(0, 500);
+      const isPlayer = state.players.some((p) => p.id === m.authorId);
+      const isSpec = (state.spectators ?? []).some((s) => s.id === m.authorId);
+      if (!isPlayer && !isSpec) return state;
+      // Only seated players may post in match chat.
+      if (m.channel === "match" && !isPlayer) return state;
+      // Spectator channel: any present participant may post.
+      if (m.channel !== "match" && m.channel !== "spectator") return state;
+      const chat = state.chat ?? [];
+      const next = [...chat, { ...m, text: safeText }];
+      const trimmed = next.length > 200 ? next.slice(next.length - 200) : next;
+      return { ...state, chat: trimmed };
     }
     case "replaceState":
       return intent.state;
