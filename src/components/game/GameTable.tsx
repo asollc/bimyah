@@ -29,6 +29,8 @@ import { applyIntent, type Intent } from "@/game/peer";
 import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
 import { KeybindEditor } from "./KeybindEditor";
 import { Movable, useMovableLayouts } from "./Movable";
+import { ChatPanel } from "./ChatPanel";
+import type { ChatChannel } from "@/game/types";
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
