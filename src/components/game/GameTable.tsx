@@ -67,6 +67,7 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const spectators = state.spectators ?? [];
   const [codeCopied, setCodeCopied] = useState(false);
   const wonAnnouncedRef = useRef(false);
