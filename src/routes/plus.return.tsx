@@ -31,6 +31,11 @@ function PlusReturn() {
         <Link to="/plus" className="btn-3d btn-3d-gold mt-5 inline-block text-xs">
           View my membership
         </Link>
+        <div className="mt-3">
+          <Link to="/" className="text-xs text-white/60 hover:text-white">
+            ← Back to home
+          </Link>
+        </div>
       </div>
     </div>
   );
