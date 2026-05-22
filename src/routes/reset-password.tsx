@@ -120,6 +120,12 @@ function ResetPasswordPage() {
         >
           Back to sign in
         </Link>
+        <Link
+          to="/"
+          className="mt-1 block text-center text-xs text-white/50 hover:text-white"
+        >
+          Back to home
+        </Link>
       </div>
     </div>
   );
