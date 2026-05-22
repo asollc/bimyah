@@ -748,7 +748,7 @@ export function GameTable({
         <Movable id="chat-button" {...movables} origin="bottom right">
           <button
             onClick={() => setShowChat(true)}
-            className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[var(--mint)] to-[oklch(0.45_0.13_170)] text-[oklch(0.14_0.04_165)] ring-1 ring-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_6px_14px_rgba(0,0,0,0.55)] active:scale-90"
+            className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[var(--gold)] to-[oklch(0.65_0.16_85)] text-[var(--player-red)] ring-1 ring-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_6px_14px_rgba(0,0,0,0.55)] active:scale-90"
             aria-label="Open chat"
           >
             <MessageCircle className="h-5 w-5 drop-shadow" />
