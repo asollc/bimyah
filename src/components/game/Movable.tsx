@@ -3,10 +3,11 @@
  *
  * - Drag with one pointer (mouse or touch). A small threshold prevents
  *   accidental drags from interfering with taps/clicks on inner buttons.
- * - Pinch with two touch pointers to resize.
+ * - Pinch with two touch pointers to resize. Only the FIRST finger has to
+ *   touch the element; the second finger can be placed anywhere on screen.
+ *   This makes resizing small elements (where two fingers don't fit) possible.
  * - Per-element offsets (dx, dy) and scale (s) are persisted to localStorage
- *   keyed by `${mode}_${seatCount}`, matching the existing player-hand zoom
- *   convention.
+ *   keyed by `${mode}_${seatCount}`.
  * - The most recently interacted element is tracked via a ref so the
  *   keyboard up/down keys can resize it (see GameTable keybind handler).
  */
@@ -62,7 +63,6 @@ export function useMovableLayouts(mode: string, seatCount: number) {
     [key],
   );
 
-  /** Bump the scale of the most-recently-touched element. Returns true on success. */
   const bumpLastMovedScale = useCallback(
     (delta: number): boolean => {
       const id = lastMovedRef.current;
@@ -106,6 +106,8 @@ export function Movable({
   zIndex?: number;
 }) {
   const layout = layouts[id] ?? DEFAULT_LAYOUT;
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
   const stateRef = useRef<{
     a?: { id: number; x: number; y: number };
@@ -126,6 +128,87 @@ export function Movable({
     pinching: false,
   });
 
+  // Window-level handlers. These let us detect a second finger placed
+  // anywhere on screen (not just on the element) so users can pinch-resize
+  // small targets without their fingers colliding.
+  useEffect(() => {
+    const onWinDown = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.a || st.b) return;
+      if (e.pointerId === st.a.id) return;
+      if (e.pointerType !== "touch") return;
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = st.b.x - st.a.x;
+      const dy = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dx, dy) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true;
+      st.dragging = false;
+    };
+
+    const onWinMove = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.a) return;
+
+      if (st.pinching && st.b) {
+        if (e.pointerId === st.a.id) {
+          st.a = { id: st.a.id, x: e.clientX, y: e.clientY };
+        } else if (e.pointerId === st.b.id) {
+          st.b = { id: st.b.id, x: e.clientX, y: e.clientY };
+        } else {
+          return;
+        }
+        const dx = st.b.x - st.a.x;
+        const dy = st.b.y - st.a.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const next = clampScale(st.startScale * (dist / st.startDist));
+        e.preventDefault();
+        update(id, { s: next });
+        lastMovedRef.current = id;
+        return;
+      }
+
+      if (e.pointerId !== st.a.id) return;
+      const orig = st.origin;
+      if (!orig) return;
+      const ddx = e.clientX - orig.x;
+      const ddy = e.clientY - orig.y;
+      if (!st.dragging) {
+        if (Math.hypot(ddx, ddy) < DRAG_THRESHOLD_PX) return;
+        st.dragging = true;
+      }
+      e.preventDefault();
+      update(id, { dx: st.startDx + ddx, dy: st.startDy + ddy });
+      lastMovedRef.current = id;
+    };
+
+    const onWinUp = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (st.b?.id === e.pointerId) {
+        st.b = undefined;
+        st.pinching = false;
+      }
+      if (st.a?.id === e.pointerId) {
+        st.a = undefined;
+        st.origin = undefined;
+        st.dragging = false;
+        st.pinching = false;
+        st.b = undefined;
+      }
+    };
+
+    window.addEventListener("pointerdown", onWinDown);
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerdown", onWinDown);
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, [id, update, lastMovedRef]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -137,82 +220,15 @@ export function Movable({
       st.startScale = layout.s;
       st.dragging = false;
       st.pinching = false;
-      // NOTE: do NOT setPointerCapture here. On desktop (mouse), capturing
-      // on this wrapper reroutes the subsequent `click` event to the wrapper
-      // instead of the inner button, so child <button onClick> never fires.
-      // We defer capture until the drag threshold is actually exceeded
-      // (see onPointerMove) or a second touch arrives (pinch).
-    } else if (!st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      try {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      st.startDist = Math.hypot(dx, dy) || 1;
-      st.startScale = layout.s;
-      st.pinching = true;
-      st.dragging = false;
     }
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    const st = stateRef.current;
-    if (!st.a) return;
-
-    // Pinch path (two touch pointers).
-    if (st.pinching && st.b) {
-      if (st.a.id === e.pointerId) st.a = { id: st.a.id, x: e.clientX, y: e.clientY };
-      else if (st.b.id === e.pointerId) st.b = { id: st.b.id, x: e.clientX, y: e.clientY };
-      else return;
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const next = clampScale(st.startScale * (dist / st.startDist));
-      e.preventDefault();
-      update(id, { s: next });
-      lastMovedRef.current = id;
-      return;
-    }
-
-    // Drag path (single primary pointer).
-    if (st.a.id !== e.pointerId) return;
-    const orig = st.origin;
-    if (!orig) return;
-    const ddx = e.clientX - orig.x;
-    const ddy = e.clientY - orig.y;
-    if (!st.dragging) {
-      if (Math.hypot(ddx, ddy) < DRAG_THRESHOLD_PX) return;
-      st.dragging = true;
-      // Now that we've actually started dragging, capture the pointer so
-      // subsequent moves stay with this wrapper even if the cursor leaves it.
-      try {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
-    e.preventDefault();
-    update(id, { dx: st.startDx + ddx, dy: st.startDy + ddy });
-    lastMovedRef.current = id;
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     const st = stateRef.current;
     const wasDragging = st.dragging;
-    if (st.a?.id === e.pointerId) {
-      st.a = undefined;
-      st.origin = undefined;
-    }
-    if (st.b?.id === e.pointerId) st.b = undefined;
-    if (!st.a && !st.b) {
-      st.dragging = false;
-      st.pinching = false;
-    }
-    // If we dragged, swallow the click that's about to fire on a child button.
-    if (wasDragging) {
+    // The window-level handler clears state; we just need to swallow the
+    // synthetic click after a drag so inner buttons don't fire.
+    if (wasDragging && st.a?.id === e.pointerId) {
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
       const swallow = (ev: Event) => {
@@ -234,7 +250,6 @@ export function Movable({
         zIndex,
       }}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
