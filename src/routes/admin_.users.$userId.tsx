@@ -210,9 +210,14 @@ function AdminUserPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to admin
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Home
+        </Link>
+        <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          Back to admin
+        </Link>
+      </div>
 
       <h1 className="mt-4 text-2xl font-semibold">Edit user</h1>
 
