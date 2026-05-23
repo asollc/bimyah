@@ -63,7 +63,6 @@ function HomePage() {
     sfx.init();
   }, []);
   const [showSolo, setShowSolo] = useState(false);
-  const [showJoin, setShowJoin] = useState(false);
   const [showHost, setShowHost] = useState(false);
   const [forcedMode, setForcedMode] = useState<GameMode | null>(null);
   const [hosting, setHosting] = useState(false);
@@ -304,7 +303,6 @@ function HomePage() {
             userEmail={user?.email ?? null}
           />
         )}
-        {showJoin && <JoinPicker onCancel={() => setShowJoin(false)} />}
         {showHost && (
           <HostFlow
             hosting={hosting}

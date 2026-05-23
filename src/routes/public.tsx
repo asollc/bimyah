@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listPublicMatches } from "@/server/publicMatches.functions";
 import { useAuth } from "@/auth/AuthProvider";
-import { PowLogo } from "@/components/game/Visuals";
+import { JoinPicker } from "@/components/game/JoinPicker";
 import { Users, RefreshCw, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/public")({
