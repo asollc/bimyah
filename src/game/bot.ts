@@ -7,8 +7,33 @@ import {
   declareSet,
   canDeclareBimyah,
   declareBimyah,
+  holdFreeCard,
+  swapFreeCard,
 } from "./engine";
 import { isFourOfAKind } from "./deck";
+
+/** Find a card matching one of `wantedRanks` in any inactive (freeCards)
+ *  player's piles that isn't currently held by someone else. */
+function findFreeCard(
+  state: GameState,
+  botId: string,
+  wantedRanks: Set<Rank>,
+): { ownerId: string; pileIndex: number; cardId: string; rank: Rank } | null {
+  let best: { ownerId: string; pileIndex: number; cardId: string; rank: Rank } | null = null;
+  for (const owner of state.players) {
+    if (!owner.freeCards || owner.id === botId) continue;
+    const holds = owner.freePileHolds ?? [];
+    for (let i = 0; i < owner.piles.length; i++) {
+      if (owner.pileLocked[i]) continue;
+      if (holds[i]) continue; // pile already has a held card
+      for (const c of owner.piles[i]) {
+        if (!wantedRanks.has(c.rank)) continue;
+        return { ownerId: owner.id, pileIndex: i, cardId: c.id, rank: c.rank };
+      }
+    }
+  }
+  return best;
+}
 
 /**
  * Bot AI v2.
@@ -509,6 +534,31 @@ export function stepBots(
       continue;
     }
 
+    // Step A2: Complete an in-flight FREE-CARD hold (we grabbed a card from
+    // an inactive player's pile). Swap out any non-target hand card for it.
+    let myFreeHold: { ownerId: string; pileIndex: number; rank: Rank } | null = null;
+    for (const owner of state.players) {
+      if (!owner.freePileHolds) continue;
+      const idx = owner.freePileHolds.findIndex((h) => h?.heldBy === bot.id);
+      if (idx !== -1) {
+        const card = owner.piles[idx]?.find((c) => c.id === owner.freePileHolds![idx]!.cardId);
+        myFreeHold = { ownerId: owner.id, pileIndex: idx, rank: card?.rank ?? ("A" as Rank) };
+        break;
+      }
+    }
+    if (myFreeHold) {
+      const target = currentTarget(bot, memory);
+      // Don't throw away the rank we just acquired or our target.
+      const protectRank = target ?? myFreeHold.rank;
+      const throwaway = bot.hand.find(
+        (c) => c.rank !== protectRank && c.rank !== myFreeHold!.rank,
+      ) ?? bot.hand.find((c) => c.rank !== myFreeHold!.rank) ?? bot.hand[0];
+      if (throwaway) {
+        apply((s) => swapFreeCard(s, bot.id, throwaway.id));
+      }
+      continue;
+    }
+
     // Step B: open a pile if none is open.
     if (bot.openPileIndex === null) {
       // Consolidation override: if we have a flush plan, open the straggler
@@ -656,6 +706,24 @@ export function stepBots(
         }
       }
     }
+
+    // Step C1b: try to grab a useful card from an inactive player's free pile.
+    // Only consider ranks we actually want (target/coop/etc) and respect the
+    // 4-of-a-kind cap.
+    if (bot.openPileIndex !== null && bot.hand.length > 0 && wantedRanks.size > 0) {
+      const freeRanks = new Set<Rank>();
+      for (const r of wantedRanks) {
+        if (ownedRankCount(bot, r) < 4) freeRanks.add(r);
+      }
+      if (freeRanks.size > 0) {
+        const grab = findFreeCard(state, bot.id, freeRanks);
+        if (grab) {
+          apply((s) => holdFreeCard(s, bot.id, grab.ownerId, grab.pileIndex, grab.cardId));
+          continue;
+        }
+      }
+    }
+
 
     // Step C2: relocate a useful rank from one of our other piles into the
     // open pile. This is "moving cards over to other card piles to build a
