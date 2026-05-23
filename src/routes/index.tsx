@@ -243,7 +243,7 @@ function HomePage() {
       </div>
 
       <div className="relative z-10 mt-6 flex w-full max-w-xs flex-col gap-2 sm:gap-3">
-        {!showSolo && !showJoin && !showHost && (
+        {!showSolo && !showHost && (
           <>
             <button
               onClick={() => requireAuth(() => { setForcedMode(null); setShowHost(true); })}
