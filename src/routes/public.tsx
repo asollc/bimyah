@@ -88,9 +88,6 @@ function PublicMatchesPage() {
           <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
         </button>
       </div>
-      <div className="mt-3">
-        <PowLogo size={140} />
-      </div>
       <div className="mt-2 font-display text-base font-black uppercase tracking-widest text-[var(--mint)]">
         Public Matches
       </div>
@@ -131,6 +128,13 @@ function PublicMatchesPage() {
           );
         })}
       </div>
+
+      <button
+        onClick={() => void navigate({ to: "/join/$gameId", params: { gameId: "code" } })}
+        className="mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-display text-sm font-black uppercase tracking-widest text-white/80 ring-1 ring-white/20 transition hover:bg-white/10"
+      >
+        <Users className="h-4 w-4" /> Join with Code
+      </button>
 
       <div className="mt-4 flex w-full max-w-md flex-col gap-2">
         {err && (

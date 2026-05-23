@@ -260,16 +260,10 @@ function HomePage() {
               </span>
             </button>
             <button
-              onClick={() => requireAuth(() => setShowJoin(true))}
-              className="btn-3d btn-3d-dark w-full text-base"
-            >
-              <Users className="mr-2 h-5 w-5" /> Join with Code
-            </button>
-            <button
               onClick={() => requireAuth(() => void navigate({ to: "/public" }))}
               className="btn-3d btn-3d-dark w-full text-base"
             >
-              <Users className="mr-2 h-5 w-5" /> Join Public Match
+              <Users className="mr-2 h-5 w-5" /> Join Game
             </button>
             <button
               onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
