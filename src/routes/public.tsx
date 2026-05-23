@@ -34,6 +34,7 @@ function PublicMatchesPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"play" | "spectate">("play");
+  const [showJoin, setShowJoin] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
