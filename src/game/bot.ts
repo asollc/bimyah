@@ -707,6 +707,24 @@ export function stepBots(
       }
     }
 
+    // Step C1b: try to grab a useful card from an inactive player's free pile.
+    // Only consider ranks we actually want (target/coop/etc) and respect the
+    // 4-of-a-kind cap.
+    if (bot.openPileIndex !== null && bot.hand.length > 0 && wantedRanks.size > 0) {
+      const freeRanks = new Set<Rank>();
+      for (const r of wantedRanks) {
+        if (ownedRankCount(bot, r) < 4) freeRanks.add(r);
+      }
+      if (freeRanks.size > 0) {
+        const grab = findFreeCard(state, bot.id, freeRanks);
+        if (grab) {
+          apply((s) => holdFreeCard(s, bot.id, grab.ownerId, grab.pileIndex, grab.cardId));
+          continue;
+        }
+      }
+    }
+
+
     // Step C2: relocate a useful rank from one of our other piles into the
     // open pile. This is "moving cards over to other card piles to build a
     // set" (rule 4). We do this by swapping out a non-target hand card for
