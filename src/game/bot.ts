@@ -7,8 +7,33 @@ import {
   declareSet,
   canDeclareBimyah,
   declareBimyah,
+  holdFreeCard,
+  swapFreeCard,
 } from "./engine";
 import { isFourOfAKind } from "./deck";
+
+/** Find a card matching one of `wantedRanks` in any inactive (freeCards)
+ *  player's piles that isn't currently held by someone else. */
+function findFreeCard(
+  state: GameState,
+  botId: string,
+  wantedRanks: Set<Rank>,
+): { ownerId: string; pileIndex: number; cardId: string; rank: Rank } | null {
+  let best: { ownerId: string; pileIndex: number; cardId: string; rank: Rank } | null = null;
+  for (const owner of state.players) {
+    if (!owner.freeCards || owner.id === botId) continue;
+    const holds = owner.freePileHolds ?? [];
+    for (let i = 0; i < owner.piles.length; i++) {
+      if (owner.pileLocked[i]) continue;
+      if (holds[i]) continue; // pile already has a held card
+      for (const c of owner.piles[i]) {
+        if (!wantedRanks.has(c.rank)) continue;
+        return { ownerId: owner.id, pileIndex: i, cardId: c.id, rank: c.rank };
+      }
+    }
+  }
+  return best;
+}
 
 /**
  * Bot AI v2.
