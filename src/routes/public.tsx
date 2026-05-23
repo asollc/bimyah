@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listPublicMatches } from "@/server/publicMatches.functions";
 import { useAuth } from "@/auth/AuthProvider";
-import { PowLogo } from "@/components/game/Visuals";
+import { JoinPicker } from "@/components/game/JoinPicker";
 import { Users, RefreshCw, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/public")({
@@ -34,6 +34,7 @@ function PublicMatchesPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"play" | "spectate">("play");
+  const [showJoin, setShowJoin] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,9 +89,6 @@ function PublicMatchesPage() {
           <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
         </button>
       </div>
-      <div className="mt-3">
-        <PowLogo size={140} />
-      </div>
       <div className="mt-2 font-display text-base font-black uppercase tracking-widest text-[var(--mint)]">
         Public Matches
       </div>
@@ -132,47 +130,61 @@ function PublicMatchesPage() {
         })}
       </div>
 
-      <div className="mt-4 flex w-full max-w-md flex-col gap-2">
-        {err && (
-          <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
-        )}
-        {!loading && rows.length === 0 && (
-          <div className="rounded-lg border border-white/10 bg-black/40 p-6 text-center text-sm text-white/60">
-            No public matches right now. Create one or check back soon.
-          </div>
-        )}
-        {rows.map((r) => {
-          const full = r.seats_taken >= r.max_seats;
-          const disabled = mode === "play" && full;
-          return (
-            <button
-              key={r.game_id}
-              disabled={disabled}
-              onClick={() =>
-                void navigate({
-                  to: "/join/$gameId",
-                  params: { gameId: r.game_id },
-                  search: { mode } as never,
-                })
-              }
-              className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--mint)]/30 bg-black/50 px-4 py-3 text-left transition hover:bg-[var(--mint)]/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-display text-sm font-black uppercase tracking-wider text-white">
-                  {r.host_name}
+      <button
+        onClick={() => setShowJoin(true)}
+        className="mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-display text-sm font-black uppercase tracking-widest text-white/80 ring-1 ring-white/20 transition hover:bg-white/10"
+      >
+        <Users className="h-4 w-4" /> Join with Code
+      </button>
+
+      {!showJoin && (
+        <div className="mt-4 flex w-full max-w-md flex-col gap-2">
+          {err && (
+            <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
+          )}
+          {!loading && rows.length === 0 && (
+            <div className="rounded-lg border border-white/10 bg-black/40 p-6 text-center text-sm text-white/60">
+              No public matches right now. Create one or check back soon.
+            </div>
+          )}
+          {rows.map((r) => {
+            const full = r.seats_taken >= r.max_seats;
+            const disabled = mode === "play" && full;
+            return (
+              <button
+                key={r.game_id}
+                disabled={disabled}
+                onClick={() =>
+                  void navigate({
+                    to: "/join/$gameId",
+                    params: { gameId: r.game_id },
+                    search: { mode } as never,
+                  })
+                }
+                className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--mint)]/30 bg-black/50 px-4 py-3 text-left transition hover:bg-[var(--mint)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-display text-sm font-black uppercase tracking-wider text-white">
+                    {r.host_name}
+                  </div>
+                  <div className="mt-0.5 text-[10px] uppercase tracking-widest text-white/60">
+                    {r.mode} · Room {r.game_id}
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-widest text-white/60">
-                  {r.mode} · Room {r.game_id}
+                <div className="flex items-center gap-1 rounded-md bg-[var(--mint)]/15 px-2 py-1 font-mono text-xs text-[var(--mint)] ring-1 ring-[var(--mint)]/30">
+                  <Users className="h-3 w-3" />
+                  {r.seats_taken}/{r.max_seats}
                 </div>
-              </div>
-              <div className="flex items-center gap-1 rounded-md bg-[var(--mint)]/15 px-2 py-1 font-mono text-xs text-[var(--mint)] ring-1 ring-[var(--mint)]/30">
-                <Users className="h-3 w-3" />
-                {r.seats_taken}/{r.max_seats}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {showJoin && (
+        <div className="mt-4 flex w-full max-w-md flex-col gap-2">
+          <JoinPicker onCancel={() => setShowJoin(false)} />
+        </div>
+      )}
     </div>
   );
 }
