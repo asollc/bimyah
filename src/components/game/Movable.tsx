@@ -18,6 +18,12 @@ export type MovableLayoutMap = Record<string, MovableLayout>;
 export type LastMovedRef = { current: string | null };
 
 const DEFAULT_LAYOUT: MovableLayout = { dx: 0, dy: 0, s: 1 };
+
+// Module-level singleton so only ONE Movable can be the active gesture target
+// at a time. Without this, touching two elements in succession would leave
+// both with a primary pointer registered, and a third finger anywhere would
+// trigger pinch-resize on both simultaneously.
+let activeReset: (() => void) | null = null;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 const DRAG_THRESHOLD_PX = 6;
