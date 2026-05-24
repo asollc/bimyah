@@ -3,9 +3,7 @@
  *
  * - Drag with one pointer (mouse or touch). A small threshold prevents
  *   accidental drags from interfering with taps/clicks on inner buttons.
- * - Pinch with two touch pointers to resize. Only the FIRST finger has to
- *   touch the element; the second finger can be placed anywhere on screen.
- *   This makes resizing small elements (where two fingers don't fit) possible.
+ * - Pinch with two touch pointers on the same element to resize.
  * - Per-element offsets (dx, dy) and scale (s) are persisted to localStorage
  *   keyed by `${mode}_${seatCount}`.
  * - The most recently interacted element is tracked via a ref so the
@@ -137,24 +135,18 @@ export function Movable({
     pinching: false,
   });
 
-  // Window-level handlers. These let us detect a second finger placed
-  // anywhere on screen (not just on the element) so users can pinch-resize
-  // small targets without their fingers colliding.
-  useEffect(() => {
-    const onWinDown = (e: PointerEvent) => {
-      const st = stateRef.current;
-      if (!st.a || st.b) return;
-      if (e.pointerId === st.a.id) return;
-      if (e.pointerType !== "touch") return;
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      st.startDist = Math.hypot(dx, dy) || 1;
-      st.startScale = layoutRef.current.s;
-      st.pinching = true;
-      st.dragging = false;
-    };
+  const resetGesture = useCallback(() => {
+    const st = stateRef.current;
+    st.a = undefined;
+    st.b = undefined;
+    st.origin = undefined;
+    st.dragging = false;
+    st.pinching = false;
+  }, []);
 
+  // Window-level move/up handlers keep an active drag or pinch responsive
+  // even after the user's finger moves outside the element.
+  useEffect(() => {
     const onWinMove = (e: PointerEvent) => {
       const st = stateRef.current;
       if (!st.a) return;
@@ -191,15 +183,6 @@ export function Movable({
       lastMovedRef.current = id;
     };
 
-    const reset = () => {
-      const st = stateRef.current;
-      st.a = undefined;
-      st.b = undefined;
-      st.origin = undefined;
-      st.dragging = false;
-      st.pinching = false;
-    };
-
     const onWinUp = (e: PointerEvent) => {
       const st = stateRef.current;
       const wasA = st.a?.id === e.pointerId;
@@ -209,50 +192,51 @@ export function Movable({
       // primary pointer alive after a pinch would leave a stale origin /
       // startDx, causing the next move to jump the element. Requiring a
       // fresh press also makes subsequent taps on other elements work.
-      reset();
-      if (activeReset === reset) activeReset = null;
+      resetGesture();
+      if (activeReset === resetGesture) activeReset = null;
     };
 
     const onBlur = () => {
-      reset();
-      if (activeReset === reset) activeReset = null;
+      resetGesture();
+      if (activeReset === resetGesture) activeReset = null;
     };
 
-    window.addEventListener("pointerdown", onWinDown);
     window.addEventListener("pointermove", onWinMove, { passive: false });
     window.addEventListener("pointerup", onWinUp);
     window.addEventListener("pointercancel", onWinUp);
     window.addEventListener("blur", onBlur);
     document.addEventListener("visibilitychange", onBlur);
     return () => {
-      window.removeEventListener("pointerdown", onWinDown);
       window.removeEventListener("pointermove", onWinMove);
       window.removeEventListener("pointerup", onWinUp);
       window.removeEventListener("pointercancel", onWinUp);
       window.removeEventListener("blur", onBlur);
       document.removeEventListener("visibilitychange", onBlur);
-      if (activeReset === reset) activeReset = null;
+      if (activeReset === resetGesture) activeReset = null;
     };
-  }, [id, update, lastMovedRef]);
+  }, [id, lastMovedRef, resetGesture, update]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (st.a && !st.b && e.pointerType === "touch" && e.pointerId !== st.a.id) {
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = st.b.x - st.a.x;
+      const dy = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dx, dy) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true;
+      st.dragging = false;
+      lastMovedRef.current = id;
+      return;
+    }
     if (!st.a) {
       // Become the active gesture target — clear any other Movable that
       // still has a stale primary pointer registered.
-      if (activeReset && activeReset !== (stateRef.current as unknown as { _reset?: () => void })._reset) {
+      if (activeReset && activeReset !== resetGesture) {
         try { activeReset(); } catch { /* ignore */ }
       }
-      const reset = () => {
-        st.a = undefined;
-        st.b = undefined;
-        st.origin = undefined;
-        st.dragging = false;
-        st.pinching = false;
-      };
-      (stateRef.current as unknown as { _reset?: () => void })._reset = reset;
-      activeReset = reset;
+      activeReset = resetGesture;
 
       st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
       st.origin = { x: e.clientX, y: e.clientY };
