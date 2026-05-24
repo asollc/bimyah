@@ -213,15 +213,24 @@ export function Movable({
       if (activeReset === reset) activeReset = null;
     };
 
+    const onBlur = () => {
+      reset();
+      if (activeReset === reset) activeReset = null;
+    };
+
     window.addEventListener("pointerdown", onWinDown);
     window.addEventListener("pointermove", onWinMove, { passive: false });
     window.addEventListener("pointerup", onWinUp);
     window.addEventListener("pointercancel", onWinUp);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onBlur);
     return () => {
       window.removeEventListener("pointerdown", onWinDown);
       window.removeEventListener("pointermove", onWinMove);
       window.removeEventListener("pointerup", onWinUp);
       window.removeEventListener("pointercancel", onWinUp);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onBlur);
       if (activeReset === reset) activeReset = null;
     };
   }, [id, update, lastMovedRef]);
