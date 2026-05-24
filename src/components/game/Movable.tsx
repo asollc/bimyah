@@ -202,14 +202,15 @@ export function Movable({
 
     const onWinUp = (e: PointerEvent) => {
       const st = stateRef.current;
-      if (st.b?.id === e.pointerId) {
-        st.b = undefined;
-        st.pinching = false;
-      }
-      if (st.a?.id === e.pointerId) {
-        reset();
-        if (activeReset === reset) activeReset = null;
-      }
+      const wasA = st.a?.id === e.pointerId;
+      const wasB = st.b?.id === e.pointerId;
+      if (!wasA && !wasB) return;
+      // Any tracked finger lifting ends the whole gesture. Keeping the
+      // primary pointer alive after a pinch would leave a stale origin /
+      // startDx, causing the next move to jump the element. Requiring a
+      // fresh press also makes subsequent taps on other elements work.
+      reset();
+      if (activeReset === reset) activeReset = null;
     };
 
     window.addEventListener("pointerdown", onWinDown);
