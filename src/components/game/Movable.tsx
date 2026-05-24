@@ -33,8 +33,11 @@ function clampScale(s: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 }
 
-export function useMovableLayouts(mode: string, seatCount: number) {
-  const key = `bimyah_movables_${mode}_${seatCount}`;
+export function useMovableLayouts(mode: string, _seatCount: number) {
+  // Key by mode only so customizations made before the match starts
+  // (when seat count may differ from in-game) persist into the live game.
+  void _seatCount;
+  const key = `bimyah_movables_${mode}`;
   const [layouts, setLayouts] = useState<MovableLayoutMap>({});
   const lastMovedRef = useRef<string | null>(null);
 
@@ -199,25 +202,35 @@ export function Movable({
 
     const onWinUp = (e: PointerEvent) => {
       const st = stateRef.current;
-      if (st.b?.id === e.pointerId) {
-        st.b = undefined;
-        st.pinching = false;
-      }
-      if (st.a?.id === e.pointerId) {
-        reset();
-        if (activeReset === reset) activeReset = null;
-      }
+      const wasA = st.a?.id === e.pointerId;
+      const wasB = st.b?.id === e.pointerId;
+      if (!wasA && !wasB) return;
+      // Any tracked finger lifting ends the whole gesture. Keeping the
+      // primary pointer alive after a pinch would leave a stale origin /
+      // startDx, causing the next move to jump the element. Requiring a
+      // fresh press also makes subsequent taps on other elements work.
+      reset();
+      if (activeReset === reset) activeReset = null;
+    };
+
+    const onBlur = () => {
+      reset();
+      if (activeReset === reset) activeReset = null;
     };
 
     window.addEventListener("pointerdown", onWinDown);
     window.addEventListener("pointermove", onWinMove, { passive: false });
     window.addEventListener("pointerup", onWinUp);
     window.addEventListener("pointercancel", onWinUp);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onBlur);
     return () => {
       window.removeEventListener("pointerdown", onWinDown);
       window.removeEventListener("pointermove", onWinMove);
       window.removeEventListener("pointerup", onWinUp);
       window.removeEventListener("pointercancel", onWinUp);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onBlur);
       if (activeReset === reset) activeReset = null;
     };
   }, [id, update, lastMovedRef]);
