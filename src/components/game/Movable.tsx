@@ -137,6 +137,15 @@ export function Movable({
     pinching: false,
   });
 
+  const resetGesture = useCallback(() => {
+    const st = stateRef.current;
+    st.a = undefined;
+    st.b = undefined;
+    st.origin = undefined;
+    st.dragging = false;
+    st.pinching = false;
+  }, []);
+
   // Window-level handlers. These let us detect a second finger placed
   // anywhere on screen (not just on the element) so users can pinch-resize
   // small targets without their fingers colliding.
@@ -191,15 +200,6 @@ export function Movable({
       lastMovedRef.current = id;
     };
 
-    const reset = () => {
-      const st = stateRef.current;
-      st.a = undefined;
-      st.b = undefined;
-      st.origin = undefined;
-      st.dragging = false;
-      st.pinching = false;
-    };
-
     const onWinUp = (e: PointerEvent) => {
       const st = stateRef.current;
       const wasA = st.a?.id === e.pointerId;
@@ -209,13 +209,13 @@ export function Movable({
       // primary pointer alive after a pinch would leave a stale origin /
       // startDx, causing the next move to jump the element. Requiring a
       // fresh press also makes subsequent taps on other elements work.
-      reset();
-      if (activeReset === reset) activeReset = null;
+      resetGesture();
+      if (activeReset === resetGesture) activeReset = null;
     };
 
     const onBlur = () => {
-      reset();
-      if (activeReset === reset) activeReset = null;
+      resetGesture();
+      if (activeReset === resetGesture) activeReset = null;
     };
 
     window.addEventListener("pointerdown", onWinDown);
@@ -231,9 +231,9 @@ export function Movable({
       window.removeEventListener("pointercancel", onWinUp);
       window.removeEventListener("blur", onBlur);
       document.removeEventListener("visibilitychange", onBlur);
-      if (activeReset === reset) activeReset = null;
+      if (activeReset === resetGesture) activeReset = null;
     };
-  }, [id, update, lastMovedRef]);
+  }, [id, lastMovedRef, resetGesture, update]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
@@ -241,18 +241,10 @@ export function Movable({
     if (!st.a) {
       // Become the active gesture target — clear any other Movable that
       // still has a stale primary pointer registered.
-      if (activeReset && activeReset !== (stateRef.current as unknown as { _reset?: () => void })._reset) {
+      if (activeReset && activeReset !== resetGesture) {
         try { activeReset(); } catch { /* ignore */ }
       }
-      const reset = () => {
-        st.a = undefined;
-        st.b = undefined;
-        st.origin = undefined;
-        st.dragging = false;
-        st.pinching = false;
-      };
-      (stateRef.current as unknown as { _reset?: () => void })._reset = reset;
-      activeReset = reset;
+      activeReset = resetGesture;
 
       st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
       st.origin = { x: e.clientX, y: e.clientY };
