@@ -251,6 +251,10 @@ export function Movable({
       lastMovedRef.current = id;
     }
   };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    const wasDragging = st.dragging;
     if (wasDragging && st.a?.id === e.pointerId) {
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
