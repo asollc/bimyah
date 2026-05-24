@@ -33,8 +33,11 @@ function clampScale(s: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 }
 
-export function useMovableLayouts(mode: string, seatCount: number) {
-  const key = `bimyah_movables_${mode}_${seatCount}`;
+export function useMovableLayouts(mode: string, _seatCount: number) {
+  // Key by mode only so customizations made before the match starts
+  // (when seat count may differ from in-game) persist into the live game.
+  void _seatCount;
+  const key = `bimyah_movables_${mode}`;
   const [layouts, setLayouts] = useState<MovableLayoutMap>({});
   const lastMovedRef = useRef<string | null>(null);
 
