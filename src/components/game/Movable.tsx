@@ -18,6 +18,12 @@ export type MovableLayoutMap = Record<string, MovableLayout>;
 export type LastMovedRef = { current: string | null };
 
 const DEFAULT_LAYOUT: MovableLayout = { dx: 0, dy: 0, s: 1 };
+
+// Module-level singleton so only ONE Movable can be the active gesture target
+// at a time. Without this, touching two elements in succession would leave
+// both with a primary pointer registered, and a third finger anywhere would
+// trigger pinch-resize on both simultaneously.
+let activeReset: (() => void) | null = null;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 const DRAG_THRESHOLD_PX = 6;
@@ -182,6 +188,15 @@ export function Movable({
       lastMovedRef.current = id;
     };
 
+    const reset = () => {
+      const st = stateRef.current;
+      st.a = undefined;
+      st.b = undefined;
+      st.origin = undefined;
+      st.dragging = false;
+      st.pinching = false;
+    };
+
     const onWinUp = (e: PointerEvent) => {
       const st = stateRef.current;
       if (st.b?.id === e.pointerId) {
@@ -189,11 +204,8 @@ export function Movable({
         st.pinching = false;
       }
       if (st.a?.id === e.pointerId) {
-        st.a = undefined;
-        st.origin = undefined;
-        st.dragging = false;
-        st.pinching = false;
-        st.b = undefined;
+        reset();
+        if (activeReset === reset) activeReset = null;
       }
     };
 
@@ -206,6 +218,7 @@ export function Movable({
       window.removeEventListener("pointermove", onWinMove);
       window.removeEventListener("pointerup", onWinUp);
       window.removeEventListener("pointercancel", onWinUp);
+      if (activeReset === reset) activeReset = null;
     };
   }, [id, update, lastMovedRef]);
 
@@ -213,6 +226,21 @@ export function Movable({
     const st = stateRef.current;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (!st.a) {
+      // Become the active gesture target — clear any other Movable that
+      // still has a stale primary pointer registered.
+      if (activeReset && activeReset !== (stateRef.current as unknown as { _reset?: () => void })._reset) {
+        try { activeReset(); } catch { /* ignore */ }
+      }
+      const reset = () => {
+        st.a = undefined;
+        st.b = undefined;
+        st.origin = undefined;
+        st.dragging = false;
+        st.pinching = false;
+      };
+      (stateRef.current as unknown as { _reset?: () => void })._reset = reset;
+      activeReset = reset;
+
       st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
       st.origin = { x: e.clientX, y: e.clientY };
       st.startDx = layout.dx;
@@ -220,14 +248,13 @@ export function Movable({
       st.startScale = layout.s;
       st.dragging = false;
       st.pinching = false;
+      lastMovedRef.current = id;
     }
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
     const st = stateRef.current;
     const wasDragging = st.dragging;
-    // The window-level handler clears state; we just need to swallow the
-    // synthetic click after a drag so inner buttons don't fire.
     if (wasDragging && st.a?.id === e.pointerId) {
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
