@@ -113,6 +113,7 @@ export function Movable({
   zIndex?: number;
 }) {
   const layout = layouts[id] ?? DEFAULT_LAYOUT;
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
 
@@ -147,6 +148,24 @@ export function Movable({
   // Window-level move/up handlers keep an active drag or pinch responsive
   // even after the user's finger moves outside the element.
   useEffect(() => {
+    const onWinDown = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.a || st.b || st.pinching || e.pointerType !== "touch") return;
+      if (e.pointerId === st.a.id) return;
+      const root = rootRef.current;
+      if (root && e.target instanceof Node && root.contains(e.target)) return;
+
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = st.b.x - st.a.x;
+      const dy = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dx, dy) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true;
+      st.dragging = false;
+      lastMovedRef.current = id;
+      e.preventDefault();
+    };
+
     const onWinMove = (e: PointerEvent) => {
       const st = stateRef.current;
       if (!st.a) return;
@@ -201,12 +220,14 @@ export function Movable({
       if (activeReset === resetGesture) activeReset = null;
     };
 
+    window.addEventListener("pointerdown", onWinDown, { passive: false });
     window.addEventListener("pointermove", onWinMove, { passive: false });
     window.addEventListener("pointerup", onWinUp);
     window.addEventListener("pointercancel", onWinUp);
     window.addEventListener("blur", onBlur);
     document.addEventListener("visibilitychange", onBlur);
     return () => {
+      window.removeEventListener("pointerdown", onWinDown);
       window.removeEventListener("pointermove", onWinMove);
       window.removeEventListener("pointerup", onWinUp);
       window.removeEventListener("pointercancel", onWinUp);
@@ -219,17 +240,7 @@ export function Movable({
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    if (st.a && !st.b && e.pointerType === "touch" && e.pointerId !== st.a.id) {
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      const dx = st.b.x - st.a.x;
-      const dy = st.b.y - st.a.y;
-      st.startDist = Math.hypot(dx, dy) || 1;
-      st.startScale = layoutRef.current.s;
-      st.pinching = true;
-      st.dragging = false;
-      lastMovedRef.current = id;
-      return;
-    }
+    if (st.a) return;
     if (!st.a) {
       // Become the active gesture target — clear any other Movable that
       // still has a stale primary pointer registered.
@@ -266,6 +277,7 @@ export function Movable({
 
   return (
     <div
+      ref={rootRef}
       className={className}
       style={{
         transform: `translate(${layout.dx}px, ${layout.dy}px) scale(${layout.s})`,
