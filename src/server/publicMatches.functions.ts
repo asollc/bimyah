@@ -16,6 +16,13 @@ export const createPublicMatch = createServerFn({ method: "POST" })
   .inputValidator((input) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    // Ensure each host has only one active public listing — remove any prior
+    // rooms they hosted before inserting the new one.
+    await supabaseAdmin
+      .from("public_matches")
+      .delete()
+      .eq("host_id", userId)
+      .neq("game_id", data.game_id);
     const { error } = await supabaseAdmin.from("public_matches").upsert({
       game_id: data.game_id,
       host_id: userId,
@@ -79,18 +86,25 @@ export const listPublicMatches = createServerFn({ method: "GET" })
 
     const { data: matches, error } = await supabaseAdmin
       .from("public_matches")
-      .select("game_id, host_name, mode, max_seats, seats_taken, created_at")
+      .select("game_id, host_id, host_name, mode, max_seats, seats_taken, created_at")
       .gte("created_at", cutoff)
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Response(error.message, { status: 500 });
-    const rows: Listing[] = (matches ?? []).map((m) => ({
-      game_id: m.game_id,
-      host_name: m.host_name,
-      mode: m.mode,
-      max_seats: m.max_seats,
-      seats_taken: m.seats_taken ?? 1,
-      status: "lobby",
-    }));
+    // Defensive dedupe: keep only the most recent listing per host.
+    const seen = new Set<string>();
+    const rows: Listing[] = [];
+    for (const m of matches ?? []) {
+      if (seen.has(m.host_id)) continue;
+      seen.add(m.host_id);
+      rows.push({
+        game_id: m.game_id,
+        host_name: m.host_name,
+        mode: m.mode,
+        max_seats: m.max_seats,
+        seats_taken: m.seats_taken ?? 1,
+        status: "lobby",
+      });
+    }
     return { rows };
   });
