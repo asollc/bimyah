@@ -263,7 +263,9 @@ export function Movable({
   const onPointerUp = (e: React.PointerEvent) => {
     const st = stateRef.current;
     const wasDragging = st.dragging;
-    if (wasDragging && st.a?.id === e.pointerId) {
+    const wasA = st.a?.id === e.pointerId;
+    const wasB = st.b?.id === e.pointerId;
+    if (wasDragging && wasA) {
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
       const swallow = (ev: Event) => {
@@ -272,6 +274,15 @@ export function Movable({
         el.removeEventListener("click", swallow, true);
       };
       el.addEventListener("click", swallow, true);
+    }
+    // Defensive cleanup: ensure gesture fully resets when finger lifts on
+    // this element. The window-level pointerup listener should also do
+    // this, but on some touch devices (implicit pointer capture, event
+    // ordering) it doesn't fire reliably, leaving st.a stale and blocking
+    // the next press via `if (st.a) return`.
+    if (wasA || wasB) {
+      resetGesture();
+      if (activeReset === resetGesture) activeReset = null;
     }
   };
 
