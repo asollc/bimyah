@@ -41,6 +41,7 @@ export const MAX_SPECTATORS = 20;
 export type Intent =
   | { kind: "addPlayer"; player: Player }
   | { kind: "addBot" }
+  | { kind: "removeBot" }
   | { kind: "ready"; playerId: string; ready: boolean }
   | { kind: "openPile"; playerId: string; stackIndex: number }
   | { kind: "closePile"; playerId: string }
