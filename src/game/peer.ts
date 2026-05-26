@@ -41,6 +41,7 @@ export const MAX_SPECTATORS = 20;
 export type Intent =
   | { kind: "addPlayer"; player: Player }
   | { kind: "addBot" }
+  | { kind: "removeBot" }
   | { kind: "ready"; playerId: string; ready: boolean }
   | { kind: "openPile"; playerId: string; stackIndex: number }
   | { kind: "closePile"; playerId: string }
@@ -110,6 +111,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         ...state,
         players: [...state.players, bot],
         scores: { ...state.scores, [bot.id]: 0 },
+      };
+    }
+    case "removeBot": {
+      if (state.status !== "lobby") return state;
+      const botIndex = state.players.map((p) => p.isBot).lastIndexOf(true);
+      if (botIndex === -1) return state;
+      const botId = state.players[botIndex].id;
+      const newPlayers = state.players.filter((_, i) => i !== botIndex);
+      const { [botId]: _, ...remainingScores } = state.scores;
+      return {
+        ...state,
+        players: newPlayers,
+        scores: remainingScores,
       };
     }
     case "ready":
