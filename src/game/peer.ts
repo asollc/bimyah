@@ -113,6 +113,19 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         scores: { ...state.scores, [bot.id]: 0 },
       };
     }
+    case "removeBot": {
+      if (state.status !== "lobby") return state;
+      const botIndex = state.players.map((p) => p.isBot).lastIndexOf(true);
+      if (botIndex === -1) return state;
+      const botId = state.players[botIndex].id;
+      const newPlayers = state.players.filter((_, i) => i !== botIndex);
+      const { [botId]: _, ...remainingScores } = state.scores;
+      return {
+        ...state,
+        players: newPlayers,
+        scores: remainingScores,
+      };
+    }
     case "ready":
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
