@@ -716,19 +716,41 @@ export function GameTable({
             </button>
           </Movable>
         )}
-        {state.status === "lobby" &&
-          isHost &&
-          state.players.length < (state.maxSeats ?? 4) && (
-            <Movable id="add-bot" {...movables}>
-              <button
-                onClick={() => dispatch({ kind: "addBot" })}
-                className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
-                aria-label="Add a bot to the lobby"
-              >
-                🤖 Add Bot
-              </button>
-            </Movable>
-          )}
+        {state.status === "lobby" && isHost && (
+          <Movable id="add-bot" {...movables}>
+            <div className="btn-3d btn-3d-dark flex flex-col items-center gap-0.5 px-[10px] py-[3px] text-[9.5px] select-none">
+              <span className="underline">Bots</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (state.players.length < (state.maxSeats ?? 4)) {
+                      dispatch({ kind: "addBot" });
+                    }
+                  }}
+                  disabled={state.players.length >= (state.maxSeats ?? 4)}
+                  className="px-1 disabled:opacity-40"
+                  aria-label="Add a bot"
+                >
+                  +
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (state.players.some((p) => p.isBot)) {
+                      dispatch({ kind: "removeBot" });
+                    }
+                  }}
+                  disabled={!state.players.some((p) => p.isBot)}
+                  className="px-1 disabled:opacity-40"
+                  aria-label="Remove a bot"
+                >
+                  −
+                </button>
+              </div>
+            </div>
+          </Movable>
+        )}
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
