@@ -37,7 +37,7 @@ function PublicMatchesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"play" | "spectate">("play");
   const [showJoin, setShowJoin] = useState(false);
-  const [pendingGameId, setPendingGameId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void } | null>(null);
   const isAuthed = !!user;
 
   function requireIdentity(action: () => void) {
@@ -45,11 +45,9 @@ function PublicMatchesPage() {
       action();
       return;
     }
-    setPendingGameId("__action__");
-    // store the action via closure on pendingAction state instead:
-    setPendingActionState({ run: action });
+    setPendingAction({ run: action });
   }
-  const [pendingActionState, setPendingActionState] = useState<{ run: () => void } | null>(null);
+
 
   async function load() {
     setLoading(true);
