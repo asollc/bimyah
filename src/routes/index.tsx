@@ -69,16 +69,19 @@ function HomePage() {
   const [forcedMode, setForcedMode] = useState<GameMode | null>(null);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void } | null>(null);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const isAuthed = !!user;
 
-  function requireAuth(action: () => void) {
-    if (!isAuthed) {
-      void navigate({ to: "/auth" });
+  // Allow either a signed-in user or a guest (with stored name) to proceed.
+  // If neither, prompt for a guest display name first.
+  function requireIdentity(action: () => void) {
+    if (isAuthed || getGuestName()) {
+      action();
       return;
     }
-    action();
+    setPendingAction({ run: action });
   }
 
 
