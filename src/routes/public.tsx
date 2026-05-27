@@ -136,7 +136,7 @@ function PublicMatchesPage() {
       </div>
 
       <button
-        onClick={() => setShowJoin(true)}
+        onClick={() => requireIdentity(() => setShowJoin(true))}
         className="mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-display text-sm font-black uppercase tracking-widest text-white/80 ring-1 ring-white/20 transition hover:bg-white/10"
       >
         <Users className="h-4 w-4" /> Join with Code
@@ -160,11 +160,13 @@ function PublicMatchesPage() {
                 key={r.game_id}
                 disabled={disabled}
                 onClick={() =>
-                  void navigate({
-                    to: "/join/$gameId",
-                    params: { gameId: r.game_id },
-                    search: { mode } as never,
-                  })
+                  requireIdentity(() =>
+                    void navigate({
+                      to: "/join/$gameId",
+                      params: { gameId: r.game_id },
+                      search: { mode } as never,
+                    }),
+                  )
                 }
                 className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--mint)]/30 bg-black/50 px-4 py-3 text-left transition hover:bg-[var(--mint)]/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -189,6 +191,16 @@ function PublicMatchesPage() {
         <div className="mt-4 flex w-full max-w-md flex-col gap-2">
           <JoinPicker onCancel={() => setShowJoin(false)} />
         </div>
+      )}
+      {pendingAction && (
+        <GuestNamePrompt
+          onCancel={() => setPendingAction(null)}
+          onSubmit={() => {
+            const a = pendingAction.run;
+            setPendingAction(null);
+            a();
+          }}
+        />
       )}
     </div>
   );
