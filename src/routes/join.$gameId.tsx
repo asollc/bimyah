@@ -43,6 +43,9 @@ function deriveJoinName(
 ): string {
   const fromProfile = (profileName ?? "").trim();
   if (fromProfile) return fromProfile.slice(0, 14);
+  // Guests have their own (already "_"-prefixed) name in localStorage.
+  const guest = getGuestName();
+  if (guest) return guest.slice(0, 14);
   const fromEmail = (email ?? "").split("@")[0]?.trim() ?? "";
   if (fromEmail) return fromEmail.slice(0, 14);
   try {
