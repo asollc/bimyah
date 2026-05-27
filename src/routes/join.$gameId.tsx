@@ -244,7 +244,7 @@ function JoinGame() {
             <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
             <button
               onClick={join}
-              disabled={busy || authLoading || !user}
+              disabled={busy || authLoading}
               className="btn-3d btn-3d-mint w-full text-base disabled:opacity-50"
             >
               {busy ? "Connecting…" : "Try Again"}
