@@ -9,6 +9,8 @@ import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { useAuth } from "@/auth/AuthProvider";
+import { getGuestName } from "@/game/guest";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 
 export const Route = createFileRoute("/join/$gameId")({
   validateSearch: (search: Record<string, unknown>) => ({
