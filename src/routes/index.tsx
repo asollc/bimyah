@@ -315,6 +315,7 @@ function HomePage() {
             forcedMode={forcedMode}
             profileName={profile?.display_name ?? null}
             userEmail={user?.email ?? null}
+            canHostPublic={isAuthed}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
@@ -327,6 +328,16 @@ function HomePage() {
         )}
       </div>
 
+      {pendingAction && (
+        <GuestNamePrompt
+          onCancel={() => setPendingAction(null)}
+          onSubmit={() => {
+            const a = pendingAction.run;
+            setPendingAction(null);
+            a();
+          }}
+        />
+      )}
     </div>
   );
 }
