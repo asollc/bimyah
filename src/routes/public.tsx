@@ -37,14 +37,19 @@ function PublicMatchesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"play" | "spectate">("play");
   const [showJoin, setShowJoin] = useState(false);
+  const [pendingGameId, setPendingGameId] = useState<string | null>(null);
+  const isAuthed = !!user;
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      void navigate({ to: "/auth", search: { redirect: "/public" } as never });
+  function requireIdentity(action: () => void) {
+    if (isAuthed || getGuestName()) {
+      action();
       return;
     }
-  }, [authLoading, user, navigate]);
+    setPendingGameId("__action__");
+    // store the action via closure on pendingAction state instead:
+    setPendingActionState({ run: action });
+  }
+  const [pendingActionState, setPendingActionState] = useState<{ run: () => void } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -60,14 +65,14 @@ function PublicMatchesPage() {
   }
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
     void load();
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [authLoading]);
 
-  if (authLoading || !user) {
+  if (authLoading) {
     return (
       <div className="flex min-h-[calc(100dvh-50px)] items-center justify-center text-white/60">
         Loading…
