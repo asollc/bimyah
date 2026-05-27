@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listPublicMatches } from "@/server/publicMatches.functions";
 import { useAuth } from "@/auth/AuthProvider";
+import { getGuestName } from "@/game/guest";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 import { JoinPicker } from "@/components/game/JoinPicker";
 import { Users, RefreshCw, ArrowLeft } from "lucide-react";
 
