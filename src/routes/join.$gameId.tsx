@@ -257,6 +257,15 @@ function JoinGame() {
         )}
       </div>
       <div />
+      {needsGuestName && (
+        <GuestNamePrompt
+          onCancel={() => void navigate({ to: "/" })}
+          onSubmit={() => {
+            setNeedsGuestName(false);
+            if (!startedRef.current) void join();
+          }}
+        />
+      )}
     </div>
   );
 }
