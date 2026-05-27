@@ -873,6 +873,7 @@ function HostFlow({
   profileName,
   userEmail,
   forcedMode,
+  canHostPublic = true,
 }: {
   hosting: boolean;
   error: string | null;
@@ -887,6 +888,7 @@ function HostFlow({
   profileName: string | null;
   userEmail: string | null;
   forcedMode?: GameMode | null;
+  canHostPublic?: boolean;
 }) {
   const [step, setStep] = useState<HostStep>(forcedMode ? "seats" : "mode");
   const [mode, setMode] = useState<GameMode>(forcedMode ?? "standard");
@@ -946,7 +948,7 @@ function HostFlow({
       isPlus={isPlus}
       hosting={hosting}
       error={error}
-      allowPublic={mode !== "training"}
+      allowPublic={mode !== "training" && canHostPublic}
       onCancel={onCancel}
       onStart={(additional, isPublic) => onStart(name, mode, pointLimit, additional + 1, isPublic)}
     />
