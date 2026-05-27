@@ -64,19 +64,17 @@ function JoinGame() {
   const { user, profile, loading: authLoading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [needsGuestName, setNeedsGuestName] = useState(false);
   const startedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      void navigate({
-        to: "/auth",
-        search: { redirect: `/join/${gameId}` } as never,
-      });
+    // Signed-in user OR an existing guest can join. Otherwise, ask for a
+    // guest display name first.
+    if (!user && !getGuestName()) {
+      setNeedsGuestName(true);
       return;
     }
-    // Auto-join immediately — selection happens on the public matches page
-    // (or defaults to play for direct invite links).
     if (!startedRef.current) void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, gameId]);
