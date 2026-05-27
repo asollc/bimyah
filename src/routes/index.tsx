@@ -251,7 +251,7 @@ function HomePage() {
         {!showSolo && !showHost && (
           <>
             <button
-              onClick={() => requireAuth(() => { setForcedMode(null); setShowHost(true); })}
+              onClick={() => requireIdentity(() => { setForcedMode(null); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
@@ -264,13 +264,13 @@ function HomePage() {
               </span>
             </button>
             <button
-              onClick={() => requireAuth(() => void navigate({ to: "/public" }))}
+              onClick={() => requireIdentity(() => void navigate({ to: "/public" }))}
               className="btn-3d btn-3d-dark w-full text-base"
             >
               <Users className="mr-2 h-5 w-5" /> Join Game
             </button>
             <button
-              onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
+              onClick={() => requireIdentity(() => { setForcedMode("training"); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-mint w-full text-base disabled:opacity-60"
             >
