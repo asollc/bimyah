@@ -77,8 +77,9 @@ type Listing = {
 // abandoned/crashed hosts so the listing page doesn't fill with dead rooms.
 const TTL_HOURS = 4;
 
+// Guests can browse public matches without an account, so this endpoint
+// intentionally has no auth middleware.
 export const listPublicMatches = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async (): Promise<{ rows: Listing[] }> => {
     const cutoff = new Date(Date.now() - TTL_HOURS * 60 * 60 * 1000).toISOString();
     // Best-effort cleanup of expired rows.

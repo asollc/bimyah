@@ -9,6 +9,8 @@ import { PowLogo, RotationIcon } from "@/components/game/Visuals";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { useAuth } from "@/auth/AuthProvider";
+import { getGuestName } from "@/game/guest";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 
 export const Route = createFileRoute("/join/$gameId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -41,6 +43,9 @@ function deriveJoinName(
 ): string {
   const fromProfile = (profileName ?? "").trim();
   if (fromProfile) return fromProfile.slice(0, 14);
+  // Guests have their own (already "_"-prefixed) name in localStorage.
+  const guest = getGuestName();
+  if (guest) return guest.slice(0, 14);
   const fromEmail = (email ?? "").split("@")[0]?.trim() ?? "";
   if (fromEmail) return fromEmail.slice(0, 14);
   try {
@@ -59,19 +64,17 @@ function JoinGame() {
   const { user, profile, loading: authLoading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [needsGuestName, setNeedsGuestName] = useState(false);
   const startedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      void navigate({
-        to: "/auth",
-        search: { redirect: `/join/${gameId}` } as never,
-      });
+    // Signed-in user OR an existing guest can join. Otherwise, ask for a
+    // guest display name first.
+    if (!user && !getGuestName()) {
+      setNeedsGuestName(true);
       return;
     }
-    // Auto-join immediately — selection happens on the public matches page
-    // (or defaults to play for direct invite links).
     if (!startedRef.current) void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, gameId]);
@@ -241,7 +244,7 @@ function JoinGame() {
             <div className="text-center text-xs text-[var(--player-red)]">{err}</div>
             <button
               onClick={join}
-              disabled={busy || authLoading || !user}
+              disabled={busy || authLoading}
               className="btn-3d btn-3d-mint w-full text-base disabled:opacity-50"
             >
               {busy ? "Connecting…" : "Try Again"}
@@ -254,6 +257,15 @@ function JoinGame() {
         )}
       </div>
       <div />
+      {needsGuestName && (
+        <GuestNamePrompt
+          onCancel={() => void navigate({ to: "/" })}
+          onSubmit={() => {
+            setNeedsGuestName(false);
+            if (!startedRef.current) void join();
+          }}
+        />
+      )}
     </div>
   );
 }

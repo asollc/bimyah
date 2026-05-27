@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listPublicMatches } from "@/server/publicMatches.functions";
 import { useAuth } from "@/auth/AuthProvider";
+import { getGuestName } from "@/game/guest";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 import { JoinPicker } from "@/components/game/JoinPicker";
 import { Users, RefreshCw, ArrowLeft } from "lucide-react";
 
@@ -35,14 +37,17 @@ function PublicMatchesPage() {
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"play" | "spectate">("play");
   const [showJoin, setShowJoin] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void } | null>(null);
+  const isAuthed = !!user;
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      void navigate({ to: "/auth", search: { redirect: "/public" } as never });
+  function requireIdentity(action: () => void) {
+    if (isAuthed || getGuestName()) {
+      action();
       return;
     }
-  }, [authLoading, user, navigate]);
+    setPendingAction({ run: action });
+  }
+
 
   async function load() {
     setLoading(true);
@@ -58,14 +63,14 @@ function PublicMatchesPage() {
   }
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
     void load();
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [authLoading]);
 
-  if (authLoading || !user) {
+  if (authLoading) {
     return (
       <div className="flex min-h-[calc(100dvh-50px)] items-center justify-center text-white/60">
         Loading…
@@ -131,7 +136,7 @@ function PublicMatchesPage() {
       </div>
 
       <button
-        onClick={() => setShowJoin(true)}
+        onClick={() => requireIdentity(() => setShowJoin(true))}
         className="mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-display text-sm font-black uppercase tracking-widest text-white/80 ring-1 ring-white/20 transition hover:bg-white/10"
       >
         <Users className="h-4 w-4" /> Join with Code
@@ -155,11 +160,13 @@ function PublicMatchesPage() {
                 key={r.game_id}
                 disabled={disabled}
                 onClick={() =>
-                  void navigate({
-                    to: "/join/$gameId",
-                    params: { gameId: r.game_id },
-                    search: { mode } as never,
-                  })
+                  requireIdentity(() =>
+                    void navigate({
+                      to: "/join/$gameId",
+                      params: { gameId: r.game_id },
+                      search: { mode } as never,
+                    }),
+                  )
                 }
                 className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--mint)]/30 bg-black/50 px-4 py-3 text-left transition hover:bg-[var(--mint)]/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -184,6 +191,16 @@ function PublicMatchesPage() {
         <div className="mt-4 flex w-full max-w-md flex-col gap-2">
           <JoinPicker onCancel={() => setShowJoin(false)} />
         </div>
+      )}
+      {pendingAction && (
+        <GuestNamePrompt
+          onCancel={() => setPendingAction(null)}
+          onSubmit={() => {
+            const a = pendingAction.run;
+            setPendingAction(null);
+            a();
+          }}
+        />
       )}
     </div>
   );

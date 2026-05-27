@@ -21,6 +21,8 @@ import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
+import { getGuestName } from "@/game/guest";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { getMyAdminStatus, recordShareEvent } from "@/server/admin.functions";
@@ -67,16 +69,19 @@ function HomePage() {
   const [forcedMode, setForcedMode] = useState<GameMode | null>(null);
   const [hosting, setHosting] = useState(false);
   const [hostErr, setHostErr] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ run: () => void } | null>(null);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const isAuthed = !!user;
 
-  function requireAuth(action: () => void) {
-    if (!isAuthed) {
-      void navigate({ to: "/auth" });
+  // Allow either a signed-in user or a guest (with stored name) to proceed.
+  // If neither, prompt for a guest display name first.
+  function requireIdentity(action: () => void) {
+    if (isAuthed || getGuestName()) {
+      action();
       return;
     }
-    action();
+    setPendingAction({ run: action });
   }
 
 
@@ -124,7 +129,7 @@ function HomePage() {
       sessionStorage.setItem(`bimyah_me_${session.code}`, hostId);
       sessionStorage.setItem(`bimyah_name_${session.code}`, myName);
       saveIdentity(session.code, { meId: hostId, name: myName, role: "host" });
-      if (isPublic) {
+      if (isPublic && isAuthed) {
         try {
           await createPublicMatch({
             data: {
@@ -236,8 +241,8 @@ function HomePage() {
           With No Turns!
         </div>
         {!isAuthed && !authLoading && (
-          <div className="text-center text-[10px] uppercase tracking-widest text-[var(--player-mint,#22c55e)] border-stone-950 border-0 bg-transparent text-slate-50 font-sans">
-            Free account required to play
+          <div className="text-center text-[10px] uppercase tracking-widest border-stone-950 border-0 bg-transparent text-slate-50 font-sans">
+            Play as guest or <Link to="/auth" className="text-[var(--mint)] underline">sign up free</Link>
           </div>
         )}
       </div>
@@ -246,7 +251,7 @@ function HomePage() {
         {!showSolo && !showHost && (
           <>
             <button
-              onClick={() => requireAuth(() => { setForcedMode(null); setShowHost(true); })}
+              onClick={() => requireIdentity(() => { setForcedMode(null); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-gold w-full text-base disabled:opacity-60"
             >
@@ -259,13 +264,13 @@ function HomePage() {
               </span>
             </button>
             <button
-              onClick={() => requireAuth(() => void navigate({ to: "/public" }))}
+              onClick={() => requireIdentity(() => void navigate({ to: "/public" }))}
               className="btn-3d btn-3d-dark w-full text-base"
             >
               <Users className="mr-2 h-5 w-5" /> Join Game
             </button>
             <button
-              onClick={() => requireAuth(() => { setForcedMode("training"); setShowHost(true); })}
+              onClick={() => requireIdentity(() => { setForcedMode("training"); setShowHost(true); })}
               disabled={hosting}
               className="btn-3d btn-3d-mint w-full text-base disabled:opacity-60"
             >
@@ -310,6 +315,7 @@ function HomePage() {
             forcedMode={forcedMode}
             profileName={profile?.display_name ?? null}
             userEmail={user?.email ?? null}
+            canHostPublic={isAuthed}
             onCancel={() => {
               setShowHost(false);
               setHostErr(null);
@@ -322,6 +328,16 @@ function HomePage() {
         )}
       </div>
 
+      {pendingAction && (
+        <GuestNamePrompt
+          onCancel={() => setPendingAction(null)}
+          onSubmit={() => {
+            const a = pendingAction.run;
+            setPendingAction(null);
+            a();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -857,6 +873,7 @@ function HostFlow({
   profileName,
   userEmail,
   forcedMode,
+  canHostPublic = true,
 }: {
   hosting: boolean;
   error: string | null;
@@ -871,6 +888,7 @@ function HostFlow({
   profileName: string | null;
   userEmail: string | null;
   forcedMode?: GameMode | null;
+  canHostPublic?: boolean;
 }) {
   const [step, setStep] = useState<HostStep>(forcedMode ? "seats" : "mode");
   const [mode, setMode] = useState<GameMode>(forcedMode ?? "standard");
@@ -930,7 +948,7 @@ function HostFlow({
       isPlus={isPlus}
       hosting={hosting}
       error={error}
-      allowPublic={mode !== "training"}
+      allowPublic={mode !== "training" && canHostPublic}
       onCancel={onCancel}
       onStart={(additional, isPublic) => onStart(name, mode, pointLimit, additional + 1, isPublic)}
     />
