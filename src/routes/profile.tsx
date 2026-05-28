@@ -11,6 +11,16 @@ import {
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-black/30 px-4 py-10 text-center">
+      <div className="font-display text-sm uppercase tracking-widest text-white/70">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/70">Coming soon</div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
