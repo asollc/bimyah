@@ -312,7 +312,7 @@ function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="friends" className="mt-4">
-          <ComingSoon label="Friends" />
+          <FriendsPanel />
         </TabsContent>
 
         <TabsContent value="titles" className="mt-4">
