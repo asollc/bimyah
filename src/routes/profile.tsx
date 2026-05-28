@@ -12,6 +12,7 @@ import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FriendsPanel } from "@/components/FriendsPanel";
 
 function ComingSoon({ label }: { label: string }) {
   return (
@@ -311,7 +312,7 @@ function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="friends" className="mt-4">
-          <ComingSoon label="Friends" />
+          <FriendsPanel />
         </TabsContent>
 
         <TabsContent value="titles" className="mt-4">
