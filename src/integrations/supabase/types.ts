@@ -309,6 +309,33 @@ export type Database = {
         }
         Relationships: []
       }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["friendship_status"]
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           created_at: string
@@ -602,6 +629,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          last_seen_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -668,6 +713,7 @@ export type Database = {
       app_role: "user" | "admin"
       bplus_plan: "lifetime" | "monthly" | "annual"
       bplus_status: "active" | "past_due" | "cancelled"
+      friendship_status: "pending" | "accepted"
       gift_status: "pending" | "fulfilled" | "refunded"
       gift_type: "friend" | "random"
       payment_status: "completed" | "refunded" | "failed"
@@ -801,6 +847,7 @@ export const Constants = {
       app_role: ["user", "admin"],
       bplus_plan: ["lifetime", "monthly", "annual"],
       bplus_status: ["active", "past_due", "cancelled"],
+      friendship_status: ["pending", "accepted"],
       gift_status: ["pending", "fulfilled", "refunded"],
       gift_type: ["friend", "random"],
       payment_status: ["completed", "refunded", "failed"],
