@@ -12,6 +12,7 @@ import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FriendsPanel } from "@/components/FriendsPanel";
 
 function ComingSoon({ label }: { label: string }) {
   return (
