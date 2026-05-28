@@ -11,6 +11,16 @@ import {
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-black/30 px-4 py-10 text-center">
+      <div className="font-display text-sm uppercase tracking-widest text-white/70">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/70">Coming soon</div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -230,76 +240,97 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Card back */}
-      <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6">
-        <div className="flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-widest text-white/50">
-            Custom card back
-          </div>
-          {activeCardBack && (
-            <button
-              type="button"
-              onClick={clearCardBack}
-              className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <div
-            className="overflow-hidden rounded-lg border border-white/15 bg-black/40"
-            style={{ width: 60, height: 84 }}
-          >
-            {activeCardBack ? (
-              <img
-                src={activeCardBack}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
-                default
+      {/* Tabs */}
+      <Tabs defaultValue="cards" className="mt-8 w-full">
+        <TabsList className="grid w-full grid-cols-5 bg-black/30">
+          <TabsTrigger value="cards" className="text-[9px] uppercase tracking-wider">Cards</TabsTrigger>
+          <TabsTrigger value="friends" className="text-[9px] uppercase tracking-wider">Friends</TabsTrigger>
+          <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
+          <TabsTrigger value="keys" className="text-[9px] uppercase tracking-wider">Keys</TabsTrigger>
+          <TabsTrigger value="stats" className="text-[9px] uppercase tracking-wider">Stats</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cards" className="mt-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-widest text-white/50">
+                Custom card back
               </div>
+              {activeCardBack && (
+                <button
+                  type="button"
+                  onClick={clearCardBack}
+                  className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="overflow-hidden rounded-lg border border-white/15 bg-black/40"
+                style={{ width: 60, height: 84 }}
+              >
+                {activeCardBack ? (
+                  <img src={activeCardBack} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
+                    default
+                  </div>
+                )}
+              </div>
+              <label
+                className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
+                  !isPlus ? "opacity-70" : ""
+                }`}
+              >
+                {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                {uploadingBack ? "Uploading…" : "Upload (5:7 image)"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  disabled={!isPlus || uploadingBack}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void uploadCardBack(f);
+                  }}
+                />
+              </label>
+            </div>
+            {!isPlus && (
+              <Link
+                to="/plus"
+                className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
+              >
+                Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
+              </Link>
             )}
           </div>
-          <label
-            className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
-              !isPlus ? "opacity-70" : ""
-            }`}
-          >
-            {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-            {uploadingBack ? "Uploading…" : "Upload (5:7 image)"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              disabled={!isPlus || uploadingBack}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) void uploadCardBack(f);
-              }}
-            />
-          </label>
-        </div>
-        {!isPlus && (
-          <Link
-            to="/plus"
-            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
-          >
-            Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
-          </Link>
-        )}
-      </div>
+        </TabsContent>
 
-      {/* Keybinds */}
-      <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6">
-        <div className="text-[10px] uppercase tracking-widest text-white/50">
-          Keyboard controls
-        </div>
-        <KeybindEditor />
-      </div>
+        <TabsContent value="friends" className="mt-4">
+          <ComingSoon label="Friends" />
+        </TabsContent>
+
+        <TabsContent value="titles" className="mt-4">
+          <ComingSoon label="Titles & Badges" />
+        </TabsContent>
+
+        <TabsContent value="keys" className="mt-4">
+          <div className="flex flex-col gap-3">
+            <div className="text-[10px] uppercase tracking-widest text-white/50">
+              Keyboard controls
+            </div>
+            <KeybindEditor />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="stats" className="mt-4">
+          <ComingSoon label="Stats" />
+        </TabsContent>
+      </Tabs>
 
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
       {err && <div className="mt-3 text-center text-xs text-[var(--player-red)]">{err}</div>}
