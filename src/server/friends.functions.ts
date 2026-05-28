@@ -19,10 +19,8 @@ export type FriendshipRow = {
   created_at: string;
 };
 
-async function loadProfiles(
-  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
-  ids: string[],
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadProfiles(supabase: any, ids: string[]) {
   if (ids.length === 0) return new Map<string, { id: string; display_name: string; avatar_url: string | null }>();
   const { data } = await supabase
     .from("profiles")
@@ -35,10 +33,8 @@ async function loadProfiles(
   return map;
 }
 
-async function loadPresence(
-  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
-  ids: string[],
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadPresence(supabase: any, ids: string[]) {
   const map = new Map<string, boolean>();
   if (ids.length === 0) return map;
   const { data } = await supabase
