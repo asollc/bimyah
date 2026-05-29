@@ -212,22 +212,13 @@ export function FriendsPanel() {
               key={row.id}
               row={row}
               actions={
-                <>
-                  <Link
-                    to="/"
-                    className="inline-flex items-center gap-1 rounded bg-[var(--gold)]/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--gold)] hover:bg-[var(--gold)]/25"
-                    title="Invite to game"
-                  >
-                    <Send className="h-3 w-3" /> Invite
-                  </Link>
-                  <button
-                    onClick={() => onRemove(row.id)}
-                    className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white/80"
-                    title="Remove friend"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
+                <button
+                  onClick={() => onRemove(row.id)}
+                  className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white/80"
+                  title="Remove friend"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               }
             />
           ))
