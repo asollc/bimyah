@@ -792,23 +792,44 @@ export function GameTable({
       {state.status === "lobby" && inviteUrl && (
         <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2">
           <Movable id="invite-code" {...movables} origin="top center">
-            <div className="flex items-center gap-2 rounded-full border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
-              <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
-                Code
-              </span>
-              <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
-                {inviteUrl}
-              </span>
+            <div className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-[10px] uppercase tracking-widest text-white/60">
+                  Code
+                </span>
+                <span className="font-mono text-base font-bold tracking-[0.3em] text-[var(--mint)]">
+                  {inviteUrl}
+                </span>
+                <button
+                  onClick={copyInvite}
+                  className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
+                  aria-label="Copy code"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
               <button
-                onClick={copyInvite}
-                className="flex items-center gap-1 rounded-full bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
-                aria-label="Copy code"
+                onClick={() => setInviteOpen(true)}
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--mint)]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--mint)] hover:bg-[var(--mint)]/25"
               >
-                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                <UserPlus className="h-3 w-3" />
+                Invite Friends
               </button>
             </div>
           </Movable>
         </div>
+      )}
+      {inviteUrl && (
+        <InviteFriendsOverlay
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          gameCode={inviteUrl}
+          joinUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/join/${inviteUrl}`
+              : `/join/${inviteUrl}`
+          }
+        />
       )}
 
 
