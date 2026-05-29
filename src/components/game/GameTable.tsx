@@ -66,6 +66,7 @@ export function GameTable({
   const botMemory = useRef(createBotMemory());
   const [muted, setMuted] = useState(sfx.isMuted());
   const [copied, setCopied] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
   const [showChat, setShowChat] = useState(false);
