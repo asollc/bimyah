@@ -23,7 +23,8 @@ import {
 import { HowToPlayButton } from "./HowToPlay";
 import { createBotMemory, stepBots } from "@/game/bot";
 import { sfx, recordWin } from "@/game/sfx";
-import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X, Eye, MessageCircle } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, ArrowDownUp, Settings, X, Eye, MessageCircle, UserPlus } from "lucide-react";
+import { InviteFriendsOverlay } from "@/components/InviteFriendsOverlay";
 import { cn } from "@/lib/utils";
 import { applyIntent, type Intent } from "@/game/peer";
 import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
