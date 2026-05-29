@@ -267,7 +267,13 @@ function HomePage() {
               onClick={() => requireIdentity(() => void navigate({ to: "/public" }))}
               className="btn-3d btn-3d-dark w-full text-base"
             >
-              <Users className="mr-2 h-5 w-5" /> Join Game
+              <Users className="mr-2 h-5 w-5" />
+              <span className="flex flex-col items-center leading-tight">
+                <span>Join Game</span>
+                <span className="text-[10px] font-normal opacity-80 normal-case">
+                  or rejoin a game
+                </span>
+              </span>
             </button>
             <button
               onClick={() => requireIdentity(() => { setForcedMode("training"); setShowHost(true); })}
@@ -278,7 +284,7 @@ function HomePage() {
               <span className="flex flex-col items-center leading-tight">
                 <span>Training</span>
                 <span className="text-[10px] font-normal opacity-80 normal-case">
-                  All cards face up — practice mode
+                  All cards viewable
                 </span>
               </span>
             </button>
@@ -289,7 +295,7 @@ function HomePage() {
               <span className="flex flex-col items-center leading-tight">
                 <span>Upgrade to BIMYAH!+</span>
                 <span className="text-[10px] font-normal opacity-80 normal-case">
-                  Limited Lifetime Offer
+                  Gain exclusive perks for your support
                 </span>
               </span>
             </Link>
