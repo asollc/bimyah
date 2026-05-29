@@ -16,12 +16,8 @@ import {
 } from "@/server/bplus.functions";
 import { verifyGiftRecipient } from "@/server/gifts.functions";
 
-type StripePlan = "lifetime" | "monthly" | "yearly";
-const STRIPE_PRICE_IDS: Record<StripePlan, string> = {
-  lifetime: "bplus_lifetime_onetime",
-  monthly: "bplus_monthly",
-  yearly: "bplus_yearly",
-};
+const STRIPE_LIFETIME_PRICE_ID = "bplus_lifetime_onetime";
+
 
 type GiftMode = "friend" | "random";
 const GIFT_PRICE_IDS: Record<GiftMode, string> = {
