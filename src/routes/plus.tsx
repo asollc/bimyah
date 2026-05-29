@@ -67,7 +67,7 @@ function PlusPage() {
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [stripePlan, setStripePlan] = useState<StripePlan | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   // Gift flow state
   const [giftMode, setGiftMode] = useState<GiftMode | null>(null);
