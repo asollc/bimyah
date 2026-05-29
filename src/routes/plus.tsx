@@ -139,16 +139,27 @@ function PlusPage() {
     void refreshEntitlement();
   }, [user]);
 
-  const remaining = status.lifetime_remaining;
   const dollars = (status.lifetime_price_cents / 100).toFixed(2);
-  const monthly = (status.monthly_price_cents / 100).toFixed(2);
-  const annual = (status.annual_price_cents / 100).toFixed(2);
 
   const isPlus = entitlement?.is_plus ?? false;
   const stripeReady = hasStripeConfigured();
   const returnUrl = typeof window !== "undefined"
     ? `${window.location.origin}/plus/return`
     : "/plus/return";
+
+  const perks = (
+    <ul className="mt-4 space-y-2 text-sm text-white/80">
+      <li>✦ Custom avatar in every game</li>
+      <li>✦ Display your badges in-game</li>
+      <li>✦ Upload your own card backs</li>
+      <li>✦ Access to members only tournaments</li>
+      <li>✦ Access to the Bimyah! market where cards, sounds and other cosmetics can be purchased</li>
+      <li>✦ Host games up to 8 players (5–8 seat rooms)</li>
+      <li>✦ Founding Carder title and diamond card</li>
+      <li>✦ Exclusive Discord roles</li>
+      <li>✦ All future Bimyah!+ features included for life</li>
+    </ul>
+  );
 
   return (
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center px-4 py-6">
@@ -160,9 +171,6 @@ function PlusPage() {
       <div className="text-3d-yellow font-display flex items-center justify-center gap-2 text-center text-2xl font-black uppercase tracking-widest sm:text-3xl">
         <span>Bimyah!<span className="text-[var(--gold)]">+</span></span>
         <BplusIcon size={36} />
-      </div>
-      <div className="mt-1 text-center text-[10px] uppercase tracking-[0.3em] text-stone-950">
-        Founding CARDER Preorder
       </div>
 
       {success && (
@@ -180,16 +188,20 @@ function PlusPage() {
       )}
 
       {!success && isPlus && (
-        <div className="mt-4 w-full max-w-md rounded-xl border border-[var(--gold)]/50 bg-black/40 p-4 text-center">
+        <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/50 bg-black/50 p-5 backdrop-blur">
           <div className="font-display flex items-center justify-center gap-2 text-base font-black text-[var(--gold)]">
             <BplusIcon size={22} />
-            <span>You have Bimyah!+ ({entitlement?.plan})</span>
+            <span>You have Bimyah!+</span>
           </div>
           {entitlement?.founding_member && (
-            <div className="mt-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+            <div className="mt-1 text-center text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
               Founding Member
             </div>
           )}
+          <div className="mt-3 text-center text-[11px] uppercase tracking-widest text-white/60">
+            Your perks
+          </div>
+          {perks}
         </div>
       )}
 
@@ -203,34 +215,8 @@ function PlusPage() {
               one-time / lifetime
             </span>
           </div>
-          <div className="mt-2 text-center text-[11px] uppercase tracking-widest text-white/60">
-            {status.preorder_open ? (
-              <>
-                Only{" "}
-                <span className="font-black text-[var(--mint)]">{remaining}</span>{" "}
-                of {status.lifetime_quota} lifetime spots left
-              </>
-            ) : (
-              <span className="text-[var(--player-red)]">
-                Sold out — preorder closed
-              </span>
-            )}
-          </div>
-          <div className="mt-2 text-center text-[10px] uppercase tracking-widest text-yellow-400">
-            After preorder expires: ${monthly}/mo or ${annual}/yr
-          </div>
 
-          <ul className="mt-4 space-y-2 text-sm text-white/80">
-            <li>✦ Custom avatar in every game</li>
-            <li>✦ Display your badges in-game</li>
-            <li>✦ Upload your own card backs</li>
-            <li>✦ Access to members only tournaments</li>
-            <li>✦ Access to the Bimyah! market where cards, sounds and other cosmetics can be purchased</li>
-            <li>✦ Host games up to 8 players (5–8 seat rooms)</li>
-            <li>✦ Founding Carder title and diamond card</li>
-            <li>✦ Exclusive Discord roles</li>
-            <li>✦ All future Bimyah!+ features included for life</li>
-          </ul>
+          {perks}
 
           {err && (
             <div className="mt-3 text-center text-xs text-[var(--player-red)]">
@@ -248,47 +234,21 @@ function PlusPage() {
               </button>
             ) : stripeReady ? (
               <div className="space-y-2">
-                <div className="text-center text-[10px] uppercase tracking-widest text-white/50">
-                  Pay with card
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    disabled={!status.preorder_open}
-                    onClick={() => {
-                      setErr(null);
-                      setStripePlan("lifetime");
-                    }}
-                    className={`btn-3d ${stripePlan === "lifetime" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px] disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    Lifetime ${dollars}
-                  </button>
+                {!showCheckout ? (
                   <button
                     type="button"
                     onClick={() => {
                       setErr(null);
-                      setStripePlan("monthly");
+                      setShowCheckout(true);
                     }}
-                    className={`btn-3d ${stripePlan === "monthly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
+                    className="btn-3d btn-3d-gold w-full text-xs"
                   >
-                    ${monthly}/mo
+                    Upgrade — ${dollars} lifetime
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setErr(null);
-                      setStripePlan("yearly");
-                    }}
-                    className={`btn-3d ${stripePlan === "yearly" ? "btn-3d-gold" : "btn-3d-dark"} text-[11px]`}
-                  >
-                    ${annual}/yr
-                  </button>
-                </div>
-                {stripePlan && (
+                ) : (
                   <div className="mt-3 overflow-hidden rounded-lg bg-white">
                     <StripeEmbeddedCheckout
-                      key={stripePlan}
-                      priceId={STRIPE_PRICE_IDS[stripePlan]}
+                      priceId={STRIPE_LIFETIME_PRICE_ID}
                       returnUrl={returnUrl}
                     />
                   </div>
@@ -302,6 +262,8 @@ function PlusPage() {
           </div>
         </div>
       )}
+
+
 
       {!success && user && stripeReady && (
         <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
