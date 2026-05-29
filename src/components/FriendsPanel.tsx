@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "@tanstack/react-router";
 import {
+
   listFriends,
   listPendingRequests,
   sendFriendRequest,
