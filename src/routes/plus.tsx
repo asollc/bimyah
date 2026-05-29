@@ -29,7 +29,7 @@ export const Route = createFileRoute("/plus")({
   head: () => {
     const title = "Bimyah!+ — Lifetime Founding Member";
     const description =
-      "Become a Bimyah!+ Founding Member. $5 lifetime — limited preorder. Custom avatars, card backs, and 8-player rooms.";
+      const description = "Become a Bimyah!+ Founding Member. $5 lifetime — one-time payment. Custom avatars, card backs, and 8-player rooms.";
     const image = "https://qorqfqwjmkyosplldovh.supabase.co/storage/v1/object/public/public-assets/og-bimyah.jpg";
     return {
       meta: [
