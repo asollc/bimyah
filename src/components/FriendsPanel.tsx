@@ -9,7 +9,7 @@ import {
   heartbeatPresence,
   type FriendshipRow,
 } from "@/server/friends.functions";
-import { Check, X, UserPlus, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, X, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 
 function OnlineDot({ online }: { online: boolean }) {
   return (
