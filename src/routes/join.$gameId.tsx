@@ -5,7 +5,9 @@ import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
 import { saveReentryCode, loadReentryCode, saveLastRoom } from "@/game/reentry";
-import { PowLogo, RotationIcon } from "@/components/game/Visuals";
+import { PowLogo } from "@/components/game/Visuals";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
 import { useAuth } from "@/auth/AuthProvider";
@@ -227,7 +229,10 @@ function JoinGame() {
   return (
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center justify-between overflow-x-hidden px-4 py-3">
       <div className="flex w-full items-center justify-between">
-        <RotationIcon />
+        <Link to="/" className="flex items-center gap-1 rounded-full bg-black/40 px-3 py-1.5 text-xs font-display uppercase tracking-widest text-white/80 backdrop-blur hover:bg-black/60 hover:text-white">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Home
+        </Link>
         <HowToPlayButton />
       </div>
 
