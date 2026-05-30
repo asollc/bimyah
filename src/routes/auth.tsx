@@ -43,8 +43,8 @@ function AuthPage() {
   const [ackChecked, setAckChecked] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) void navigate({ to: "/" });
-  }, [loading, user, navigate]);
+    if (!loading && user && !showWhitelistOverlay) void navigate({ to: "/" });
+  }, [loading, user, navigate, showWhitelistOverlay]);
 
 
   async function submit(e: React.FormEvent) {
