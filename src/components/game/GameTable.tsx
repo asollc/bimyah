@@ -468,7 +468,11 @@ export function GameTable({
     }
   };
 
-  const onReady = () => dispatch({ kind: "ready", playerId: meId, ready: true });
+  const onReady = () => {
+    // Block readying up when alone in the room — need at least 2 players to start.
+    if (state.players.length < 2) return;
+    dispatch({ kind: "ready", playerId: meId, ready: true });
+  };
 
   // Match-end "ready up" toggle for non-host players. Host uses this same
   // intent so its avatar lights up too (keepReadyPlayers always preserves
