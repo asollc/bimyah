@@ -426,9 +426,9 @@ export function newTournament(state: GameState, pointLimit: number | null): Game
 /* ============================ Inactive / Free Cards ============================ */
 
 /** Grace window after disconnect before a player's piles become public. */
-export const INACTIVE_GRACE_MS = 15_000;
+export const INACTIVE_GRACE_MS = 45_000;
 /** Idle window: human player makes no gameplay action → marked disconnected. */
-export const IDLE_BEFORE_DISCONNECT_MS = 20_000;
+export const IDLE_BEFORE_DISCONNECT_MS = 30_000;
 /** How long a free-card hold lasts before auto-releasing (mirrors center). */
 export const FREE_CARD_HOLD_MS = 5_000;
 
@@ -442,26 +442,38 @@ export function markDisconnected(state: GameState, playerId: string): GameState 
   return { ...state, players };
 }
 
-/** Clear the disconnected flag (player came back). Has no effect once the
- *  player has already been promoted to free-cards. */
+/** Clear the disconnected flag (player came back). Also restores any
+ *  free-cards status: returning activity removes the public-piles flag. */
 export function markReconnected(state: GameState, playerId: string): GameState {
   const players = state.players.map((p) => {
     if (p.id !== playerId) return p;
-    if (p.freeCards) return p;
-    if (!p.disconnectedAt) return p;
-    return { ...p, disconnectedAt: null };
+    if (!p.disconnectedAt && !p.freeCards) return p;
+    return {
+      ...p,
+      disconnectedAt: null,
+      freeCards: false,
+      freePileHolds: undefined,
+      lastActiveAt: Date.now(),
+    };
   });
   return { ...state, players };
 }
 
-/** Stamp a player's last-active time. Also clears any idle-disconnected
- *  flag (returning to play before free-cards promotion). No-op once the
- *  player has been promoted to free-cards. */
+/** Stamp a player's last-active time. Clears any idle-disconnected flag
+ *  AND any free-cards status (returning to play resets all inactivity). */
 export function markActive(state: GameState, playerId: string): GameState {
   const players = state.players.map((p) => {
     if (p.id !== playerId) return p;
-    if (p.freeCards) return p;
-    return { ...p, lastActiveAt: Date.now(), disconnectedAt: null };
+    if (!p.disconnectedAt && !p.freeCards && p.lastActiveAt) {
+      return { ...p, lastActiveAt: Date.now() };
+    }
+    return {
+      ...p,
+      lastActiveAt: Date.now(),
+      disconnectedAt: null,
+      freeCards: false,
+      freePileHolds: p.freeCards ? undefined : p.freePileHolds,
+    };
   });
   return { ...state, players };
 }
