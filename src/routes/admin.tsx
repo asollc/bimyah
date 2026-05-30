@@ -352,6 +352,9 @@ function UsersTab() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function refresh() {
     setLoading(true);
