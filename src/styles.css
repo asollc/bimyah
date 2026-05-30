@@ -232,7 +232,7 @@
 .wood-table {
   background-color: transparent;
   background-image:
-    /* Painted-on logo, fully visible and centered */
+    /* Logo in original colours, fully visible and centered */
     url("/bimyah-logo-table.png"),
     /* Wooden concentric rings (kept) */
     repeating-radial-gradient(
@@ -245,9 +245,7 @@
     var(--gradient-table);
   background-repeat: no-repeat, repeat, no-repeat;
   background-position: center center, center center, center center;
-  background-size: min(55%, 520px) auto, auto, auto;
-  /* Multiply the logo into the wood so it reads as painted-on */
-  background-blend-mode: multiply, normal, normal;
+  background-size: min(78%, 640px) auto, auto, auto;
   box-shadow:
     inset 0 0 60px rgba(0, 0, 0, 0.7),
     inset 0 0 0 6px #2d0808,
