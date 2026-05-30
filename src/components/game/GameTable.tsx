@@ -1561,6 +1561,7 @@ function PlayerSeat({
   onFreeCardTap,
   colorMap,
   players,
+  now,
 }: {
   player: Player;
   position: SeatPos;
