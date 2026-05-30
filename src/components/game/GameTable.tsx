@@ -1872,11 +1872,19 @@ function PlayerSeat({
       )}
 
       {/* Ready button (lobby) */}
-      {status === "lobby" && isMe && !player.ready && onReady && (
-        <button onClick={onReady} className="btn-3d btn-3d-mint mt-2 text-base">
-          Ready?
-        </button>
-      )}
+      {status === "lobby" && isMe && !player.ready && onReady && (() => {
+        const alone = (players?.length ?? 1) < 2;
+        return (
+          <button
+            onClick={alone ? undefined : onReady}
+            disabled={alone}
+            className="btn-3d btn-3d-mint mt-2 text-base disabled:cursor-not-allowed disabled:opacity-50"
+            title={alone ? "Waiting for another player to join…" : undefined}
+          >
+            {alone ? "Waiting for players…" : "Ready?"}
+          </button>
+        );
+      })()}
       {status === "lobby" && !isMe && (
         <div className="mt-1 text-[10px] text-white/50">
           {player.ready ? "Ready" : "Waiting…"}
