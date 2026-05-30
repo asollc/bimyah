@@ -200,6 +200,13 @@ export function GameTable({
     return () => clearInterval(t);
   }, [state.status]);
 
+  // Tick "now" while playing so per-seat inactivity warnings count down.
+  useEffect(() => {
+    if (state.status !== "playing") return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [state.status]);
+
   // Countdown SFX
   const lastCountRef = useRef<number>(0);
   useEffect(() => {
