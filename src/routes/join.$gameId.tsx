@@ -77,9 +77,14 @@ function JoinGame() {
       setNeedsGuestName(true);
       return;
     }
+    // For signed-in users, wait for the profile (with display_name) to load
+    // before joining — otherwise the join falls back to the email prefix and
+    // the player ends up seated under the wrong name (and can be duplicated
+    // if a later mount joins again with the real display name).
+    if (user && !profile) return;
     if (!startedRef.current) void join();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user, gameId]);
+  }, [authLoading, user, profile, gameId]);
 
   async function join() {
     if (startedRef.current) return;
