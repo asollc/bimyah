@@ -506,6 +506,17 @@ function UsersTab() {
                       <Button size="sm" variant="ghost" onClick={() => void toggleFounder(u)}>
                         <Crown className={`h-4 w-4 ${u.founding_member ? "text-amber-500" : "text-muted-foreground"}`} />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={isMe}
+                        onClick={() => {
+                          setDeleteTarget(u);
+                          setDeleteConfirm("");
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
