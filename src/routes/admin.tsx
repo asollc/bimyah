@@ -13,7 +13,18 @@ import {
   getAdminBplusConfig,
   updateBplusConfig,
   getShareStats,
+  deleteUserAccount,
 } from "@/server/admin.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { listRandomGifts, allocateRandomGift } from "@/server/gifts.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -341,6 +352,9 @@ function UsersTab() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -492,6 +506,17 @@ function UsersTab() {
                       <Button size="sm" variant="ghost" onClick={() => void toggleFounder(u)}>
                         <Crown className={`h-4 w-4 ${u.founding_member ? "text-amber-500" : "text-muted-foreground"}`} />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={isMe}
+                        onClick={() => {
+                          setDeleteTarget(u);
+                          setDeleteConfirm("");
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -503,6 +528,71 @@ function UsersTab() {
           </tbody>
         </table>
       </Card>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Permanently delete account
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  You are about to permanently delete{" "}
+                  <span className="font-semibold text-foreground">
+                    {deleteTarget?.display_name}
+                  </span>
+                  's account and all associated data. This cannot be undone.
+                </p>
+                <p>
+                  Type <span className="font-mono font-bold">DELETE</span> below to confirm.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            autoFocus
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder="DELETE"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirm !== "DELETE" || deleting || !deleteTarget}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!deleteTarget) return;
+                setDeleting(true);
+                try {
+                  await deleteUserAccount({
+                    data: { user_id: deleteTarget.id, confirm: "DELETE" },
+                  });
+                  toast.success(`Deleted ${deleteTarget.display_name}`);
+                  setDeleteTarget(null);
+                  setDeleteConfirm("");
+                  await refresh();
+                } catch (err: unknown) {
+                  toast.error(String((err as Error)?.message ?? err));
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

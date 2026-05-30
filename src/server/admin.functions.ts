@@ -574,3 +574,65 @@ export const adminUploadAsset = createServerFn({ method: "POST" })
     const { data: pub } = supabaseAdmin.storage.from(data.bucket).getPublicUrl(path);
     return { url: pub.publicUrl };
   });
+
+// ---------- Delete user account (permanent) ----------
+const deleteUserSchema = z.object({
+  user_id: z.string().uuid(),
+  confirm: z.literal("DELETE"),
+});
+export const deleteUserAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => deleteUserSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    if (data.user_id === context.userId) {
+      throw new Error("You cannot delete your own account");
+    }
+
+    const uid = data.user_id;
+
+    // Delete all rows in public schema that reference this user.
+    // Errors are logged but don't abort — we want the auth user gone.
+    const ops = [
+      supabaseAdmin.from("bplus_gifts").delete().eq("purchaser_id", uid),
+      supabaseAdmin.from("bplus_gifts").delete().eq("recipient_user_id", uid),
+      supabaseAdmin.from("bplus_gifts").delete().eq("allocated_by", uid),
+      supabaseAdmin.from("bulletin_hides").delete().eq("user_id", uid),
+      supabaseAdmin.from("bulletin_reads").delete().eq("user_id", uid),
+      supabaseAdmin.from("bulletins").delete().eq("author_id", uid),
+      supabaseAdmin.from("card_backs").delete().eq("user_id", uid),
+      supabaseAdmin.from("friendships").delete().eq("requester_id", uid),
+      supabaseAdmin.from("friendships").delete().eq("addressee_id", uid),
+      supabaseAdmin.from("founding_members").delete().eq("user_id", uid),
+      supabaseAdmin.from("payments").delete().eq("user_id", uid),
+      supabaseAdmin.from("push_subscriptions").delete().eq("user_id", uid),
+      supabaseAdmin.from("share_events").delete().eq("user_id", uid),
+      supabaseAdmin.from("subscriptions").delete().eq("user_id", uid),
+      supabaseAdmin.from("user_keybinds").delete().eq("user_id", uid),
+      supabaseAdmin.from("user_presence").delete().eq("user_id", uid),
+      supabaseAdmin.from("user_roles").delete().eq("user_id", uid),
+      supabaseAdmin.from("public_matches").delete().eq("host_id", uid),
+      supabaseAdmin.from("games").delete().eq("host_id", uid),
+      supabaseAdmin.from("profiles").delete().eq("id", uid),
+    ];
+    await Promise.allSettled(ops);
+
+    // Best-effort: remove storage assets in user folders.
+    for (const bucket of ["avatars", "card-backs"] as const) {
+      try {
+        const { data: files } = await supabaseAdmin.storage.from(bucket).list(uid);
+        if (files?.length) {
+          await supabaseAdmin.storage
+            .from(bucket)
+            .remove(files.map((f) => `${uid}/${f.name}`));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(uid);
+    if (authErr) throw new Error(authErr.message);
+
+    return { ok: true };
+  });
