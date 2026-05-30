@@ -10,7 +10,9 @@ export interface TemplateEntry {
 }
 
 import { template as gameInvite } from './game-invite'
+import { template as whitelist } from './whitelist'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'game-invite': gameInvite,
+  'whitelist': whitelist,
 }
