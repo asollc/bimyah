@@ -25,6 +25,7 @@ import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
 import { Route as GameGameIdRouteImport } from './routes/game.$gameId'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicSendWhitelistEmailRouteImport } from './routes/api/public/send-whitelist-email'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal-webhook'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin_.users.$userId'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -111,6 +112,12 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSendWhitelistEmailRoute =
+  ApiPublicSendWhitelistEmailRouteImport.update({
+    id: '/api/public/send-whitelist-email',
+    path: '/api/public/send-whitelist-email',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   id: '/api/public/paypal-webhook',
   path: '/api/public/paypal-webhook',
@@ -158,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/plus/return': typeof PlusReturnRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/send-whitelist-email': typeof ApiPublicSendWhitelistEmailRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -181,6 +189,7 @@ export interface FileRoutesByTo {
   '/plus/return': typeof PlusReturnRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/send-whitelist-email': typeof ApiPublicSendWhitelistEmailRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -205,6 +214,7 @@ export interface FileRoutesById {
   '/plus/return': typeof PlusReturnRoute
   '/admin_/users/$userId': typeof AdminUsersUserIdRoute
   '/api/public/paypal-webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/send-whitelist-email': typeof ApiPublicSendWhitelistEmailRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/plus/return'
     | '/admin/users/$userId'
     | '/api/public/paypal-webhook'
+    | '/api/public/send-whitelist-email'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/plus/return'
     | '/admin/users/$userId'
     | '/api/public/paypal-webhook'
+    | '/api/public/send-whitelist-email'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/plus/return'
     | '/admin_/users/$userId'
     | '/api/public/paypal-webhook'
+    | '/api/public/send-whitelist-email'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -299,6 +312,7 @@ export interface RootRouteChildren {
   JoinGameIdRoute: typeof JoinGameIdRoute
   AdminUsersUserIdRoute: typeof AdminUsersUserIdRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  ApiPublicSendWhitelistEmailRoute: typeof ApiPublicSendWhitelistEmailRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -419,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/send-whitelist-email': {
+      id: '/api/public/send-whitelist-email'
+      path: '/api/public/send-whitelist-email'
+      fullPath: '/api/public/send-whitelist-email'
+      preLoaderRoute: typeof ApiPublicSendWhitelistEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/paypal-webhook': {
       id: '/api/public/paypal-webhook'
       path: '/api/public/paypal-webhook'
@@ -484,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinGameIdRoute: JoinGameIdRoute,
   AdminUsersUserIdRoute: AdminUsersUserIdRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  ApiPublicSendWhitelistEmailRoute: ApiPublicSendWhitelistEmailRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
@@ -492,3 +514,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
