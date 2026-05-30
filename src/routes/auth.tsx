@@ -92,6 +92,14 @@ function AuthPage() {
         } catch {
           /* ignore */
         }
+        // Mark this account as needing acknowledgement. Cleared only when the
+        // user checks the box and clicks "Complete Registration".
+        try {
+          const newUid = (await supabase.auth.getUser()).data.user?.id;
+          if (newUid) localStorage.setItem(WHITELIST_ACK_KEY, newUid);
+        } catch {
+          /* ignore */
+        }
         // Fire the whitelist email right after signup (don't block UI on errors).
         void fetch("/api/public/send-whitelist-email", {
           method: "POST",
