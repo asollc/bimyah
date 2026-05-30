@@ -39,10 +39,13 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [showWhitelistOverlay, setShowWhitelistOverlay] = useState(false);
+  const [ackChecked, setAckChecked] = useState(false);
 
   useEffect(() => {
     if (!loading && user) void navigate({ to: "/" });
   }, [loading, user, navigate]);
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
