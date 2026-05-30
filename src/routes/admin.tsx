@@ -528,6 +528,71 @@ function UsersTab() {
           </tbody>
         </table>
       </Card>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Permanently delete account
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  You are about to permanently delete{" "}
+                  <span className="font-semibold text-foreground">
+                    {deleteTarget?.display_name}
+                  </span>
+                  's account and all associated data. This cannot be undone.
+                </p>
+                <p>
+                  Type <span className="font-mono font-bold">DELETE</span> below to confirm.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            autoFocus
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            placeholder="DELETE"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteConfirm !== "DELETE" || deleting || !deleteTarget}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!deleteTarget) return;
+                setDeleting(true);
+                try {
+                  await deleteUserAccount({
+                    data: { user_id: deleteTarget.id, confirm: "DELETE" },
+                  });
+                  toast.success(`Deleted ${deleteTarget.display_name}`);
+                  setDeleteTarget(null);
+                  setDeleteConfirm("");
+                  await refresh();
+                } catch (err: unknown) {
+                  toast.error(String((err as Error)?.message ?? err));
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
