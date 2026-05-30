@@ -3,6 +3,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import appCss from "../styles.css?url";
 import adBanner from "../assets/ad-banner.jpeg";
 import { AuthProvider } from "@/auth/AuthProvider";
+import { WhitelistAckGuard } from "@/auth/WhitelistAckGuard";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -85,6 +86,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <AuthProvider>
+      <WhitelistAckGuard />
       <Outlet />
       <Toaster richColors position="top-right" />
     </AuthProvider>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
+import { WHITELIST_ACK_KEY } from "@/auth/WhitelistAckGuard";
 
 export const Route = createFileRoute("/auth")({
   head: () => {
@@ -42,6 +43,20 @@ function AuthPage() {
   const [showWhitelistOverlay, setShowWhitelistOverlay] = useState(false);
   const [ackChecked, setAckChecked] = useState(false);
 
+  // If this user signed up earlier but never acknowledged the overlay
+  // (e.g. browser closed, network drop, refresh), re-show it on return.
+  useEffect(() => {
+    if (loading || !user) return;
+    try {
+      const pending = localStorage.getItem(WHITELIST_ACK_KEY);
+      if (pending && pending === user.id) {
+        setShowWhitelistOverlay(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [loading, user]);
+
   useEffect(() => {
     if (!loading && user && !showWhitelistOverlay) void navigate({ to: "/" });
   }, [loading, user, navigate, showWhitelistOverlay]);
@@ -74,6 +89,14 @@ function AuthPage() {
         if (error) throw error;
         try {
           localStorage.setItem("bimyah_last_name", name);
+        } catch {
+          /* ignore */
+        }
+        // Mark this account as needing acknowledgement. Cleared only when the
+        // user checks the box and clicks "Complete Registration".
+        try {
+          const newUid = (await supabase.auth.getUser()).data.user?.id;
+          if (newUid) localStorage.setItem(WHITELIST_ACK_KEY, newUid);
         } catch {
           /* ignore */
         }
@@ -235,6 +258,11 @@ function AuthPage() {
               type="button"
               disabled={!ackChecked}
               onClick={() => {
+                try {
+                  localStorage.removeItem(WHITELIST_ACK_KEY);
+                } catch {
+                  /* ignore */
+                }
                 setShowWhitelistOverlay(false);
                 setAckChecked(false);
                 setInfo("Check your email to confirm your account, then sign in.");
