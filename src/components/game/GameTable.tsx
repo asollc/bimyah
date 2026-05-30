@@ -1586,6 +1586,7 @@ function PlayerSeat({
   onFreeCardTap?: (pileIndex: number, cardId: string) => void;
   colorMap?: Record<PlayerColor, string>;
   players?: Player[];
+  now?: number;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
