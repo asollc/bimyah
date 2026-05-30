@@ -1049,6 +1049,7 @@ export function GameTable({
             onFreeCardTap={!isMe && player.freeCards ? (i, cardId) => handleFreeCardTap(player.id, i, cardId) : undefined}
             colorMap={PLAYER_COLOR_HEX}
             players={state.players}
+            now={now}
           />
         );
       })}
