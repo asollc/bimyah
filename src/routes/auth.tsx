@@ -39,10 +39,13 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [showWhitelistOverlay, setShowWhitelistOverlay] = useState(false);
+  const [ackChecked, setAckChecked] = useState(false);
 
   useEffect(() => {
     if (!loading && user) void navigate({ to: "/" });
   }, [loading, user, navigate]);
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,8 +77,14 @@ function AuthPage() {
         } catch {
           /* ignore */
         }
-        setInfo("Check your email to confirm your account, then sign in.");
-        setMode("signin");
+        // Fire the whitelist email right after signup (don't block UI on errors).
+        void fetch("/api/public/send-whitelist-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }).catch(() => {});
+        setShowWhitelistOverlay(true);
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -197,6 +206,48 @@ function AuthPage() {
           Back to home
         </Link>
       </div>
+
+      {showWhitelistOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border-2 border-[var(--gold)] bg-[#0d1b2a] p-6 shadow-2xl">
+            <h2 className="mb-3 text-center font-display text-2xl uppercase tracking-wider text-[var(--gold)]">
+              Super Important!
+            </h2>
+            <p className="mb-5 text-sm leading-relaxed text-white/90">
+              I just sent you an email that more than likely ended up in your spam folder, due to
+              how new the domain is. It's extremely important that you go to that email (subject
+              will be <strong className="text-[var(--mint)]">Whitelist Bimyah!</strong>) and
+              whitelist/star/add to contacts, and mark it as <strong>NOT SPAM</strong>, so that
+              your game notifications like invites from friends don't go to spam. I promise not to
+              sell your email, or send any junk. This is just the best way to send notifications
+              until I put the app in the app stores. See you in your inbox in a sec.
+            </p>
+            <label className="mb-5 flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-black/40 p-3">
+              <input
+                type="checkbox"
+                checked={ackChecked}
+                onChange={(e) => setAckChecked(e.target.checked)}
+                className="h-5 w-5 cursor-pointer accent-[var(--mint)]"
+              />
+              <span className="font-display text-sm uppercase tracking-widest text-white">Ok</span>
+            </label>
+            <button
+              type="button"
+              disabled={!ackChecked}
+              onClick={() => {
+                setShowWhitelistOverlay(false);
+                setAckChecked(false);
+                setInfo("Check your email to confirm your account, then sign in.");
+                setMode("signin");
+              }}
+              className="btn-3d btn-3d-mint w-full text-sm disabled:opacity-40"
+            >
+              Complete Registration
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
