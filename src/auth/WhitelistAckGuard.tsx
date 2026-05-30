@@ -17,13 +17,25 @@ export function WhitelistAckGuard() {
 
   useEffect(() => {
     if (loading || !user) return;
+    // Don't hijack flows where the user is mid-action — joining a game via
+    // email invite, playing in a room, resetting their password, or handling
+    // an email link. Only enforce the ack from "idle" pages like home.
+    const exempt =
+      pathname === "/auth" ||
+      pathname.startsWith("/join/") ||
+      pathname.startsWith("/game/") ||
+      pathname.startsWith("/reset-password") ||
+      pathname.startsWith("/email/") ||
+      pathname.startsWith("/unsubscribe") ||
+      pathname.startsWith("/api/");
+    if (exempt) return;
     let pending: string | null = null;
     try {
       pending = localStorage.getItem(WHITELIST_ACK_KEY);
     } catch {
       /* ignore */
     }
-    if (pending && pending === user.id && pathname !== "/auth") {
+    if (pending && pending === user.id) {
       void navigate({ to: "/auth" });
     }
   }, [user, loading, pathname, navigate]);
