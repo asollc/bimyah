@@ -9,6 +9,8 @@ import {
   tickFreeCardHolds,
   canDeclareBimyah,
   COUNTDOWN_MS,
+  IDLE_BEFORE_DISCONNECT_MS,
+  INACTIVE_GRACE_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
 import {
