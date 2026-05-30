@@ -258,6 +258,11 @@ function AuthPage() {
               type="button"
               disabled={!ackChecked}
               onClick={() => {
+                try {
+                  localStorage.removeItem(WHITELIST_ACK_KEY);
+                } catch {
+                  /* ignore */
+                }
                 setShowWhitelistOverlay(false);
                 setAckChecked(false);
                 setInfo("Check your email to confirm your account, then sign in.");
