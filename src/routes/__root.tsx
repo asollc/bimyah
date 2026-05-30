@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 import adBanner from "../assets/ad-banner.jpeg";
@@ -65,17 +65,22 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const isAdmin = router.state.location.pathname.startsWith("/admin");
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <div id="ad-slot" aria-label="Advertisement">
-          <a href="https://www.paypal.com/ncp/payment/4CT5MUJMGU344" target="_blank" rel="noopener noreferrer sponsored">
-            <img src={adBanner} alt="Get the $5 PDF Profits bundle of 500 Make Money Online E-books" />
-          </a>
-        </div>
+        {!isAdmin && (
+          <div id="ad-slot" aria-label="Advertisement">
+            <a href="https://www.paypal.com/ncp/payment/4CT5MUJMGU344" target="_blank" rel="noopener noreferrer sponsored">
+              <img src={adBanner} alt="Get the $5 PDF Profits bundle of 500 Make Money Online E-books" />
+            </a>
+          </div>
+        )}
         <div id="app-shell">{children}</div>
         <Scripts />
       </body>
@@ -88,7 +93,7 @@ function RootComponent() {
     <AuthProvider>
       <WhitelistAckGuard />
       <Outlet />
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" style={{ zIndex: 999999 }} />
     </AuthProvider>
   );
 }
