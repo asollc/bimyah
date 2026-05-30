@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
+import { WHITELIST_ACK_KEY } from "@/auth/WhitelistAckGuard";
 
 export const Route = createFileRoute("/auth")({
   head: () => {
@@ -41,6 +42,20 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
   const [showWhitelistOverlay, setShowWhitelistOverlay] = useState(false);
   const [ackChecked, setAckChecked] = useState(false);
+
+  // If this user signed up earlier but never acknowledged the overlay
+  // (e.g. browser closed, network drop, refresh), re-show it on return.
+  useEffect(() => {
+    if (loading || !user) return;
+    try {
+      const pending = localStorage.getItem(WHITELIST_ACK_KEY);
+      if (pending && pending === user.id) {
+        setShowWhitelistOverlay(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [loading, user]);
 
   useEffect(() => {
     if (!loading && user && !showWhitelistOverlay) void navigate({ to: "/" });
