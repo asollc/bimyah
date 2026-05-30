@@ -77,8 +77,14 @@ function AuthPage() {
         } catch {
           /* ignore */
         }
-        setInfo("Check your email to confirm your account, then sign in.");
-        setMode("signin");
+        // Fire the whitelist email right after signup (don't block UI on errors).
+        void fetch("/api/public/send-whitelist-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }).catch(() => {});
+        setShowWhitelistOverlay(true);
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
