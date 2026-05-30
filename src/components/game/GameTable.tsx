@@ -1728,19 +1728,40 @@ function PlayerSeat({
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
-      {/* Inactive / Free-cards status badge */}
-      {!isMe && (player.disconnectedAt || player.freeCards) && status !== "lobby" && (
-        <div
-          className={cn(
-            "rounded-full px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest",
-            player.freeCards
-              ? "bg-[var(--gold)]/20 text-[var(--gold)] ring-1 ring-[var(--gold)]/50"
-              : "bg-white/10 text-white/70 ring-1 ring-white/20",
-          )}
-        >
-          {player.freeCards ? "Free Cards" : "Inactive"}
-        </div>
-      )}
+      {/* Inactivity phase warning — shown next to the seat label / sort row.
+          Phases: "Inactive in Ns" (idle warning) → "Inactive — free cards in Ns"
+          → "Free Cards" (terminal). Bots never show this. */}
+      {!player.isBot && status === "playing" && (() => {
+        const t = now ?? Date.now();
+        if (player.freeCards) {
+          return (
+            <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
+              Free Cards
+            </div>
+          );
+        }
+        if (player.disconnectedAt) {
+          const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - player.disconnectedAt)) / 1000));
+          return (
+            <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+              Inactive · free cards in {left}s
+            </div>
+          );
+        }
+        if (player.lastActiveAt) {
+          const sinceActive = t - player.lastActiveAt;
+          const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
+          if (sinceActive >= warnAt) {
+            const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
+            return (
+              <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
+                Inactive in {left}s
+              </div>
+            );
+          }
+        }
+        return null;
+      })()}
 
       {/* Piles (with SET/SORT absolutely anchored below for the local player
           so opening a pile does NOT shift the piles upward).
