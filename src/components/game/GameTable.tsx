@@ -159,6 +159,15 @@ export function GameTable({
   };
 
   // ===== Game tick (HOST ONLY in multiplayer; always on in solo) =====
+  // Keep `state` in a ref so the interval below has a STABLE identity. If we
+  // depended on `state` directly, every remote intent (common with multiple
+  // humans) would clear-and-restart the 250ms interval before it ever fires,
+  // which meant tickIdle / tickInactive never ran on the host and the host
+  // never saw their own inactivity phase advance.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   useEffect(() => {
     if (!isHost) return;
     const t = setInterval(() => {
@@ -167,10 +176,10 @@ export function GameTable({
       setState((s) => tickIdle(s));
       setState((s) => tickInactive(s));
       setState((s) => tickFreeCardHolds(s));
-      stepBots(state, botMemory.current, (m) => setState(m));
+      stepBots(stateRef.current, botMemory.current, (m) => setState(m));
     }, 250);
     return () => clearInterval(t);
-  }, [state, setState, isHost]);
+  }, [setState, isHost]);
 
   // Win announce
   useEffect(() => {
