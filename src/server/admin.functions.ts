@@ -593,7 +593,7 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
 
     // Delete all rows in public schema that reference this user.
     // Errors are logged but don't abort — we want the auth user gone.
-    const ops: Array<Promise<unknown>> = [
+    const ops = [
       supabaseAdmin.from("bplus_gifts").delete().eq("purchaser_id", uid),
       supabaseAdmin.from("bplus_gifts").delete().eq("recipient_user_id", uid),
       supabaseAdmin.from("bplus_gifts").delete().eq("allocated_by", uid),
