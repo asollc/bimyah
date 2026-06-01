@@ -7,6 +7,7 @@ import {
   clearMyActiveCardBack,
 } from "@/server/cosmetics.functions";
 import { BplusIcon } from "@/components/BplusIcon";
+import { CardCropModal } from "@/components/profile/CardCropModal";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
