@@ -7,6 +7,7 @@ import {
   clearMyActiveCardBack,
 } from "@/server/cosmetics.functions";
 import { BplusIcon } from "@/components/BplusIcon";
+import { CardCropModal } from "@/components/profile/CardCropModal";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
@@ -52,6 +53,11 @@ export function CardsTab({
   setErr,
 }: Props) {
   const [uploadingBack, setUploadingBack] = useState(false);
+  const [pendingCrop, setPendingCrop] = useState<{
+    url: string;
+    name: string;
+    type: string;
+  } | null>(null);
   const slotsKey = `bimyah:activeCardSlots:${userId}`;
   const [activeSlots, setActiveSlots] = useState<(string | null)[]>(() =>
     Array(ACTIVE_SLOT_COUNT).fill(null),
@@ -86,6 +92,29 @@ export function CardsTab({
   // Card-back upload is a one-time action — once set, the slot is permanent.
   const cardBackLocked = !!activeCardBack;
 
+  async function pickCardBack(file: File) {
+    setErr(null);
+    setMsg(null);
+    try {
+      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
+      const url = URL.createObjectURL(file);
+      const { width, height } = await measureImage(url);
+      const target = 5 / 7;
+      const actual = width / height;
+      const off = Math.abs(actual - target) / target;
+      if (off > 0.02) {
+        // Aspect deviates from 5:7 — open crop UI.
+        setPendingCrop({ url, name: file.name, type: file.type });
+        return;
+      }
+      URL.revokeObjectURL(url);
+      await uploadCardBack(file);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
   async function uploadCardBack(file: File) {
     setErr(null);
     setMsg(null);
@@ -111,9 +140,17 @@ export function CardsTab({
     }
   }
 
+  function measureImage(url: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.src = url;
+    });
+  }
+
   // Build the full owned-card pool: built-ins + uploaded custom back +
-  // exclusives the user is entitled to. Custom back is always treated as a
-  // collectible alongside the others.
+  // exclusives the user is entitled to.
   const ownedCards: CardDef[] = useMemo(() => {
     const list: CardDef[] = [...BUILTIN_CARDS];
     if (activeCardBack) {
@@ -210,7 +247,7 @@ export function CardsTab({
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   e.target.value = "";
-                  if (f) void uploadCardBack(f);
+                  if (f) void pickCardBack(f);
                 }}
               />
             </label>
@@ -355,6 +392,24 @@ export function CardsTab({
           </div>
         </div>
       </section>
+
+      {pendingCrop && (
+        <CardCropModal
+          imageUrl={pendingCrop.url}
+          fileName={pendingCrop.name}
+          mimeType={pendingCrop.type}
+          onCancel={() => {
+            URL.revokeObjectURL(pendingCrop.url);
+            setPendingCrop(null);
+          }}
+          onConfirm={async (file) => {
+            const url = pendingCrop.url;
+            setPendingCrop(null);
+            URL.revokeObjectURL(url);
+            await uploadCardBack(file);
+          }}
+        />
+      )}
     </div>
   );
 }
