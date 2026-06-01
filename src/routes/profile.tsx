@@ -106,43 +106,7 @@ function ProfilePage() {
     }
   }
 
-  async function uploadCardBack(file: File) {
-    if (!user) return;
-    setErr(null);
-    setMsg(null);
-    setUploadingBack(true);
-    try {
-      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
-      const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("card-backs")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("card-backs").getPublicUrl(path);
-      const url = pub.publicUrl;
-      await setMyActiveCardBack({ data: { imageUrl: url } });
-      setActiveCardBack(url);
-      setMsg("Card back updated.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setUploadingBack(false);
-    }
-  }
 
-  async function clearCardBack() {
-    setErr(null);
-    setMsg(null);
-    try {
-      await clearMyActiveCardBack();
-      setActiveCardBack(null);
-      setMsg("Card back cleared.");
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
 
   if (loading || !user) return null;
 
