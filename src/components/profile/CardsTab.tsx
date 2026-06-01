@@ -392,6 +392,24 @@ export function CardsTab({
           </div>
         </div>
       </section>
+
+      {pendingCrop && (
+        <CardCropModal
+          imageUrl={pendingCrop.url}
+          fileName={pendingCrop.name}
+          mimeType={pendingCrop.type}
+          onCancel={() => {
+            URL.revokeObjectURL(pendingCrop.url);
+            setPendingCrop(null);
+          }}
+          onConfirm={async (file) => {
+            const url = pendingCrop.url;
+            setPendingCrop(null);
+            URL.revokeObjectURL(url);
+            await uploadCardBack(file);
+          }}
+        />
+      )}
     </div>
   );
 }
