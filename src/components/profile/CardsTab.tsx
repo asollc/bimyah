@@ -53,6 +53,11 @@ export function CardsTab({
   setErr,
 }: Props) {
   const [uploadingBack, setUploadingBack] = useState(false);
+  const [pendingCrop, setPendingCrop] = useState<{
+    url: string;
+    name: string;
+    type: string;
+  } | null>(null);
   const slotsKey = `bimyah:activeCardSlots:${userId}`;
   const [activeSlots, setActiveSlots] = useState<(string | null)[]>(() =>
     Array(ACTIVE_SLOT_COUNT).fill(null),
