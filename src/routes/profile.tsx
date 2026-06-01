@@ -3,16 +3,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, LogOut, Upload, Lock, X } from "lucide-react";
-import {
-  setMyAvatar,
-  setMyActiveCardBack,
-  clearMyActiveCardBack,
-} from "@/server/cosmetics.functions";
+import { setMyAvatar } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
+import { CardsTab } from "@/components/profile/CardsTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
@@ -43,7 +40,7 @@ function ProfilePage() {
   const [isPlus, setIsPlus] = useState<boolean>(false);
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingBack, setUploadingBack] = useState(false);
+  
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -109,43 +106,7 @@ function ProfilePage() {
     }
   }
 
-  async function uploadCardBack(file: File) {
-    if (!user) return;
-    setErr(null);
-    setMsg(null);
-    setUploadingBack(true);
-    try {
-      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
-      const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("card-backs")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("card-backs").getPublicUrl(path);
-      const url = pub.publicUrl;
-      await setMyActiveCardBack({ data: { imageUrl: url } });
-      setActiveCardBack(url);
-      setMsg("Card back updated.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setUploadingBack(false);
-    }
-  }
 
-  async function clearCardBack() {
-    setErr(null);
-    setMsg(null);
-    try {
-      await clearMyActiveCardBack();
-      setActiveCardBack(null);
-      setMsg("Card back cleared.");
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
 
   if (loading || !user) return null;
 
@@ -252,63 +213,14 @@ function ProfilePage() {
         </TabsList>
 
         <TabsContent value="cards" className="mt-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-widest text-white/50">
-                Custom card back
-              </div>
-              {activeCardBack && (
-                <button
-                  type="button"
-                  onClick={clearCardBack}
-                  className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="overflow-hidden rounded-lg border border-white/15 bg-black/40"
-                style={{ width: 60, height: 84 }}
-              >
-                {activeCardBack ? (
-                  <img src={activeCardBack} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
-                    default
-                  </div>
-                )}
-              </div>
-              <label
-                className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
-                  !isPlus ? "opacity-70" : ""
-                }`}
-              >
-                {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                {uploadingBack ? "Uploading…" : "Upload (5:7 image)"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  disabled={!isPlus || uploadingBack}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void uploadCardBack(f);
-                  }}
-                />
-              </label>
-            </div>
-            {!isPlus && (
-              <Link
-                to="/plus"
-                className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
-              >
-                Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
-              </Link>
-            )}
-          </div>
+          <CardsTab
+            userId={user.id}
+            isPlus={isPlus}
+            activeCardBack={activeCardBack}
+            setActiveCardBack={setActiveCardBack}
+            setMsg={setMsg}
+            setErr={setErr}
+          />
         </TabsContent>
 
         <TabsContent value="friends" className="mt-4">
