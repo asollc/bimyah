@@ -3,16 +3,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, LogOut, Upload, Lock, X } from "lucide-react";
-import {
-  setMyAvatar,
-  setMyActiveCardBack,
-  clearMyActiveCardBack,
-} from "@/server/cosmetics.functions";
+import { setMyAvatar } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
+import { CardsTab } from "@/components/profile/CardsTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
