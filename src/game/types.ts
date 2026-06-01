@@ -27,6 +27,11 @@ export type Player = {
   avatarUrl?: string | null;
   /** Optional custom card-back image URL (Bimyah!+ only). */
   cardBackUrl?: string | null;
+  /** Optional per-pile card-back image URLs from the player's equipped
+   *  "active card slots" (length up to 6). Index i maps to pile i; if a
+   *  slot is null/missing, the renderer falls back to `cardBackUrl` and
+   *  then the default image. */
+  cardBackUrls?: (string | null)[] | null;
   /** 4-digit personal reentry code, used to rejoin this seat after disconnect. */
   reentryCode?: string;
   // piles[i] is array of cards still face-down. If completed (4-of-a-kind set), it's locked.
