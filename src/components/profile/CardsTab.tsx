@@ -148,6 +148,10 @@ export function CardsTab({
       img.src = url;
     });
   }
+
+  // Build the full owned-card pool: built-ins + uploaded custom back +
+  // exclusives the user is entitled to.
+  const ownedCards: CardDef[] = useMemo(() => {
     const list: CardDef[] = [...BUILTIN_CARDS];
     if (activeCardBack) {
       list.push({ id: "custom-back", name: "Custom", imageUrl: activeCardBack });
