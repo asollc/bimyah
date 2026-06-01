@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { getActiveCardSlotImages } from "@/game/cosmetics";
 import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
