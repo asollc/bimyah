@@ -92,6 +92,29 @@ export function CardsTab({
   // Card-back upload is a one-time action — once set, the slot is permanent.
   const cardBackLocked = !!activeCardBack;
 
+  async function pickCardBack(file: File) {
+    setErr(null);
+    setMsg(null);
+    try {
+      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
+      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
+      const url = URL.createObjectURL(file);
+      const { width, height } = await measureImage(url);
+      const target = 5 / 7;
+      const actual = width / height;
+      const off = Math.abs(actual - target) / target;
+      if (off > 0.02) {
+        // Aspect deviates from 5:7 — open crop UI.
+        setPendingCrop({ url, name: file.name, type: file.type });
+        return;
+      }
+      URL.revokeObjectURL(url);
+      await uploadCardBack(file);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
   async function uploadCardBack(file: File) {
     setErr(null);
     setMsg(null);
@@ -117,10 +140,14 @@ export function CardsTab({
     }
   }
 
-  // Build the full owned-card pool: built-ins + uploaded custom back +
-  // exclusives the user is entitled to. Custom back is always treated as a
-  // collectible alongside the others.
-  const ownedCards: CardDef[] = useMemo(() => {
+  function measureImage(url: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.src = url;
+    });
+  }
     const list: CardDef[] = [...BUILTIN_CARDS];
     if (activeCardBack) {
       list.push({ id: "custom-back", name: "Custom", imageUrl: activeCardBack });
