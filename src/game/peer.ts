@@ -132,6 +132,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return setReady(state, intent.playerId, intent.ready);
     case "openPile":
       return markActive(openPile(state, intent.playerId, intent.stackIndex), intent.playerId);
+    case "ping":
+      return markActive(state, intent.playerId);
     case "closePile":
       return markActive(closePile(state, intent.playerId), intent.playerId);
     case "holdCenter":
