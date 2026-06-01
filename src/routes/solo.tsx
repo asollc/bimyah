@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GameTable } from "@/components/game/GameTable";
 import { createInitialGame } from "@/game/engine";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { getActiveCardSlotImages } from "@/game/cosmetics";
 import { useAuth } from "@/auth/AuthProvider";
 import type { GameMode, GameState } from "@/game/types";
 
@@ -62,8 +63,9 @@ function SoloGame() {
           /* ignore */
         }
       }
+      const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const specs = setup.players.map((p) =>
-        p.isBot ? p : { ...p, ...cosmetics },
+        p.isBot ? p : { ...p, ...cosmetics, cardBackUrls },
       );
       const initial = createInitialGame("solo", specs, {
         mode: setup.mode,

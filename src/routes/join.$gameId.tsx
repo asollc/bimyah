@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { HowToPlayButton } from "@/components/game/HowToPlay";
 import { getMyCosmetics } from "@/server/cosmetics.functions";
+import { getActiveCardSlotImages } from "@/game/cosmetics";
 import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
@@ -200,6 +201,7 @@ function JoinGame() {
       } catch {
         /* ignore */
       }
+      const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const newPlayer = {
         id: myId,
         name: playerName,
@@ -208,6 +210,7 @@ function JoinGame() {
         ready: false,
         avatarUrl: cosmetics.avatarUrl,
         cardBackUrl: cosmetics.cardBackUrl,
+        cardBackUrls,
         reentryCode,
         piles: [],
         pileLocked: [],

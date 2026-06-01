@@ -45,6 +45,7 @@ export function createInitialGame(
     isBot: boolean;
     avatarUrl?: string | null;
     cardBackUrl?: string | null;
+    cardBackUrls?: (string | null)[] | null;
   }>,
   opts: CreateGameOptions = {},
 ): GameState {
@@ -56,6 +57,7 @@ export function createInitialGame(
     ready: false,
     avatarUrl: p.avatarUrl ?? null,
     cardBackUrl: p.cardBackUrl ?? null,
+    cardBackUrls: p.cardBackUrls ?? null,
     reentryCode: p.isBot ? undefined : generateReentryCode(),
     piles: [],
     pileLocked: [],
