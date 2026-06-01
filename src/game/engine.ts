@@ -427,10 +427,12 @@ export function newTournament(state: GameState, pointLimit: number | null): Game
 
 /* ============================ Inactive / Free Cards ============================ */
 
-/** Grace window after disconnect before a player's piles become public. */
-export const INACTIVE_GRACE_MS = 45_000;
+/** Grace window after disconnect before a player's piles become public.
+ *  Combined with IDLE_BEFORE_DISCONNECT_MS this yields the total time
+ *  from last activity until free-cards (45s + 15s = 60s). */
+export const INACTIVE_GRACE_MS = 15_000;
 /** Idle window: human player makes no gameplay action → marked disconnected. */
-export const IDLE_BEFORE_DISCONNECT_MS = 30_000;
+export const IDLE_BEFORE_DISCONNECT_MS = 45_000;
 /** How long a free-card hold lasts before auto-releasing (mirrors center). */
 export const FREE_CARD_HOLD_MS = 5_000;
 
