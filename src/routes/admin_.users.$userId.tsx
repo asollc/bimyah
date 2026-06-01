@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Upload, X, Crown, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, X, Crown, Loader2, Lock } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyAdminStatus,
@@ -11,10 +11,8 @@ import {
   adminClearCardBack,
   adminUploadAsset,
 } from "@/server/admin.functions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/admin_/users/$userId")({
   head: () => ({
@@ -39,6 +37,26 @@ function fileToBase64(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-black/30 px-4 py-10 text-center">
+      <div className="font-display text-sm uppercase tracking-widest text-white/70">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/70">Coming soon</div>
+    </div>
+  );
+}
+
+function UserOnly({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-black/30 px-4 py-10 text-center">
+      <div className="font-display text-sm uppercase tracking-widest text-white/70">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-white/40">
+        Visible only to the user
+      </div>
+    </div>
+  );
 }
 
 function AdminUserPage() {
@@ -208,141 +226,164 @@ function AdminUserPage() {
     );
   }
 
+  if (loading && !detail) {
+    return (
+      <div className="mt-8 flex justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!detail) return null;
+
+  const avatarUrl = detail.avatar_url;
+  const cardBackLocked = !!detail.active_card_back_url;
+
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <div className="flex items-center gap-3">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Home
+    <div className="relative mx-auto flex min-h-[calc(100dvh-50px)] w-full max-w-md flex-col px-4 py-4">
+      {/* Top admin nav */}
+      <div className="flex items-center justify-between">
+        <Link to="/" className="text-white/60 hover:text-white">
+          <ArrowLeft className="h-5 w-5" />
         </Link>
-        <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/admin"
+          className="text-[10px] uppercase tracking-widest text-white/50 hover:text-white"
+        >
           Back to admin
         </Link>
       </div>
 
-      <h1 className="mt-4 text-2xl font-semibold">Edit user</h1>
+      <h1 className="mt-4 text-center font-display text-2xl uppercase tracking-widest text-[var(--gold)]">
+        Profile
+      </h1>
+      <div className="mt-1 text-center text-[10px] uppercase tracking-widest text-[var(--gold)]/60">
+        Admin view
+      </div>
 
-      {loading && !detail && (
-        <div className="mt-8 flex justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      {/* Avatar */}
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <div className="relative">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-20 w-20 rounded-full border-2 border-[var(--gold)]/40 object-cover"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--mint)]/20 font-display text-3xl text-[var(--mint)]">
+              {(detail.display_name ?? detail.email ?? "?").slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          {avatarUrl && (
+            <button
+              type="button"
+              onClick={() => void clearAvatar()}
+              className="absolute -right-1 -top-1 rounded-full bg-black/80 p-1 text-white/70 hover:text-white"
+              aria-label="Remove avatar"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
-      )}
+        <div className="text-xs text-white/50">{detail.email ?? "(no email)"}</div>
 
-      {detail && (
-        <div className="mt-6 space-y-6">
-          <Card className="p-4">
-            <div className="flex flex-col gap-1 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{detail.display_name}</span>
-                {detail.founding_member && <Crown className="h-4 w-4 text-amber-500" />}
-                {detail.roles.map((r) => (
-                  <Badge key={r} variant={r === "admin" ? "default" : "outline"}>{r}</Badge>
-                ))}
-                {detail.active_plan && <Badge variant="secondary">B+ {detail.active_plan}</Badge>}
-              </div>
-              <div className="text-xs text-muted-foreground">{detail.email ?? "(no email)"}</div>
-              <div className="text-xs text-muted-foreground font-mono">{detail.id}</div>
-              <div className="text-xs text-muted-foreground">
-                Joined {new Date(detail.created_at).toLocaleDateString()}
-              </div>
-            </div>
-          </Card>
+        <label className="btn-3d btn-3d-gold inline-flex cursor-pointer items-center gap-1.5 text-[11px]">
+          <Upload className="h-3 w-3" />
+          {uploadingAvatar ? "Uploading…" : "Upload avatar"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            disabled={uploadingAvatar}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void uploadAvatar(f);
+            }}
+          />
+        </label>
+      </div>
 
-          {/* Avatar */}
-          <Card className="p-4 space-y-3">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Avatar</div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {detail.avatar_url ? (
-                  <img
-                    src={detail.avatar_url}
-                    alt=""
-                    className="h-20 w-20 rounded-full border object-cover"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted text-2xl font-semibold">
-                    {(detail.display_name ?? "?").slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-                {detail.avatar_url && (
-                  <button
-                    type="button"
-                    onClick={() => void clearAvatar()}
-                    className="absolute -right-1 -top-1 rounded-full bg-background border p-1 text-muted-foreground hover:text-foreground"
-                    aria-label="Remove avatar"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <Button asChild size="sm" variant="outline" disabled={uploadingAvatar}>
-                  <span>
-                    {uploadingAvatar ? (
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    ) : (
-                      <Upload className="h-3 w-3 mr-1" />
-                    )}
-                    Upload avatar
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  disabled={uploadingAvatar}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void uploadAvatar(f);
-                  }}
-                />
-              </label>
-            </div>
-          </Card>
+      {/* Display name (admin editable) */}
+      <div className="mt-6 flex flex-col gap-2">
+        <label className="text-[10px] uppercase tracking-widest text-white/50">
+          Display name
+        </label>
+        <div className="flex gap-2">
+          <input
+            value={nameInput}
+            maxLength={14}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="Display name"
+            className="flex-1 rounded-lg border border-white/10 bg-black/30 px-4 py-2 font-display text-white/90 focus:border-[var(--gold)]/60 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void saveName()}
+            disabled={
+              savingName ||
+              !nameInput.trim() ||
+              nameInput.trim() === detail.display_name
+            }
+            className="btn-3d btn-3d-gold inline-flex items-center gap-1.5 text-[11px] disabled:opacity-50"
+          >
+            {savingName ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+          </button>
+        </div>
+        <div className="text-[10px] text-white/40">
+          Up to 14 characters. Must be unique.
+        </div>
+      </div>
 
-          {/* Display name */}
-          <Card className="p-4 space-y-2">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Display name</div>
-            <div className="flex gap-2">
-              <Input
-                value={nameInput}
-                maxLength={14}
-                onChange={(e) => setNameInput(e.target.value)}
-                placeholder="Display name"
-              />
-              <Button
-                onClick={() => void saveName()}
-                disabled={
-                  savingName ||
-                  !nameInput.trim() ||
-                  nameInput.trim() === detail.display_name
-                }
-              >
-                {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
-            </div>
-            <div className="text-xs text-muted-foreground">Up to 14 characters. Must be unique.</div>
-          </Card>
+      {/* Account badges */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+        {detail.founding_member && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-300">
+            <Crown className="h-3 w-3" /> Founder
+          </span>
+        )}
+        {detail.roles.map((r) => (
+          <Badge key={r} variant={r === "admin" ? "default" : "outline"}>
+            {r}
+          </Badge>
+        ))}
+        {detail.active_plan && (
+          <Badge variant="secondary">B+ {detail.active_plan}</Badge>
+        )}
+      </div>
+      <div className="mt-1 text-center text-[9px] font-mono text-white/30">{detail.id}</div>
+      <div className="text-center text-[9px] uppercase tracking-widest text-white/30">
+        Joined {new Date(detail.created_at).toLocaleDateString()}
+      </div>
 
-          {/* Card back */}
-          <Card className="p-4 space-y-3">
+      {/* Tabs (mirror user profile) */}
+      <Tabs defaultValue="cards" className="mt-8 w-full">
+        <TabsList className="grid w-full grid-cols-5 bg-black/30">
+          <TabsTrigger value="cards" className="text-[9px] uppercase tracking-wider">Cards</TabsTrigger>
+          <TabsTrigger value="friends" className="text-[9px] uppercase tracking-wider">Friends</TabsTrigger>
+          <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
+          <TabsTrigger value="keys" className="text-[9px] uppercase tracking-wider">Controls</TabsTrigger>
+          <TabsTrigger value="stats" className="text-[9px] uppercase tracking-wider">Stats</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cards" className="mt-4">
+          <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              <div className="text-[10px] uppercase tracking-widest text-white/50">
                 Custom card back
               </div>
-              {detail.active_card_back_url && (
-                <button
-                  type="button"
-                  onClick={() => void clearBack()}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Clear
-                </button>
+              {cardBackLocked && (
+                <div className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+                  <Lock className="h-3 w-3" /> Locked
+                </div>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div
-                className="overflow-hidden rounded-md border bg-muted"
+                className={`relative overflow-hidden rounded-lg border bg-black/40 ${
+                  cardBackLocked ? "border-[var(--gold)]/50" : "border-white/15"
+                }`}
                 style={{ width: 60, height: 84 }}
               >
                 {detail.active_card_back_url ? (
@@ -352,41 +393,64 @@ function AdminUserPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-muted-foreground">
+                  <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
                     default
                   </div>
                 )}
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <Button asChild size="sm" variant="outline" disabled={uploadingBack}>
-                  <span>
-                    {uploadingBack ? (
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    ) : (
-                      <Upload className="h-3 w-3 mr-1" />
-                    )}
-                    Upload (5:7 image)
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  disabled={uploadingBack}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void uploadBack(f);
-                  }}
-                />
-              </label>
+              <div className="flex flex-col gap-1.5">
+                <label className="btn-3d btn-3d-gold inline-flex cursor-pointer items-center gap-1.5 text-[11px]">
+                  <Upload className="h-3 w-3" />
+                  {uploadingBack ? "Uploading…" : "Upload (5:7)"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={uploadingBack}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void uploadBack(f);
+                    }}
+                  />
+                </label>
+                {detail.active_card_back_url && (
+                  <button
+                    type="button"
+                    onClick={() => void clearBack()}
+                    className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white/70"
+                  >
+                    Clear card back
+                  </button>
+                )}
+              </div>
             </div>
-          </Card>
+            <div className="mt-2 rounded-md border border-dashed border-white/10 bg-black/20 px-3 py-2 text-[10px] text-white/40">
+              Active card-slot equips are stored on the user's device and aren't
+              visible to admins.
+            </div>
+          </section>
+        </TabsContent>
 
-          {msg && <div className="text-sm text-emerald-500">{msg}</div>}
-          {err && <div className="text-sm text-destructive">{err}</div>}
-        </div>
-      )}
+        <TabsContent value="friends" className="mt-4">
+          <UserOnly label="Friends" />
+        </TabsContent>
+
+        <TabsContent value="titles" className="mt-4">
+          <ComingSoon label="Titles & Badges" />
+        </TabsContent>
+
+        <TabsContent value="keys" className="mt-4">
+          <UserOnly label="Keyboard controls" />
+        </TabsContent>
+
+        <TabsContent value="stats" className="mt-4">
+          <ComingSoon label="Stats" />
+        </TabsContent>
+      </Tabs>
+
+      {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
+      {err && <div className="mt-3 text-center text-xs text-[var(--player-red)]">{err}</div>}
     </div>
   );
 }
