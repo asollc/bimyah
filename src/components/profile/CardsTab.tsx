@@ -299,17 +299,22 @@ export function CardsTab({
           <div className="overflow-x-auto">
             <div className="flex min-w-full gap-2 pb-1">
               {exclusivesForMe.length === 0 ? (
-                <div className="flex h-[84px] w-full items-center justify-center rounded-lg border border-dashed border-white/10 text-[9px] uppercase tracking-widest text-white/30">
+                <div className="flex aspect-[5/7] w-full items-center justify-center rounded-lg border border-dashed border-white/10 text-[9px] uppercase tracking-widest text-white/30">
                   {isPlus ? "No exclusives yet" : "Exclusives appear with Bimyah!+"}
                 </div>
               ) : (
                 exclusivesForMe.map((c) => (
-                  <CollectionCard
+                  <div
                     key={c.id}
-                    card={c}
-                    selected={selectedCard === c.id}
-                    onClick={() => handleCardTap(c.id)}
-                  />
+                    className="shrink-0"
+                    style={{ flex: "0 0 calc((100% - 2.5rem) / 6)" }}
+                  >
+                    <CollectionCard
+                      card={c}
+                      selected={selectedCard === c.id}
+                      onClick={() => handleCardTap(c.id)}
+                    />
+                  </div>
                 ))
               )}
             </div>
