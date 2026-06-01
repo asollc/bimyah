@@ -216,6 +216,30 @@ export function GameTable({
     return () => clearInterval(t);
   }, [state.status]);
 
+  // Global activity heartbeat: any screen touch/click/keypress resets this
+  // player's idle timer. Throttled to once per 3s to avoid intent spam.
+  useEffect(() => {
+    if (state.status !== "playing") return;
+    if (!meId) return;
+    const me = state.players.find((p) => p.id === meId);
+    if (!me || me.isBot) return;
+    let lastSent = 0;
+    const ping = () => {
+      const now = Date.now();
+      if (now - lastSent < 3000) return;
+      lastSent = now;
+      dispatch({ kind: "ping", playerId: meId });
+    };
+    window.addEventListener("pointerdown", ping, { passive: true });
+    window.addEventListener("touchstart", ping, { passive: true });
+    window.addEventListener("keydown", ping);
+    return () => {
+      window.removeEventListener("pointerdown", ping);
+      window.removeEventListener("touchstart", ping);
+      window.removeEventListener("keydown", ping);
+    };
+  }, [state.status, meId, state.players]);
+
   // Countdown SFX
   const lastCountRef = useRef<number>(0);
   useEffect(() => {
