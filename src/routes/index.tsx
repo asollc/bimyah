@@ -106,6 +106,7 @@ function HomePage() {
       } catch {
         /* not signed in or no cosmetics */
       }
+      const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const initial = createInitialGame(
         "temp",
         [
@@ -115,6 +116,7 @@ function HomePage() {
             isBot: false,
             avatarUrl: cosmetics.avatarUrl,
             cardBackUrl: cosmetics.cardBackUrl,
+            cardBackUrls,
           },
         ],
         { mode, pointLimit, maxSeats },
