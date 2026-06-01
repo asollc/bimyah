@@ -254,15 +254,30 @@ export function CardsTab({
           <div className="text-[10px] uppercase tracking-widest text-white/50">
             Active Cards
           </div>
-          {selectedCard && (
-            <button
-              type="button"
-              onClick={applyToAllSlots}
-              className="btn-3d btn-3d-gold inline-flex items-center gap-1 text-[10px]"
-            >
-              <Check className="h-3 w-3" /> Add to all slots
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {activeSlots.some((s) => s !== null) && (
+              <button
+                type="button"
+                onClick={() => {
+                  persistSlots(Array(ACTIVE_SLOT_COUNT).fill(null));
+                  setSelectedSlot(null);
+                  setSelectedCard(null);
+                }}
+                className="text-[10px] uppercase tracking-widest text-white/40 hover:text-[var(--player-red)]"
+              >
+                Reset all
+              </button>
+            )}
+            {selectedCard && (
+              <button
+                type="button"
+                onClick={applyToAllSlots}
+                className="btn-3d btn-3d-gold inline-flex items-center gap-1 text-[10px]"
+              >
+                <Check className="h-3 w-3" /> Add to all slots
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-6 gap-2">
           {activeSlots.map((cardId, i) => {
