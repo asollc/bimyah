@@ -40,7 +40,7 @@ function ProfilePage() {
   const [isPlus, setIsPlus] = useState<boolean>(false);
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingBack, setUploadingBack] = useState(false);
+  
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
