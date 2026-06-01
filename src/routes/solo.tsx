@@ -63,8 +63,9 @@ function SoloGame() {
           /* ignore */
         }
       }
+      const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const specs = setup.players.map((p) =>
-        p.isBot ? p : { ...p, ...cosmetics },
+        p.isBot ? p : { ...p, ...cosmetics, cardBackUrls },
       );
       const initial = createInitialGame("solo", specs, {
         mode: setup.mode,
