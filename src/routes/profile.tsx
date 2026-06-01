@@ -213,63 +213,14 @@ function ProfilePage() {
         </TabsList>
 
         <TabsContent value="cards" className="mt-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-widest text-white/50">
-                Custom card back
-              </div>
-              {activeCardBack && (
-                <button
-                  type="button"
-                  onClick={clearCardBack}
-                  className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="overflow-hidden rounded-lg border border-white/15 bg-black/40"
-                style={{ width: 60, height: 84 }}
-              >
-                {activeCardBack ? (
-                  <img src={activeCardBack} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
-                    default
-                  </div>
-                )}
-              </div>
-              <label
-                className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
-                  !isPlus ? "opacity-70" : ""
-                }`}
-              >
-                {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                {uploadingBack ? "Uploading…" : "Upload (5:7 image)"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  disabled={!isPlus || uploadingBack}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void uploadCardBack(f);
-                  }}
-                />
-              </label>
-            </div>
-            {!isPlus && (
-              <Link
-                to="/plus"
-                className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
-              >
-                Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
-              </Link>
-            )}
-          </div>
+          <CardsTab
+            userId={user.id}
+            isPlus={isPlus}
+            activeCardBack={activeCardBack}
+            setActiveCardBack={setActiveCardBack}
+            setMsg={setMsg}
+            setErr={setErr}
+          />
         </TabsContent>
 
         <TabsContent value="friends" className="mt-4">
