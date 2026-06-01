@@ -55,6 +55,8 @@ export type Intent =
   | { kind: "nextMatch" }
   | { kind: "newTournament"; pointLimit: number | null }
   | { kind: "readyForNext"; playerId: string; ready: boolean }
+  /** Activity heartbeat: any screen touch/click resets idle timers. */
+  | { kind: "ping"; playerId: string }
   /** Host-only: connection lifecycle. Never accept from remote. */
   | { kind: "markDisconnected"; playerId: string }
   | { kind: "markReconnected"; playerId: string }
