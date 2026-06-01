@@ -247,7 +247,7 @@ export function CardsTab({
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   e.target.value = "";
-                  if (f) void uploadCardBack(f);
+                  if (f) void pickCardBack(f);
                 }}
               />
             </label>
