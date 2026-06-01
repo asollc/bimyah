@@ -1850,7 +1850,11 @@ function PlayerSeat({
                   </div>
                 );
               }
-              // Inactive player's pile, collapsed → tap to expand.
+              // Per-pile card back: prefer the player's equipped slot at
+              // this pile index, then fall back to their single cardBackUrl,
+              // then the default image.
+              const pileBackUrl =
+                player.cardBackUrls?.[i] ?? player.cardBackUrl ?? null;
               if (!isMe && player.freeCards && onFreePileTap) {
                 return (
                   <CardBack
@@ -1859,7 +1863,7 @@ function PlayerSeat({
                     count={pile.length}
                     onClick={() => onFreePileTap(i)}
                     highlight={!!pileHold}
-                    imageUrl={player.cardBackUrl}
+                    imageUrl={pileBackUrl}
                   />
                 );
               }
@@ -1870,7 +1874,7 @@ function PlayerSeat({
                   count={isOpen ? 0 : pile.length}
                   onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
                   highlight={isOpen}
-                  imageUrl={player.cardBackUrl}
+                  imageUrl={pileBackUrl}
                 />
               );
             })}
