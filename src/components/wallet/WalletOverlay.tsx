@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
+import { getMyLedger } from "@/lib/rpc/decor.functions";
 
 type Pack = { priceId: string; base: number; amount: number; priceUsd: number; bonusPct?: number };
 
@@ -25,6 +26,14 @@ export function WalletOverlay({
   const [wallet, setWallet] = useState<Wallet>({ bimbucks: 0, bimbits: 0 });
   const [view, setView] = useState<"wallet" | "buy" | "checkout">("wallet");
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
+  type LedgerRow = {
+    id: string;
+    item_name: string;
+    currency: string;
+    price: number;
+    created_at: string;
+  };
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
 
   async function loadWallet() {
     const { data } = await supabase
@@ -38,8 +47,18 @@ export function WalletOverlay({
     });
   }
 
+  async function loadLedger() {
+    try {
+      const res = await getMyLedger();
+      setLedger(res.rows as LedgerRow[]);
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     void loadWallet();
+    void loadLedger();
     // Realtime: refresh when wallet changes (e.g. webhook credits Bimbucks).
     const channel = supabase
       .channel(`wallet-${userId}`)
@@ -117,6 +136,45 @@ export function WalletOverlay({
             >
               <BimbucksIcon size={14} /> Buy Bimbucks
             </button>
+
+            <div className="mt-4">
+              <div className="mb-2 text-[10px] uppercase tracking-widest text-white/50">
+                Purchase History
+              </div>
+              {ledger.length === 0 ? (
+                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-4 text-center text-[11px] text-white/40">
+                  No purchases yet.
+                </div>
+              ) : (
+                <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-black/30 p-2">
+                  {ledger.map((row) => (
+                    <div
+                      key={row.id}
+                      className="flex items-center justify-between gap-2 rounded-md bg-black/40 px-2 py-1.5 text-[11px]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-white/90">{row.item_name}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-white/40">
+                          {new Date(row.created_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-[var(--gold)]">
+                        {row.currency === "bimbucks" ? (
+                          <BimbucksIcon size={12} />
+                        ) : (
+                          <BimbitsIcon size={12} />
+                        )}
+                        <span className="font-display">{row.price.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

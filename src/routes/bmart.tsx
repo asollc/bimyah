@@ -8,7 +8,16 @@ import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { listBmartProducts } from "@/lib/rpc/bmart.functions";
+import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
+
+const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
+  cards: "card_back",
+  victory: "victory",
+  titles: "title",
+  backgrounds: "background",
+  tabletops: "tabletop",
+};
 
 export const Route = createFileRoute("/bmart")({
   head: () => ({
@@ -265,7 +274,7 @@ function BmartPage() {
     toast.success(`Added to cart: ${p.name}`);
   }
 
-  function buyNow(p: Product) {
+  async function buyNow(p: Product) {
     const have = p.currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
     if (have < p.price) {
       if (p.currency === "bimbucks") {
@@ -276,7 +285,21 @@ function BmartPage() {
       }
       return;
     }
-    toast.success(`Purchased ${p.name}!`);
+    try {
+      const res = await purchaseItem({
+        data: {
+          itemId: p.id,
+          itemName: p.name,
+          currency: p.currency,
+          price: p.price,
+          kind: KIND_BY_CATEGORY[p.category],
+        },
+      });
+      setWallet({ bimbucks: res.bimbucks, bimbits: res.bimbits });
+      toast.success(`Purchased ${p.name}! Added to your profile.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
@@ -383,7 +406,7 @@ function BmartPage() {
             )
           }
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
-          onCheckout={() => {
+          onCheckout={async () => {
             const needBimbucks = cart
               .filter((i) => i.product.currency === "bimbucks")
               .reduce((n, i) => n + i.product.price * i.qty, 0);
@@ -400,9 +423,28 @@ function BmartPage() {
               toast.error("Not enough Bimbits for this cart.");
               return;
             }
-            toast.success("Checkout complete (placeholder).");
-            setCart([]);
-            setCartOpen(false);
+            try {
+              let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
+              for (const i of cart) {
+                for (let q = 0; q < i.qty; q++) {
+                  latest = await purchaseItem({
+                    data: {
+                      itemId: i.product.id,
+                      itemName: i.product.name,
+                      currency: i.product.currency,
+                      price: i.product.price,
+                      kind: KIND_BY_CATEGORY[i.product.category],
+                    },
+                  });
+                }
+              }
+              setWallet(latest);
+              toast.success("Purchases added to your profile.");
+              setCart([]);
+              setCartOpen(false);
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
           }}
           onBuyBimbucks={() => {
             setCartOpen(false);

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
+import { DecorTab } from "@/components/profile/DecorTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
@@ -232,7 +233,7 @@ function ProfilePage() {
         <TabsList className="grid w-full grid-cols-5 bg-black/30">
           <TabsTrigger value="cards" className="text-[9px] uppercase tracking-wider">Cards</TabsTrigger>
           <TabsTrigger value="friends" className="text-[9px] uppercase tracking-wider">Friends</TabsTrigger>
-          <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
+          <TabsTrigger value="decor" className="text-[9px] uppercase tracking-wider">Decor</TabsTrigger>
           <TabsTrigger value="keys" className="text-[9px] uppercase tracking-wider">Controls</TabsTrigger>
           <TabsTrigger value="stats" className="text-[9px] uppercase tracking-wider">Stats</TabsTrigger>
         </TabsList>
@@ -253,8 +254,8 @@ function ProfilePage() {
           <FriendsPanel />
         </TabsContent>
 
-        <TabsContent value="titles" className="mt-4">
-          <ComingSoon label="Titles & Badges" />
+        <TabsContent value="decor" className="mt-4">
+          <DecorTab />
         </TabsContent>
 
         <TabsContent value="keys" className="mt-4">
