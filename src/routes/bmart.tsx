@@ -7,6 +7,7 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
+import { listBmartProducts } from "@/lib/rpc/bmart.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/bmart")({
