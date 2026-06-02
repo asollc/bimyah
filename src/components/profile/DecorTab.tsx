@@ -6,9 +6,10 @@ import {
   getMyDecor,
   setEquipped,
   type DecorKind,
+  type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
 
-type InventoryRow = { kind: DecorKind; item_id: string; acquired_at: string };
+type InventoryRow = DecorInventoryItem;
 type EquippedRow = Record<string, string | null> | null;
 
 /* ---------- Built-in defaults (the "NONE" / original entries) ---------- */
