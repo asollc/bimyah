@@ -41,6 +41,9 @@ import {
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, Crown, Trash2, Plus } from "lucide-react";
 import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
+import { BmartAdminTab } from "@/components/admin/BmartAdminTab";
+import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
+import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -108,13 +111,14 @@ function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-7">
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subs">Subscriptions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="gifts">Gifts</TabsTrigger>
             <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
+            <TabsTrigger value="bmart">Bmart</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
 
@@ -135,6 +139,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="bulletins" className="mt-6">
             <BulletinsAdminTab />
+          </TabsContent>
+          <TabsContent value="bmart" className="mt-6">
+            <BmartAdminTab />
           </TabsContent>
           <TabsContent value="config" className="mt-6">
             <ConfigTab />
@@ -427,6 +434,24 @@ function UsersTab() {
     }
   }
 
+  async function handleGiftCurrency(u: UserRow, currency: "bimbucks" | "bimbits") {
+    const label = currency === "bimbucks" ? "Bimbucks" : "Bimbits";
+    const input = prompt(`Gift ${label} to ${u.display_name}.\nAmount:`, "100");
+    if (!input) return;
+    const amount = parseInt(input, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Invalid amount");
+      return;
+    }
+    try {
+      await giftUserCurrency({ data: { user_id: u.id, currency, amount } });
+      toast.success(`Gifted ${amount.toLocaleString()} ${label} to ${u.display_name}`);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
+  }
+
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -494,7 +519,23 @@ function UsersTab() {
                     </Button>
                   </td>
                   <td className="p-2 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Gift Bimbucks"
+                        onClick={() => void handleGiftCurrency(u, "bimbucks")}
+                      >
+                        <BimbucksIcon size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Gift Bimbits"
+                        onClick={() => void handleGiftCurrency(u, "bimbits")}
+                      >
+                        <BimbitsIcon size={16} />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

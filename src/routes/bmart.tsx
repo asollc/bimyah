@@ -7,6 +7,7 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
+import { listBmartProducts } from "@/lib/rpc/bmart.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/bmart")({
@@ -39,7 +40,69 @@ type Product = {
 
 type CartItem = { product: Product; qty: number };
 
-/* ---------------- Product catalog (placeholders) ---------------- */
+type BmartOverrideRow = {
+  id: string;
+  name: string | null;
+  price: number | null;
+  currency: Currency | null;
+  category: CategoryId | null;
+  hidden: boolean;
+  image_url: string | null;
+  is_custom: boolean;
+  sort_order: number;
+};
+
+function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[] {
+  const byId = new Map(overrides.map((o) => [o.id, o]));
+  const merged: Product[] = [];
+  for (const p of base) {
+    const o = byId.get(p.id);
+    if (!o) {
+      merged.push(p);
+      continue;
+    }
+    if (o.hidden) continue;
+    merged.push({
+      ...p,
+      name: o.name ?? p.name,
+      price: o.price ?? p.price,
+      currency: o.currency ?? p.currency,
+      category: o.category ?? p.category,
+      preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? p.name} /> : p.preview,
+    });
+    byId.delete(p.id);
+  }
+  // Add admin-created custom products (not present in base list)
+  for (const o of byId.values()) {
+    if (o.hidden) continue;
+    if (!o.is_custom) continue;
+    if (!o.category || !o.currency || o.price == null) continue;
+    merged.push({
+      id: o.id,
+      name: o.name ?? o.id,
+      category: o.category,
+      currency: o.currency,
+      price: o.price,
+      preview: o.image_url ? (
+        <ImagePreview src={o.image_url} alt={o.name ?? o.id} />
+      ) : (
+        <div className="grid h-full w-full place-items-center text-xs text-white/40">No preview</div>
+      ),
+    });
+  }
+  return merged;
+}
+
+function ImagePreview({ src, alt }: { src: string; alt: string }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="h-full w-full object-contain"
+      loading="lazy"
+    />
+  );
+}
 
 const CARD_COLORS: { id: string; name: string; gradient: string }[] = [
   { id: "crimson", name: "Crimson", gradient: "radial-gradient(circle at 50% 50%, oklch(0.55 0.24 25), oklch(0.18 0.08 20))" },
@@ -166,6 +229,15 @@ function BmartPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
+
+  useEffect(() => {
+    void listBmartProducts()
+      .then((res) => setOverrides(res.rows as BmartOverrideRow[]))
+      .catch(() => {});
+  }, []);
+
+  const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
 
   useEffect(() => {
     if (!user) return;
@@ -284,6 +356,7 @@ function BmartPage() {
         ) : (
           <CategoryView
             categoryId={activeCat}
+            catalog={catalog}
             onBack={() => setActiveCat(null)}
             onAdd={addToCart}
             onBuy={buyNow}
@@ -355,19 +428,22 @@ function BmartPage() {
 
 function CategoryView({
   categoryId,
+  catalog,
   onBack,
   onAdd,
   onBuy,
   onPreview,
 }: {
   categoryId: CategoryId;
+  catalog: Product[];
   onBack: () => void;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
 }) {
   const cat = CATEGORIES.find((c) => c.id === categoryId)!;
-  const items = useMemo(() => PRODUCTS.filter((p) => p.category === categoryId), [categoryId]);
+  const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
+
 
   return (
     <div>

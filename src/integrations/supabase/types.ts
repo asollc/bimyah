@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      bmart_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          currency: string | null
+          hidden: boolean
+          id: string
+          image_url: string | null
+          is_custom: boolean
+          name: string | null
+          price: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          hidden?: boolean
+          id: string
+          image_url?: string | null
+          is_custom?: boolean
+          name?: string | null
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          hidden?: boolean
+          id?: string
+          image_url?: string | null
+          is_custom?: boolean
+          name?: string | null
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bplus_config: {
         Row: {
           annual_price_cents: number
