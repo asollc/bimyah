@@ -1804,7 +1804,23 @@ function PlayerSeat({
             {player.name.slice(0, 1).toUpperCase()}
           </span>
         )}
+        {player.titleUrl && (
+          <img
+            src={player.titleUrl}
+            alt=""
+            aria-hidden
+            className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+          />
+        )}
         <span>{player.name}</span>
+        {player.badgeUrl && (
+          <img
+            src={player.badgeUrl}
+            alt=""
+            aria-hidden
+            className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+          />
+        )}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
