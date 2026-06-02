@@ -167,6 +167,15 @@ function BmartPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
+
+  useEffect(() => {
+    void listBmartProducts()
+      .then((res) => setOverrides(res.rows as BmartOverrideRow[]))
+      .catch(() => {});
+  }, []);
+
+  const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
 
   useEffect(() => {
     if (!user) return;
