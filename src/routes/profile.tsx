@@ -38,6 +38,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/profile" });
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -45,11 +46,20 @@ function ProfilePage() {
   const [isPlus, setIsPlus] = useState<boolean>(false);
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  
+  const [walletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
+
+  // If returning from a Bimbucks purchase, open the wallet so the user
+  // sees their new balance (credited by the webhook).
+  useEffect(() => {
+    if (search.bimbucks === "success") {
+      setWalletOpen(true);
+      void navigate({ to: "/profile", search: {}, replace: true });
+    }
+  }, [search.bimbucks, navigate]);
 
   useEffect(() => {
     if (!user) return;
