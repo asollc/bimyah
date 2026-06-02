@@ -25,9 +25,13 @@ export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "Profile — Bimyah!" },
+      { title: "Profile — Bimyah!" },
       { name: "description", content: "Manage your Bimyah! profile, avatar, and card backs." },
       { name: "robots", content: "noindex" },
     ],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    bimbucks: typeof s.bimbucks === "string" ? s.bimbucks : undefined,
   }),
   component: ProfilePage,
 });
