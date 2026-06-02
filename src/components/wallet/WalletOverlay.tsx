@@ -5,7 +5,7 @@ import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
 
-type Pack = { priceId: string; amount: number; priceUsd: number; bonusPct?: number };
+type Pack = { priceId: string; base: number; amount: number; priceUsd: number; bonusPct?: number };
 
 const PACKS: Pack[] = [
   { priceId: "bimbucks_1000_onetime", base: 1000, amount: 1000, priceUsd: 1 },
