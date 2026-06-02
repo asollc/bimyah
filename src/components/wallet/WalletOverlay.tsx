@@ -60,8 +60,9 @@ export function WalletOverlay({
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-[#0a0d0a] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
+      <div className="relative my-auto w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-[#0a0d0a] p-5 shadow-2xl">
+
         <div className="flex items-center justify-between">
           {view !== "wallet" ? (
             <button
