@@ -233,7 +233,7 @@ function ProfilePage() {
         <TabsList className="grid w-full grid-cols-5 bg-black/30">
           <TabsTrigger value="cards" className="text-[9px] uppercase tracking-wider">Cards</TabsTrigger>
           <TabsTrigger value="friends" className="text-[9px] uppercase tracking-wider">Friends</TabsTrigger>
-          <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
+          <TabsTrigger value="decor" className="text-[9px] uppercase tracking-wider">Decor</TabsTrigger>
           <TabsTrigger value="keys" className="text-[9px] uppercase tracking-wider">Controls</TabsTrigger>
           <TabsTrigger value="stats" className="text-[9px] uppercase tracking-wider">Stats</TabsTrigger>
         </TabsList>
