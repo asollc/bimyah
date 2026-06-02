@@ -55,6 +55,33 @@ export function CardsTab({
   const [customCardBacks, setCustomCardBacks] = useState<
     Array<{ id: string; image_url: string }>
   >([]);
+  const [purchasedCards, setPurchasedCards] = useState<
+    Array<{ id: string; name: string; imageUrl: string }>
+  >([]);
+
+  // Load card_back inventory items purchased from Bmart.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await getMyDecor();
+        if (cancelled) return;
+        const items = res.inventory
+          .filter((r) => r.kind === "card_back" && r.image_url)
+          .map((r) => ({
+            id: `purchased-${r.item_id}`,
+            name: r.name ?? "Card",
+            imageUrl: r.image_url as string,
+          }));
+        setPurchasedCards(items);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   // Hydrate slot selections from localStorage.
   useEffect(() => {
