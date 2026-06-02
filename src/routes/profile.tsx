@@ -245,6 +245,7 @@ function ProfilePage() {
             setActiveCardBack={setActiveCardBack}
             setMsg={setMsg}
             setErr={setErr}
+            onRequestBuyBimbucks={() => setWalletOpen(true)}
           />
         </TabsContent>
 
