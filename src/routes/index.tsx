@@ -23,11 +23,11 @@ import { saveReentryCode } from "@/game/reentry";
 import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
-import { getMyCosmetics } from "@/lib/server/cosmetics.functions";
+import { getMyCosmetics } from "@/lib/rpc/cosmetics.functions";
 import { getActiveCardSlotImages } from "@/game/cosmetics";
-import { getMyEntitlement } from "@/lib/server/bplus.functions";
-import { getMyAdminStatus, recordShareEvent } from "@/lib/server/admin.functions";
-import { createPublicMatch } from "@/lib/server/publicMatches.functions";
+import { getMyEntitlement } from "@/lib/rpc/bplus.functions";
+import { getMyAdminStatus, recordShareEvent } from "@/lib/rpc/admin.functions";
+import { createPublicMatch } from "@/lib/rpc/publicMatches.functions";
 import type { GameMode } from "@/game/types";
 import {
   Select,

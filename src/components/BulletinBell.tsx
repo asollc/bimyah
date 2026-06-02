@@ -9,7 +9,7 @@ import {
   markAllBulletinsRead,
   hideBulletin,
   hideBulletins,
-} from "@/lib/server/bulletins.functions";
+} from "@/lib/rpc/bulletins.functions";
 
 type Bulletin = {
   id: string;

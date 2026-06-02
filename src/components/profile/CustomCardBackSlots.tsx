@@ -6,7 +6,7 @@ import {
   purchaseCustomCardSlots,
   addCustomCardBack,
   SLOT_COST_BIMBUCKS,
-} from "@/lib/server/customCards.functions";
+} from "@/lib/rpc/customCards.functions";
 import { CardCropModal } from "@/components/profile/CardCropModal";
 import { BimbucksIcon } from "@/components/wallet/CurrencyIcons";
 

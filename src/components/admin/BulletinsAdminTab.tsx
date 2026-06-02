@@ -10,7 +10,7 @@ import {
   adminUpdateBulletin,
   adminDeleteBulletin,
   adminUploadBulletinMedia,
-} from "@/lib/server/bulletins.functions";
+} from "@/lib/rpc/bulletins.functions";
 
 const FONTS = [
   "Inter, sans-serif",
