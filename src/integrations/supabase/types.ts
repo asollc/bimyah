@@ -668,12 +668,44 @@ export type Database = {
         }
         Relationships: []
       }
+      wallets: {
+        Row: {
+          bimbits: number
+          bimbucks: number
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bimbits?: number
+          bimbucks?: number
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bimbits?: number
+          bimbucks?: number
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       claim_lifetime_slot: { Args: never; Returns: boolean }
+      credit_bimbits: {
+        Args: { _amount: number; _user_id: string }
+        Returns: undefined
+      }
+      credit_bimbucks: {
+        Args: { _amount: number; _user_id: string }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
