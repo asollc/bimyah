@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
+import { DecorTab } from "@/components/profile/DecorTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
