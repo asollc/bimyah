@@ -719,8 +719,27 @@ export function GameTable({
   }, [state, meId, selectedHandCardId, sortEnabled, me, keybinds]);
 
 
+  const hostPlayer = state.hostId
+    ? state.players.find((p) => p.id === state.hostId)
+    : state.players[0];
+  const hostBackgroundUrl = hostPlayer?.backgroundUrl ?? null;
+  const hostTabletopUrl = hostPlayer?.tabletopUrl ?? null;
+  const hostTableArtUrl = hostPlayer?.tableArtUrl ?? null;
+
   return (
-    <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden" data-spectator={spectator ? "1" : undefined}>
+    <div
+      className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden"
+      data-spectator={spectator ? "1" : undefined}
+      style={
+        hostBackgroundUrl
+          ? {
+              backgroundImage: `url(${hostBackgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
+    >
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
