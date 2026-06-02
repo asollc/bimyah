@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { paypalFetch } from "@/server/paypal.server";
+import { paypalFetch } from "@/lib/server/paypal.server";
 
 // PayPal webhook for lifetime captures and refunds.
 // Configure in PayPal Developer Dashboard → your app → Webhooks:

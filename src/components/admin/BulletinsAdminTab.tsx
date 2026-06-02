@@ -10,7 +10,7 @@ import {
   adminUpdateBulletin,
   adminDeleteBulletin,
   adminUploadBulletinMedia,
-} from "@/server/bulletins.functions";
+} from "@/lib/server/bulletins.functions";
 
 const FONTS = [
   "Inter, sans-serif",

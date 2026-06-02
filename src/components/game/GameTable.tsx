@@ -130,13 +130,13 @@ export function GameTable({
     void (async () => {
       try {
         if (state.status === "lobby") {
-          const { updatePublicMatch } = await import("@/server/publicMatches.functions");
+          const { updatePublicMatch } = await import("@/lib/server/publicMatches.functions");
           if (cancelled) return;
           await updatePublicMatch({
             data: { game_id: code, seats_taken: Math.max(1, state.players.length) },
           });
         } else {
-          const { removePublicMatch } = await import("@/server/publicMatches.functions");
+          const { removePublicMatch } = await import("@/lib/server/publicMatches.functions");
           if (cancelled) return;
           await removePublicMatch({ data: { game_id: code } });
           sessionStorage.removeItem(`bimyah_public_${code}`);
