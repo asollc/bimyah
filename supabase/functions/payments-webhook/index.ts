@@ -123,11 +123,58 @@ async function handleGiftCheckout(session: any, env: StripeEnv) {
   }
 }
 
+const BIMBUCKS_AMOUNTS: Record<string, number> = {
+  bimbucks_1000_onetime: 1000,
+  bimbucks_5000_onetime: 5000,
+  bimbucks_10000_onetime: 10000,
+};
+
+async function handleBimbucksCheckout(session: any, userId: string, priceId: string, env: StripeEnv) {
+  if (session.payment_status !== "paid") return;
+  const amount = BIMBUCKS_AMOUNTS[priceId];
+  if (!amount) return;
+  const sb = getSupabase();
+
+  // Idempotency
+  const { data: existing } = await sb
+    .from("payments")
+    .select("id")
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+  if (existing) return;
+
+  const { error: creditErr } = await sb.rpc("credit_bimbucks", {
+    _user_id: userId,
+    _amount: amount,
+  });
+  if (creditErr) {
+    console.error("credit_bimbucks failed:", creditErr);
+    return;
+  }
+
+  await sb.from("payments").insert({
+    user_id: userId,
+    amount_cents: session.amount_total ?? 0,
+    currency: (session.currency ?? "usd").toUpperCase(),
+    plan: "lifetime",
+    status: "completed",
+    stripe_session_id: session.id,
+    stripe_payment_intent_id: session.payment_intent ?? null,
+    environment: env,
+    raw: { kind: "bimbucks", priceId, amount, session },
+  });
+}
+
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId: string | undefined = session.metadata?.userId;
   const priceId: string | undefined = session.metadata?.priceId;
   if (!userId || !priceId) {
     console.error("checkout.session.completed missing metadata", session.id);
+    return;
+  }
+  // Bimbucks purchases credit the player's wallet.
+  if (BIMBUCKS_AMOUNTS[priceId]) {
+    await handleBimbucksCheckout(session, userId, priceId, env);
     return;
   }
   // Route gift checkouts to a separate handler — they do NOT consume a

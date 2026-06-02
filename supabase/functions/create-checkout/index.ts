@@ -13,6 +13,9 @@ const ALLOWED_PRICE_IDS = new Set([
   "bplus_yearly",
   "bplus_gift_friend_onetime",
   "bplus_gift_random_onetime",
+  "bimbucks_1000_onetime",
+  "bimbucks_5000_onetime",
+  "bimbucks_10000_onetime",
 ]);
 
 const GIFT_PRICE_IDS = new Set([

@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, Upload, Lock, X } from "lucide-react";
+import { ArrowLeft, LogOut, Upload, Lock, X, Wallet } from "lucide-react";
 import { setMyAvatar } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
@@ -10,6 +10,7 @@ import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
+import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 
 function ComingSoon({ label }: { label: string }) {
   return (
@@ -24,15 +25,20 @@ export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "Profile — Bimyah!" },
+      { title: "Profile — Bimyah!" },
       { name: "description", content: "Manage your Bimyah! profile, avatar, and card backs." },
       { name: "robots", content: "noindex" },
     ],
+  }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    bimbucks: typeof s.bimbucks === "string" ? s.bimbucks : undefined,
   }),
   component: ProfilePage,
 });
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const search = useSearch({ from: "/profile" });
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -40,11 +46,20 @@ function ProfilePage() {
   const [isPlus, setIsPlus] = useState<boolean>(false);
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  
+  const [walletOpen, setWalletOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
   }, [loading, user, navigate]);
+
+  // If returning from a Bimbucks purchase, open the wallet so the user
+  // sees their new balance (credited by the webhook).
+  useEffect(() => {
+    if (search.bimbucks === "success") {
+      setWalletOpen(true);
+      void navigate({ to: "/profile", search: {}, replace: true });
+    }
+  }, [search.bimbucks, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -118,15 +133,25 @@ function ProfilePage() {
         <Link to="/" className="text-white/60 hover:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <button
-          onClick={async () => {
-            await signOut();
-            void navigate({ to: "/" });
-          }}
-          className="flex items-center gap-1 text-xs text-white/60 hover:text-white"
-        >
-          <LogOut className="h-4 w-4" /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              await signOut();
+              void navigate({ to: "/" });
+            }}
+            className="flex items-center gap-1 text-xs text-white/60 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+          <button
+            type="button"
+            onClick={() => setWalletOpen(true)}
+            aria-label="Open wallet"
+            className="group relative grid h-11 w-11 place-items-center rounded-xl border border-[var(--gold)]/60 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] shadow-[0_4px_0_0_#5a4310,0_6px_12px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)] transition-transform active:translate-y-0.5 active:shadow-[0_2px_0_0_#5a4310,0_3px_6px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)]"
+          >
+            <Wallet className="h-5 w-5 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]" strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
 
       <h1 className="mt-4 text-center font-display text-2xl uppercase tracking-widest text-[var(--gold)]">
@@ -247,6 +272,10 @@ function ProfilePage() {
 
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
       {err && <div className="mt-3 text-center text-xs text-[var(--player-red)]">{err}</div>}
+
+      {walletOpen && user && (
+        <WalletOverlay userId={user.id} onClose={() => setWalletOpen(false)} />
+      )}
     </div>
   );
 }
