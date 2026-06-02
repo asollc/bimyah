@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyAdminStatus,
@@ -898,7 +898,7 @@ function GiftsTab() {
           </thead>
           <tbody>
             {purchasers.map((p) => (
-              <>
+              <Fragment key={p.purchaser_id}>
                 <tr key={p.purchaser_id} className="border-t">
                   <td className="p-2">
                     <div className="font-medium">{p.display_name}</div>
@@ -976,7 +976,7 @@ function GiftsTab() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
             {!purchasers.length && !loading && (
               <tr>
