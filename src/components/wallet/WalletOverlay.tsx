@@ -131,6 +131,45 @@ export function WalletOverlay({
             >
               <BimbucksIcon size={14} /> Buy Bimbucks
             </button>
+
+            <div className="mt-4">
+              <div className="mb-2 text-[10px] uppercase tracking-widest text-white/50">
+                Purchase History
+              </div>
+              {ledger.length === 0 ? (
+                <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-4 text-center text-[11px] text-white/40">
+                  No purchases yet.
+                </div>
+              ) : (
+                <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-black/30 p-2">
+                  {ledger.map((row) => (
+                    <div
+                      key={row.id}
+                      className="flex items-center justify-between gap-2 rounded-md bg-black/40 px-2 py-1.5 text-[11px]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-white/90">{row.item_name}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-white/40">
+                          {new Date(row.created_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-[var(--gold)]">
+                        {row.currency === "bimbucks" ? (
+                          <BimbucksIcon size={12} />
+                        ) : (
+                          <BimbitsIcon size={12} />
+                        )}
+                        <span className="font-display">{row.price.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
