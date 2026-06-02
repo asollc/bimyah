@@ -922,9 +922,27 @@ export function GameTable({
       >
         <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
           <div
-            className="wood-table grid place-items-center rounded-full"
-            style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
+            className="wood-table grid place-items-center rounded-full relative"
+            style={{
+              width: "min(38vw, 32vh, 280px)",
+              height: "min(38vw, 32vh, 280px)",
+              ...(hostTabletopUrl
+                ? {
+                    backgroundImage: `url(${hostTabletopUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : null),
+            }}
           >
+            {hostTableArtUrl && (
+              <img
+                src={hostTableArtUrl}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full rounded-full object-contain opacity-90"
+              />
+            )}
              {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
              <div className="relative flex flex-col items-center justify-center gap-1.5">
                {state.status !== "lobby" && (() => {
