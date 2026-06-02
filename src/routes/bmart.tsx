@@ -356,6 +356,7 @@ function BmartPage() {
         ) : (
           <CategoryView
             categoryId={activeCat}
+            catalog={catalog}
             onBack={() => setActiveCat(null)}
             onAdd={addToCart}
             onBuy={buyNow}
