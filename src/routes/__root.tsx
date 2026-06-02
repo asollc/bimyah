@@ -99,7 +99,7 @@ function RootComponent() {
     <AuthProvider>
       <WhitelistAckGuard />
       <Outlet />
-      <Toaster richColors position="top-right" style={{ zIndex: 999999 }} />
+      <Toaster richColors position="top-right" offset={60} style={{ zIndex: 2147483647 }} />
     </AuthProvider>
   );
 }
