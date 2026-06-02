@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyAdminStatus,
@@ -47,10 +47,7 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [
-      { title: "Admin — Bimyah!" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "Admin — Bimyah!" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminPage,
 });
@@ -90,7 +87,9 @@ function AdminPage() {
         <ShieldOff className="h-12 w-12 text-muted-foreground" />
         <h1 className="text-2xl font-semibold">Forbidden</h1>
         <p className="text-muted-foreground text-sm">You don't have admin access.</p>
-        <Link to="/" className="text-sm underline">Go home</Link>
+        <Link to="/" className="text-sm underline">
+          Go home
+        </Link>
       </div>
     );
   }
@@ -236,7 +235,9 @@ function SubscriptionsTab() {
           className="max-w-xs"
         />
         <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="active">Active</SelectItem>
@@ -279,14 +280,20 @@ function SubscriptionsTab() {
               <tr key={r.id} className="border-t">
                 <td className="p-2">
                   <div className="font-medium">{r.display_name}</div>
-                  <div className="text-xs text-muted-foreground font-mono">{r.user_id.slice(0, 8)}…</div>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {r.user_id.slice(0, 8)}…
+                  </div>
                 </td>
                 <td className="p-2">{r.plan}</td>
                 <td className="p-2">
-                  <Badge variant={r.status === "active" ? "default" : "secondary"}>{r.status}</Badge>
+                  <Badge variant={r.status === "active" ? "default" : "secondary"}>
+                    {r.status}
+                  </Badge>
                 </td>
                 <td className="p-2 text-xs">{r.source}</td>
-                <td className="p-2 text-xs">{r.current_period_end ? new Date(r.current_period_end).toLocaleDateString() : "—"}</td>
+                <td className="p-2 text-xs">
+                  {r.current_period_end ? new Date(r.current_period_end).toLocaleDateString() : "—"}
+                </td>
                 <td className="p-2 text-xs">{new Date(r.created_at).toLocaleDateString()}</td>
                 <td className="p-2 text-right">
                   {r.status === "active" && (
@@ -298,7 +305,11 @@ function SubscriptionsTab() {
               </tr>
             ))}
             {!rows.length && !loading && (
-              <tr><td colSpan={7} className="p-6 text-center text-muted-foreground text-sm">No subscriptions</td></tr>
+              <tr>
+                <td colSpan={7} className="p-6 text-center text-muted-foreground text-sm">
+                  No subscriptions
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -315,13 +326,21 @@ function GrantBplusForm({ onDone }: { onDone: () => void | Promise<void> }) {
     <Card className="p-4">
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-64">
-          <label className="text-xs uppercase tracking-wide text-muted-foreground">User ID (uuid)</label>
-          <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="00000000-0000-..." />
+          <label className="text-xs uppercase tracking-wide text-muted-foreground">
+            User ID (uuid)
+          </label>
+          <Input
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            placeholder="00000000-0000-..."
+          />
         </div>
         <div>
           <label className="text-xs uppercase tracking-wide text-muted-foreground">Plan</label>
           <Select value={plan} onValueChange={(v) => setPlan(v as typeof plan)}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="lifetime">Lifetime</SelectItem>
               <SelectItem value="monthly">Monthly</SelectItem>
@@ -381,7 +400,12 @@ function UsersTab() {
 
   async function toggleAdmin(u: UserRow) {
     const isAdmin = u.roles.includes("admin");
-    if (!confirm(isAdmin ? `Demote ${u.display_name} from admin?` : `Promote ${u.display_name} to admin?`)) return;
+    if (
+      !confirm(
+        isAdmin ? `Demote ${u.display_name} from admin?` : `Promote ${u.display_name} to admin?`,
+      )
+    )
+      return;
     try {
       await setAdminRole({ data: { user_id: u.id, make_admin: !isAdmin } });
       toast.success(isAdmin ? "Demoted" : "Promoted");
@@ -418,7 +442,10 @@ function UsersTab() {
       }
       return;
     }
-    const planInput = prompt(`Grant Bimyah!+ to ${u.display_name}.\nEnter plan: lifetime, monthly, or annual`, "lifetime");
+    const planInput = prompt(
+      `Grant Bimyah!+ to ${u.display_name}.\nEnter plan: lifetime, monthly, or annual`,
+      "lifetime",
+    );
     if (!planInput) return;
     const plan = planInput.trim().toLowerCase();
     if (!["lifetime", "monthly", "annual"].includes(plan)) {
@@ -426,7 +453,9 @@ function UsersTab() {
       return;
     }
     try {
-      await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
+      await grantBplus({
+        data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" },
+      });
       toast.success("Granted Bimyah!+");
       await refresh();
     } catch (e: unknown) {
@@ -450,7 +479,6 @@ function UsersTab() {
       toast.error(String((e as Error)?.message ?? e));
     }
   }
-
 
   return (
     <div className="space-y-4">
@@ -503,7 +531,9 @@ function UsersTab() {
                   <td className="p-2">
                     <div className="flex gap-1">
                       {u.roles.map((r) => (
-                        <Badge key={r} variant={r === "admin" ? "default" : "outline"}>{r}</Badge>
+                        <Badge key={r} variant={r === "admin" ? "default" : "outline"}>
+                          {r}
+                        </Badge>
                       ))}
                     </div>
                   </td>
@@ -545,7 +575,9 @@ function UsersTab() {
                         {isAdmin ? "Demote" : "Make admin"}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => void toggleFounder(u)}>
-                        <Crown className={`h-4 w-4 ${u.founding_member ? "text-amber-500" : "text-muted-foreground"}`} />
+                        <Crown
+                          className={`h-4 w-4 ${u.founding_member ? "text-amber-500" : "text-muted-foreground"}`}
+                        />
                       </Button>
                       <Button
                         size="sm"
@@ -564,7 +596,11 @@ function UsersTab() {
               );
             })}
             {!rows.length && !loading && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">No users</td></tr>
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">
+                  No users
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -667,7 +703,9 @@ function ConfigTab() {
       setLoading(false);
     }
   }
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+  }, []);
 
   if (loading) return <Loader2 className="h-5 w-5 animate-spin" />;
 
@@ -676,19 +714,33 @@ function ConfigTab() {
       <h2 className="text-lg font-semibold">Bimyah!+ pricing & quota</h2>
       <p className="text-sm text-muted-foreground">
         Lifetime sold: <span className="font-medium">{meta?.lifetime_sold ?? 0}</span>
-        {meta?.updated_at && (
-          <> · Updated {new Date(meta.updated_at).toLocaleString()}</>
-        )}
+        {meta?.updated_at && <> · Updated {new Date(meta.updated_at).toLocaleString()}</>}
       </p>
 
-      <Field label="Lifetime quota (slots)" type="int" value={form.lifetime_quota}
-        onChange={(v) => setForm({ ...form, lifetime_quota: v })} />
-      <Field label="Lifetime price" type="cents" value={form.lifetime_price_cents}
-        onChange={(v) => setForm({ ...form, lifetime_price_cents: v })} />
-      <Field label="Monthly price" type="cents" value={form.monthly_price_cents}
-        onChange={(v) => setForm({ ...form, monthly_price_cents: v })} />
-      <Field label="Annual price" type="cents" value={form.annual_price_cents}
-        onChange={(v) => setForm({ ...form, annual_price_cents: v })} />
+      <Field
+        label="Lifetime quota (slots)"
+        type="int"
+        value={form.lifetime_quota}
+        onChange={(v) => setForm({ ...form, lifetime_quota: v })}
+      />
+      <Field
+        label="Lifetime price"
+        type="cents"
+        value={form.lifetime_price_cents}
+        onChange={(v) => setForm({ ...form, lifetime_price_cents: v })}
+      />
+      <Field
+        label="Monthly price"
+        type="cents"
+        value={form.monthly_price_cents}
+        onChange={(v) => setForm({ ...form, monthly_price_cents: v })}
+      />
+      <Field
+        label="Annual price"
+        type="cents"
+        value={form.annual_price_cents}
+        onChange={(v) => setForm({ ...form, annual_price_cents: v })}
+      />
 
       <Button
         disabled={saving}
@@ -712,9 +764,15 @@ function ConfigTab() {
 }
 
 function Field({
-  label, value, onChange, type,
+  label,
+  value,
+  onChange,
+  type,
 }: {
-  label: string; value: number; onChange: (v: number) => void; type: "int" | "cents";
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  type: "int" | "cents";
 }) {
   const display = type === "cents" ? (value / 100).toFixed(2) : String(value);
   return (
@@ -848,7 +906,9 @@ function GiftsTab() {
       setLoading(false);
     }
   }
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+  }, []);
 
   async function handleAllocate(giftId: string) {
     const recipientId = (recipientByGift[giftId] ?? "").trim();
@@ -898,7 +958,7 @@ function GiftsTab() {
           </thead>
           <tbody>
             {purchasers.map((p) => (
-              <>
+              <Fragment key={p.purchaser_id}>
                 <tr key={p.purchaser_id} className="border-t">
                   <td className="p-2">
                     <div className="font-medium">{p.display_name}</div>
@@ -913,7 +973,9 @@ function GiftsTab() {
                   </td>
                   <td className="p-2">{p.fulfilled}</td>
                   <td className="p-2 text-xs">{fmtCents(p.total_amount_cents)}</td>
-                  <td className="p-2 text-xs">{new Date(p.last_purchase_at).toLocaleDateString()}</td>
+                  <td className="p-2 text-xs">
+                    {new Date(p.last_purchase_at).toLocaleDateString()}
+                  </td>
                   <td className="p-2 text-right">
                     <Button
                       size="sm"
@@ -976,7 +1038,7 @@ function GiftsTab() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
             {!purchasers.length && !loading && (
               <tr>
