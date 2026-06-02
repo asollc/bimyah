@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
+import { getMyLedger } from "@/lib/rpc/decor.functions";
 
 type Pack = { priceId: string; base: number; amount: number; priceUsd: number; bonusPct?: number };
 
