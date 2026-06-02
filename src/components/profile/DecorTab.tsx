@@ -218,7 +218,7 @@ export function DecorTab() {
   }, []);
 
   const ownedByKind = useMemo(() => {
-    const m: Record<DecorKind, string[]> = {
+    const m: Record<DecorKind, InventoryRow[]> = {
       card_back: [],
       title: [],
       badge: [],
@@ -227,7 +227,7 @@ export function DecorTab() {
       tabletop: [],
       table_art: [],
     };
-    for (const r of inventory) m[r.kind].push(r.item_id);
+    for (const r of inventory) m[r.kind].push(r);
     return m;
   }, [inventory]);
 
