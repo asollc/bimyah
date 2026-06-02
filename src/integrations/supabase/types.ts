@@ -673,6 +673,7 @@ export type Database = {
           bimbits: number
           bimbucks: number
           created_at: string
+          custom_slots_purchased: number
           updated_at: string
           user_id: string
         }
@@ -680,6 +681,7 @@ export type Database = {
           bimbits?: number
           bimbucks?: number
           created_at?: string
+          custom_slots_purchased?: number
           updated_at?: string
           user_id: string
         }
@@ -687,6 +689,7 @@ export type Database = {
           bimbits?: number
           bimbucks?: number
           created_at?: string
+          custom_slots_purchased?: number
           updated_at?: string
           user_id?: string
         }
@@ -730,6 +733,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      purchase_custom_card_slots: {
+        Args: { _quantity: number; _user_id: string }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

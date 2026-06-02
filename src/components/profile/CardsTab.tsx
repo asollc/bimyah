@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Lock, Upload, X, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  setMyActiveCardBack,
-  clearMyActiveCardBack,
-} from "@/server/cosmetics.functions";
-import { BplusIcon } from "@/components/BplusIcon";
-import { CardCropModal } from "@/components/profile/CardCropModal";
+import { X, Check } from "lucide-react";
+import { CustomCardBackSlots } from "@/components/profile/CustomCardBackSlots";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
@@ -42,28 +35,25 @@ type Props = {
   setActiveCardBack: (url: string | null) => void;
   setMsg: (s: string | null) => void;
   setErr: (s: string | null) => void;
+  onRequestBuyBimbucks: () => void;
 };
 
 export function CardsTab({
   userId,
   isPlus,
-  activeCardBack,
-  setActiveCardBack,
   setMsg,
   setErr,
+  onRequestBuyBimbucks,
 }: Props) {
-  const [uploadingBack, setUploadingBack] = useState(false);
-  const [pendingCrop, setPendingCrop] = useState<{
-    url: string;
-    name: string;
-    type: string;
-  } | null>(null);
   const slotsKey = `bimyah:activeCardSlots:${userId}`;
   const [activeSlots, setActiveSlots] = useState<(string | null)[]>(() =>
     Array(ACTIVE_SLOT_COUNT).fill(null),
   );
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [customCardBacks, setCustomCardBacks] = useState<
+    Array<{ id: string; image_url: string }>
+  >([]);
 
   // Hydrate slot selections from localStorage.
   useEffect(() => {
@@ -89,81 +79,26 @@ export function CardsTab({
     }
   }
 
-  // Card-back upload is a one-time action — once set, the slot is permanent.
-  const cardBackLocked = !!activeCardBack;
+  const customCards: CardDef[] = useMemo(
+    () =>
+      customCardBacks.map((c, idx) => ({
+        id: `custom-${c.id}`,
+        name: `Custom ${idx + 1}`,
+        imageUrl: c.image_url,
+      })),
+    [customCardBacks],
+  );
 
-  async function pickCardBack(file: File) {
-    setErr(null);
-    setMsg(null);
-    try {
-      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
-      const url = URL.createObjectURL(file);
-      const { width, height } = await measureImage(url);
-      const target = 5 / 7;
-      const actual = width / height;
-      const off = Math.abs(actual - target) / target;
-      if (off > 0.02) {
-        // Aspect deviates from 5:7 — open crop UI.
-        setPendingCrop({ url, name: file.name, type: file.type });
-        return;
-      }
-      URL.revokeObjectURL(url);
-      await uploadCardBack(file);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
+  const ownedCards: CardDef[] = useMemo(
+    () => [...BUILTIN_CARDS, ...customCards],
+    [customCards],
+  );
 
-  async function uploadCardBack(file: File) {
-    setErr(null);
-    setMsg(null);
-    setUploadingBack(true);
-    try {
-      if (!isPlus) throw new Error("Bimyah!+ is required to set a custom card back.");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
-      const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
-      const path = `${userId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("card-backs")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("card-backs").getPublicUrl(path);
-      const url = pub.publicUrl;
-      await setMyActiveCardBack({ data: { imageUrl: url } });
-      setActiveCardBack(url);
-      setMsg("Card back set. This slot is now permanent.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setUploadingBack(false);
-    }
-  }
+  const exclusivesForMe: CardDef[] = useMemo(
+    () => EXCLUSIVE_CARDS.filter((c) => !c.requiresPlus || isPlus),
+    [isPlus],
+  );
 
-  function measureImage(url: string): Promise<{ width: number; height: number }> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error("Could not read image"));
-      img.src = url;
-    });
-  }
-
-  // Build the full owned-card pool: built-ins + uploaded custom back +
-  // exclusives the user is entitled to.
-  const ownedCards: CardDef[] = useMemo(() => {
-    const list: CardDef[] = [...BUILTIN_CARDS];
-    if (activeCardBack) {
-      list.push({ id: "custom-back", name: "Custom", imageUrl: activeCardBack });
-    }
-    return list;
-  }, [activeCardBack]);
-
-  const exclusivesForMe: CardDef[] = useMemo(() => {
-    return EXCLUSIVE_CARDS.filter((c) => !c.requiresPlus || isPlus);
-  }, [isPlus]);
-
-  // Map card id → image URL across every source the user can choose from.
   const cardImageById = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of [...ownedCards, ...exclusivesForMe]) map.set(c.id, c.imageUrl);
@@ -172,7 +107,6 @@ export function CardsTab({
 
   function handleCardTap(cardId: string) {
     if (selectedSlot !== null) {
-      // Place into the pre-selected slot.
       const next = [...activeSlots];
       next[selectedSlot] = cardId;
       persistSlots(next);
@@ -208,82 +142,22 @@ export function CardsTab({
     setSelectedSlot(null);
   }
 
-  // Cards section pads to multiples of 6 rows; the first card is always the
-  // standard Bimyah! back.
-  const collectionCards = ownedCards; // already starts with standard-bimyah
+  const collectionCards = ownedCards;
   const rowCount = Math.max(1, Math.ceil((collectionCards.length + 1) / 6));
   const paddedCollection: (CardDef | null)[] = [...collectionCards];
   while (paddedCollection.length < rowCount * 6) paddedCollection.push(null);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ===== Custom card back ===== */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-widest text-white/50">
-            Custom card back
-          </div>
-          {cardBackLocked && (
-            <div className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
-              <Lock className="h-3 w-3" /> Locked
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <CardSlot imageUrl={activeCardBack} label="custom" locked={cardBackLocked} />
-          {!cardBackLocked && (
-            <label
-              className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
-                !isPlus ? "opacity-70" : ""
-              }`}
-            >
-              {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-              {uploadingBack ? "Uploading…" : "Upload (5:7 image)"}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                disabled={!isPlus || uploadingBack}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) void pickCardBack(f);
-                }}
-              />
-            </label>
-          )}
-        </div>
-        {cardBackLocked && (
-          <div className="text-[10px] text-white/40">
-            Your custom card back is permanent and now appears in your collection below.
-          </div>
-        )}
-        {!isPlus && !cardBackLocked && (
-          <Link
-            to="/plus"
-            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-[var(--gold)]/80 underline"
-          >
-            Custom card backs unlock with <BplusIcon size={14} /> Bimyah!+
-          </Link>
-        )}
-        {/* Dev/admin escape hatch: only visible during development. */}
-        {cardBackLocked && import.meta.env.DEV && (
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await clearMyActiveCardBack();
-                setActiveCardBack(null);
-              } catch (e) {
-                setErr((e as Error).message);
-              }
-            }}
-            className="self-start text-[9px] uppercase tracking-widest text-white/30 hover:text-white/60"
-          >
-            [dev] reset card back
-          </button>
-        )}
-      </section>
+      {/* ===== Custom card backs (purchasable slots) ===== */}
+      <CustomCardBackSlots
+        userId={userId}
+        isPlus={isPlus}
+        onCardBacksChanged={setCustomCardBacks}
+        onRequestBuyBimbucks={onRequestBuyBimbucks}
+        setMsg={setMsg}
+        setErr={setErr}
+      />
 
       {/* ===== Active Cards ===== */}
       <section className="flex flex-col gap-3">
@@ -343,7 +217,6 @@ export function CardsTab({
           Card Collection
         </div>
 
-        {/* Bimyah! Exclusives */}
         <div className="flex flex-col gap-1.5">
           <div className="text-[9px] uppercase tracking-widest text-[var(--gold)]/80">
             Bimyah! Exclusives
@@ -373,7 +246,6 @@ export function CardsTab({
           </div>
         </div>
 
-        {/* Owned cards (grows in rows of 6) */}
         <div className="flex flex-col gap-1.5">
           <div className="text-[9px] uppercase tracking-widest text-white/60">Cards</div>
           <div className="grid grid-cols-6 gap-2">
@@ -392,61 +264,11 @@ export function CardsTab({
           </div>
         </div>
       </section>
-
-      {pendingCrop && (
-        <CardCropModal
-          imageUrl={pendingCrop.url}
-          fileName={pendingCrop.name}
-          mimeType={pendingCrop.type}
-          onCancel={() => {
-            URL.revokeObjectURL(pendingCrop.url);
-            setPendingCrop(null);
-          }}
-          onConfirm={async (file) => {
-            const url = pendingCrop.url;
-            setPendingCrop(null);
-            URL.revokeObjectURL(url);
-            await uploadCardBack(file);
-          }}
-        />
-      )}
     </div>
   );
 }
 
 /* ===== sub-components ===== */
-
-function CardSlot({
-  imageUrl,
-  label,
-  locked,
-}: {
-  imageUrl: string | null;
-  label: string;
-  locked?: boolean;
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-lg border bg-black/40 ${
-        locked ? "border-[var(--gold)]/50" : "border-white/15"
-      }`}
-      style={{ width: 60, height: 84 }}
-    >
-      {imageUrl ? (
-        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-[9px] uppercase tracking-widest text-white/30">
-          {label}
-        </div>
-      )}
-      {locked && (
-        <div className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-[var(--gold)]">
-          <Lock className="h-2.5 w-2.5" />
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SlotButton({
   index,
