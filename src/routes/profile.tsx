@@ -133,15 +133,25 @@ function ProfilePage() {
         <Link to="/" className="text-white/60 hover:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <button
-          onClick={async () => {
-            await signOut();
-            void navigate({ to: "/" });
-          }}
-          className="flex items-center gap-1 text-xs text-white/60 hover:text-white"
-        >
-          <LogOut className="h-4 w-4" /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              await signOut();
+              void navigate({ to: "/" });
+            }}
+            className="flex items-center gap-1 text-xs text-white/60 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+          <button
+            type="button"
+            onClick={() => setWalletOpen(true)}
+            aria-label="Open wallet"
+            className="group relative grid h-11 w-11 place-items-center rounded-xl border border-[var(--gold)]/60 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] shadow-[0_4px_0_0_#5a4310,0_6px_12px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)] transition-transform active:translate-y-0.5 active:shadow-[0_2px_0_0_#5a4310,0_3px_6px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)]"
+          >
+            <Wallet className="h-5 w-5 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]" strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
 
       <h1 className="mt-4 text-center font-display text-2xl uppercase tracking-widest text-[var(--gold)]">
