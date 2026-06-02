@@ -23,6 +23,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_custom: boolean
+          kind: Database["public"]["Enums"]["inventory_kind"] | null
           name: string | null
           price: number | null
           sort_order: number
@@ -36,6 +37,7 @@ export type Database = {
           id: string
           image_url?: string | null
           is_custom?: boolean
+          kind?: Database["public"]["Enums"]["inventory_kind"] | null
           name?: string | null
           price?: number | null
           sort_order?: number
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_custom?: boolean
+          kind?: Database["public"]["Enums"]["inventory_kind"] | null
           name?: string | null
           price?: number | null
           sort_order?: number
@@ -521,6 +524,39 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_ledger: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          item_id: string
+          item_name: string
+          kind: Database["public"]["Enums"]["inventory_kind"] | null
+          price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: string
+          item_id: string
+          item_name: string
+          kind?: Database["public"]["Enums"]["inventory_kind"] | null
+          price: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          item_id?: string
+          item_name?: string
+          kind?: Database["public"]["Enums"]["inventory_kind"] | null
+          price?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -653,6 +689,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_equipped: {
+        Row: {
+          background_id: string | null
+          badge_id: string | null
+          card_back_id: string | null
+          table_art_id: string | null
+          tabletop_id: string | null
+          title_id: string | null
+          updated_at: string
+          user_id: string
+          victory_id: string | null
+        }
+        Insert: {
+          background_id?: string | null
+          badge_id?: string | null
+          card_back_id?: string | null
+          table_art_id?: string | null
+          tabletop_id?: string | null
+          title_id?: string | null
+          updated_at?: string
+          user_id: string
+          victory_id?: string | null
+        }
+        Update: {
+          background_id?: string | null
+          badge_id?: string | null
+          card_back_id?: string | null
+          table_art_id?: string | null
+          tabletop_id?: string | null
+          title_id?: string | null
+          updated_at?: string
+          user_id?: string
+          victory_id?: string | null
+        }
+        Relationships: []
+      }
+      user_inventory: {
+        Row: {
+          acquired_at: string
+          id: string
+          item_id: string
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          source: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          id?: string
+          item_id: string
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          source?: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          id?: string
+          item_id?: string
+          kind?: Database["public"]["Enums"]["inventory_kind"]
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_keybinds: {
         Row: {
           bindings: Json
@@ -776,6 +875,17 @@ export type Database = {
         }
         Returns: number
       }
+      purchase_bmart_item: {
+        Args: {
+          _currency: string
+          _item_id: string
+          _item_name: string
+          _kind: Database["public"]["Enums"]["inventory_kind"]
+          _price: number
+          _user_id: string
+        }
+        Returns: Json
+      }
       purchase_custom_card_slots: {
         Args: { _quantity: number; _user_id: string }
         Returns: Json
@@ -797,6 +907,14 @@ export type Database = {
       friendship_status: "pending" | "accepted"
       gift_status: "pending" | "fulfilled" | "refunded"
       gift_type: "friend" | "random"
+      inventory_kind:
+        | "card_back"
+        | "title"
+        | "badge"
+        | "victory"
+        | "background"
+        | "tabletop"
+        | "table_art"
       payment_status: "completed" | "refunded" | "failed"
     }
     CompositeTypes: {
@@ -931,6 +1049,15 @@ export const Constants = {
       friendship_status: ["pending", "accepted"],
       gift_status: ["pending", "fulfilled", "refunded"],
       gift_type: ["friend", "random"],
+      inventory_kind: [
+        "card_back",
+        "title",
+        "badge",
+        "victory",
+        "background",
+        "tabletop",
+        "table_art",
+      ],
       payment_status: ["completed", "refunded", "failed"],
     },
   },
