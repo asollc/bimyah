@@ -5,6 +5,8 @@ import adBanner from "../assets/ad-banner.jpeg";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { WhitelistAckGuard } from "@/auth/WhitelistAckGuard";
 import { Toaster } from "@/components/ui/sonner";
+import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 
 function NotFoundComponent() {
   return (
