@@ -5,12 +5,12 @@ import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
 
-type Pack = { priceId: string; amount: number; priceUsd: number };
+type Pack = { priceId: string; amount: number; priceUsd: number; bonusPct?: number };
 
 const PACKS: Pack[] = [
   { priceId: "bimbucks_1000_onetime", amount: 1000, priceUsd: 1 },
-  { priceId: "bimbucks_5000_onetime", amount: 5000, priceUsd: 5 },
-  { priceId: "bimbucks_10000_onetime", amount: 10000, priceUsd: 10 },
+  { priceId: "bimbucks_5000_onetime", amount: 5500, priceUsd: 5, bonusPct: 10 },
+  { priceId: "bimbucks_10000_onetime", amount: 12000, priceUsd: 10, bonusPct: 20 },
 ];
 
 type Wallet = { bimbucks: number; bimbits: number };
