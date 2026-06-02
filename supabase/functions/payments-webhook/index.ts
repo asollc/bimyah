@@ -125,8 +125,8 @@ async function handleGiftCheckout(session: any, env: StripeEnv) {
 
 const BIMBUCKS_AMOUNTS: Record<string, number> = {
   bimbucks_1000_onetime: 1000,
-  bimbucks_5000_onetime: 5000,
-  bimbucks_10000_onetime: 10000,
+  bimbucks_5000_onetime: 5500,
+  bimbucks_10000_onetime: 12000,
 };
 
 async function handleBimbucksCheckout(session: any, userId: string, priceId: string, env: StripeEnv) {
