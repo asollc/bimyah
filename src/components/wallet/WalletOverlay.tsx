@@ -152,7 +152,9 @@ export function WalletOverlay({
                       ) : null}
                     </div>
                     <div className="text-[10px] uppercase tracking-widest text-white/50">
-                      One-time purchase
+                      {pack.bonusPct
+                        ? `${pack.base.toLocaleString()} + ${(pack.amount - pack.base).toLocaleString()} bonus`
+                        : "One-time purchase"}
                     </div>
                   </div>
                 </div>
