@@ -1145,7 +1145,17 @@ export function GameTable({
 
         return (
           <>
-            <Confetti />
+            {winner?.victoryUrl ? (
+              <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+                <img
+                  src={winner.victoryUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-90 animate-pop-in"
+                />
+              </div>
+            ) : (
+              <Confetti />
+            )}
             <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
               {/* Ready status row — shown above the winner announcement
                   whenever there's more than one human in the lobby. */}
