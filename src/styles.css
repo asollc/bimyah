@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap");
+/* Google Fonts are loaded via <link> in src/routes/__root.tsx (lightningcss cannot resolve remote @imports). */
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
