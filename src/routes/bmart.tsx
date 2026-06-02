@@ -428,19 +428,22 @@ function BmartPage() {
 
 function CategoryView({
   categoryId,
+  catalog,
   onBack,
   onAdd,
   onBuy,
   onPreview,
 }: {
   categoryId: CategoryId;
+  catalog: Product[];
   onBack: () => void;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
 }) {
   const cat = CATEGORIES.find((c) => c.id === categoryId)!;
-  const items = useMemo(() => PRODUCTS.filter((p) => p.category === categoryId), [categoryId]);
+  const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
+
 
   return (
     <div>
