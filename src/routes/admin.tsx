@@ -519,7 +519,23 @@ function UsersTab() {
                     </Button>
                   </td>
                   <td className="p-2 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Gift Bimbucks"
+                        onClick={() => void handleGiftCurrency(u, "bimbucks")}
+                      >
+                        <BimbucksIcon size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Gift Bimbits"
+                        onClick={() => void handleGiftCurrency(u, "bimbits")}
+                      >
+                        <BimbitsIcon size={16} />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
