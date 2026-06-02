@@ -26,9 +26,14 @@ export function WalletOverlay({
   const [wallet, setWallet] = useState<Wallet>({ bimbucks: 0, bimbits: 0 });
   const [view, setView] = useState<"wallet" | "buy" | "checkout">("wallet");
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
-  const [ledger, setLedger] = useState<
-    Array<{ id: string; item_name: string; currency: string; price: number; created_at: string }>
-  >([]);
+  type LedgerRow = {
+    id: string;
+    item_name: string;
+    currency: string;
+    price: number;
+    created_at: string;
+  };
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
 
   async function loadWallet() {
     const { data } = await supabase
@@ -45,7 +50,7 @@ export function WalletOverlay({
   async function loadLedger() {
     try {
       const res = await getMyLedger();
-      setLedger(res.rows as typeof ledger);
+      setLedger(res.rows as LedgerRow[]);
     } catch {
       /* ignore */
     }
