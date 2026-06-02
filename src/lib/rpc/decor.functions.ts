@@ -57,12 +57,12 @@ export const setEquipped = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const col = equippedKindToColumn[data.kind];
+    const payload: Record<string, string | null> = { user_id: userId };
+    payload[col] = data.itemId;
     const { error } = await supabase
       .from("user_equipped")
-      .upsert(
-        { user_id: userId, [col]: data.itemId } as Record<string, unknown>,
-        { onConflict: "user_id" },
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .upsert(payload as any, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
