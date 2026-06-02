@@ -406,7 +406,7 @@ function BmartPage() {
             )
           }
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
-          onCheckout={() => {
+          onCheckout={async () => {
             const needBimbucks = cart
               .filter((i) => i.product.currency === "bimbucks")
               .reduce((n, i) => n + i.product.price * i.qty, 0);
@@ -423,9 +423,28 @@ function BmartPage() {
               toast.error("Not enough Bimbits for this cart.");
               return;
             }
-            toast.success("Checkout complete (placeholder).");
-            setCart([]);
-            setCartOpen(false);
+            try {
+              let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
+              for (const i of cart) {
+                for (let q = 0; q < i.qty; q++) {
+                  latest = await purchaseItem({
+                    data: {
+                      itemId: i.product.id,
+                      itemName: i.product.name,
+                      currency: i.product.currency,
+                      price: i.product.price,
+                      kind: KIND_BY_CATEGORY[i.product.category],
+                    },
+                  });
+                }
+              }
+              setWallet(latest);
+              toast.success("Purchases added to your profile.");
+              setCart([]);
+              setCartOpen(false);
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
           }}
           onBuyBimbucks={() => {
             setCartOpen(false);
