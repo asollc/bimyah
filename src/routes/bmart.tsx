@@ -8,7 +8,16 @@ import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
 import { listBmartProducts } from "@/lib/rpc/bmart.functions";
+import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
+
+const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
+  cards: "card_back",
+  victory: "victory",
+  titles: "title",
+  backgrounds: "background",
+  tabletops: "tabletop",
+};
 
 export const Route = createFileRoute("/bmart")({
   head: () => ({
