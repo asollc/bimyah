@@ -42,8 +42,18 @@ export function WalletOverlay({
     });
   }
 
+  async function loadLedger() {
+    try {
+      const res = await getMyLedger();
+      setLedger(res.rows as typeof ledger);
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     void loadWallet();
+    void loadLedger();
     // Realtime: refresh when wallet changes (e.g. webhook credits Bimbucks).
     const channel = supabase
       .channel(`wallet-${userId}`)
