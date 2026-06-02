@@ -719,8 +719,27 @@ export function GameTable({
   }, [state, meId, selectedHandCardId, sortEnabled, me, keybinds]);
 
 
+  const hostPlayer = state.hostId
+    ? state.players.find((p) => p.id === state.hostId)
+    : state.players[0];
+  const hostBackgroundUrl = hostPlayer?.backgroundUrl ?? null;
+  const hostTabletopUrl = hostPlayer?.tabletopUrl ?? null;
+  const hostTableArtUrl = hostPlayer?.tableArtUrl ?? null;
+
   return (
-    <div className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden" data-spectator={spectator ? "1" : undefined}>
+    <div
+      className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden"
+      data-spectator={spectator ? "1" : undefined}
+      style={
+        hostBackgroundUrl
+          ? {
+              backgroundImage: `url(${hostBackgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
+    >
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
@@ -903,9 +922,27 @@ export function GameTable({
       >
         <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
           <div
-            className="wood-table grid place-items-center rounded-full"
-            style={{ width: "min(38vw, 32vh, 280px)", height: "min(38vw, 32vh, 280px)" }}
+            className="wood-table grid place-items-center rounded-full relative"
+            style={{
+              width: "min(38vw, 32vh, 280px)",
+              height: "min(38vw, 32vh, 280px)",
+              ...(hostTabletopUrl
+                ? {
+                    backgroundImage: `url(${hostTabletopUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : null),
+            }}
           >
+            {hostTableArtUrl && (
+              <img
+                src={hostTableArtUrl}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full rounded-full object-contain opacity-90"
+              />
+            )}
              {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
              <div className="relative flex flex-col items-center justify-center gap-1.5">
                {state.status !== "lobby" && (() => {
@@ -1145,7 +1182,17 @@ export function GameTable({
 
         return (
           <>
-            <Confetti />
+            {winner?.victoryUrl ? (
+              <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+                <img
+                  src={winner.victoryUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-90 animate-pop-in"
+                />
+              </div>
+            ) : (
+              <Confetti />
+            )}
             <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
               {/* Ready status row — shown above the winner announcement
                   whenever there's more than one human in the lobby. */}
@@ -1757,7 +1804,23 @@ function PlayerSeat({
             {player.name.slice(0, 1).toUpperCase()}
           </span>
         )}
+        {player.titleUrl && (
+          <img
+            src={player.titleUrl}
+            alt=""
+            aria-hidden
+            className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+          />
+        )}
         <span>{player.name}</span>
+        {player.badgeUrl && (
+          <img
+            src={player.badgeUrl}
+            alt=""
+            aria-hidden
+            className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+          />
+        )}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
@@ -2021,7 +2084,23 @@ function ViewAllCardsModal({
                   >
                     {player.name.slice(0, 1).toUpperCase()}
                   </span>
+                  {player.titleUrl && (
+                    <img
+                      src={player.titleUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+                    />
+                  )}
                   <span>{player.name}</span>
+                  {player.badgeUrl && (
+                    <img
+                      src={player.badgeUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+                    />
+                  )}
                   {player.hand.length > 0 && (
                     <span className="text-[9px] uppercase tracking-wider text-white/50">
                       hand: {player.hand.length}

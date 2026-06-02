@@ -23,7 +23,17 @@ const equippedKindToColumn: Record<DecorKind, string> = {
   table_art: "table_art_id",
 };
 
-/** Inventory + currently equipped selections for the signed-in user. */
+export type DecorInventoryItem = {
+  kind: DecorKind;
+  item_id: string;
+  acquired_at: string;
+  name: string | null;
+  image_url: string | null;
+};
+
+/** Inventory + currently equipped selections for the signed-in user.
+ *  Each inventory row is augmented with `name` and `image_url` looked up
+ *  from `bmart_products` so the profile can show real previews. */
 export const getMyDecor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -39,8 +49,35 @@ export const getMyDecor = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .maybeSingle(),
     ]);
+    const inventoryRows = (inv ?? []) as Array<{
+      kind: DecorKind;
+      item_id: string;
+      acquired_at: string;
+    }>;
+    const ids = Array.from(new Set(inventoryRows.map((r) => r.item_id)));
+    let productMap = new Map<string, { name: string | null; image_url: string | null }>();
+    if (ids.length) {
+      const { data: prods } = await supabase
+        .from("bmart_products")
+        .select("id, name, image_url")
+        .in("id", ids);
+      productMap = new Map(
+        (prods ?? []).map((p) => [
+          p.id as string,
+          {
+            name: (p.name as string | null) ?? null,
+            image_url: (p.image_url as string | null) ?? null,
+          },
+        ]),
+      );
+    }
+    const inventory: DecorInventoryItem[] = inventoryRows.map((r) => ({
+      ...r,
+      name: productMap.get(r.item_id)?.name ?? null,
+      image_url: productMap.get(r.item_id)?.image_url ?? null,
+    }));
     return {
-      inventory: (inv ?? []) as Array<{ kind: DecorKind; item_id: string; acquired_at: string }>,
+      inventory,
       equipped: (eq ?? null) as null | Record<string, string | null>,
     };
   });
@@ -91,7 +128,7 @@ export const purchaseItem = createServerFn({ method: "POST" })
       _kind: data.kind,
     });
     if (error) throw new Error(error.message);
-    void supabase; // silence unused
+    void supabase;
     return res as { bimbucks: number; bimbits: number };
   });
 

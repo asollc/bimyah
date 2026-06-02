@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X, Check } from "lucide-react";
 import { CustomCardBackSlots } from "@/components/profile/CustomCardBackSlots";
+import { getMyDecor } from "@/lib/rpc/decor.functions";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
@@ -54,6 +55,33 @@ export function CardsTab({
   const [customCardBacks, setCustomCardBacks] = useState<
     Array<{ id: string; image_url: string }>
   >([]);
+  const [purchasedCards, setPurchasedCards] = useState<
+    Array<{ id: string; name: string; imageUrl: string }>
+  >([]);
+
+  // Load card_back inventory items purchased from Bmart.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await getMyDecor();
+        if (cancelled) return;
+        const items = res.inventory
+          .filter((r) => r.kind === "card_back" && r.image_url)
+          .map((r) => ({
+            id: `purchased-${r.item_id}`,
+            name: r.name ?? "Card",
+            imageUrl: r.image_url as string,
+          }));
+        setPurchasedCards(items);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   // Hydrate slot selections from localStorage.
   useEffect(() => {
@@ -90,8 +118,8 @@ export function CardsTab({
   );
 
   const ownedCards: CardDef[] = useMemo(
-    () => [...BUILTIN_CARDS, ...customCards],
-    [customCards],
+    () => [...BUILTIN_CARDS, ...customCards, ...purchasedCards],
+    [customCards, purchasedCards],
   );
 
   const exclusivesForMe: CardDef[] = useMemo(

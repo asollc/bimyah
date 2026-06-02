@@ -192,9 +192,15 @@ function JoinGame() {
         .map((p) => p.reentryCode)
         .filter((c): c is string => !!c);
       const reentryCode = generateReentryCode(existingCodes);
-      let cosmetics: { avatarUrl: string | null; cardBackUrl: string | null } = {
+      let cosmetics: Awaited<ReturnType<typeof getMyCosmetics>> = {
         avatarUrl: null,
         cardBackUrl: null,
+        titleUrl: null,
+        badgeUrl: null,
+        victoryUrl: null,
+        backgroundUrl: null,
+        tabletopUrl: null,
+        tableArtUrl: null,
       };
       try {
         cosmetics = await getMyCosmetics();
@@ -208,8 +214,7 @@ function JoinGame() {
         color: PLAYER_COLORS[state.players.length],
         isBot: false,
         ready: false,
-        avatarUrl: cosmetics.avatarUrl,
-        cardBackUrl: cosmetics.cardBackUrl,
+        ...cosmetics,
         cardBackUrls,
         reentryCode,
         piles: [],

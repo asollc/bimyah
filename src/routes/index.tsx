@@ -97,9 +97,15 @@ function HomePage() {
         /* ignore */
       }
       const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
-      let cosmetics: { avatarUrl: string | null; cardBackUrl: string | null } = {
+      let cosmetics: Awaited<ReturnType<typeof getMyCosmetics>> = {
         avatarUrl: null,
         cardBackUrl: null,
+        titleUrl: null,
+        badgeUrl: null,
+        victoryUrl: null,
+        backgroundUrl: null,
+        tabletopUrl: null,
+        tableArtUrl: null,
       };
       try {
         cosmetics = await getMyCosmetics();
@@ -114,8 +120,7 @@ function HomePage() {
             id: hostId,
             name: myName,
             isBot: false,
-            avatarUrl: cosmetics.avatarUrl,
-            cardBackUrl: cosmetics.cardBackUrl,
+            ...cosmetics,
             cardBackUrls,
           },
         ],

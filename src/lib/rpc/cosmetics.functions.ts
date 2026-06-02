@@ -75,22 +75,63 @@ export const clearMyActiveCardBack = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Return the signed-in user's cosmetics for use at game creation. */
+/** Return the signed-in user's cosmetics + equipped decor URLs for use at
+ *  game creation. The equipped decor (title / badge / victory) travels with
+ *  the player payload; backgrounds and tabletop / table art only render in
+ *  game when the player is the host (enforced client-side). */
 export const getMyCosmetics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId, supabase } = context;
-    const [{ data: profile }, { data: cardBack }] = await Promise.all([
-      supabase.from("profiles").select("avatar_url").eq("id", userId).maybeSingle(),
-      supabase
-        .from("card_backs")
-        .select("image_url")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .maybeSingle(),
-    ]);
+    const [{ data: profile }, { data: cardBack }, { data: equipped }] =
+      await Promise.all([
+        supabase.from("profiles").select("avatar_url").eq("id", userId).maybeSingle(),
+        supabase
+          .from("card_backs")
+          .select("image_url")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .maybeSingle(),
+        supabase
+          .from("user_equipped")
+          .select(
+            "title_id, badge_id, victory_id, background_id, tabletop_id, table_art_id",
+          )
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+
+    const ids = [
+      equipped?.title_id,
+      equipped?.badge_id,
+      equipped?.victory_id,
+      equipped?.background_id,
+      equipped?.tabletop_id,
+      equipped?.table_art_id,
+    ].filter((v): v is string => !!v);
+
+    const urlById = new Map<string, string>();
+    if (ids.length) {
+      const { data: prods } = await supabaseAdmin
+        .from("bmart_products")
+        .select("id, image_url")
+        .in("id", ids);
+      for (const p of prods ?? []) {
+        if (p.image_url) urlById.set(p.id as string, p.image_url as string);
+      }
+    }
+
+    const lookup = (id: string | null | undefined) =>
+      id ? urlById.get(id) ?? null : null;
+
     return {
       avatarUrl: (profile?.avatar_url as string | null) ?? null,
       cardBackUrl: (cardBack?.image_url as string | null) ?? null,
+      titleUrl: lookup(equipped?.title_id),
+      badgeUrl: lookup(equipped?.badge_id),
+      victoryUrl: lookup(equipped?.victory_id),
+      backgroundUrl: lookup(equipped?.background_id),
+      tabletopUrl: lookup(equipped?.tabletop_id),
+      tableArtUrl: lookup(equipped?.table_art_id),
     };
   });
