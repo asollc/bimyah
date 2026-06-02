@@ -141,8 +141,15 @@ export function WalletOverlay({
                 <div className="flex items-center gap-3">
                   <BimbucksIcon size={28} />
                   <div>
-                    <div className="font-display text-base text-white">
-                      {pack.amount.toLocaleString()} Bimbucks
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-base text-white">
+                        {pack.amount.toLocaleString()} Bimbucks
+                      </span>
+                      {pack.bonusPct ? (
+                        <span className="rounded-full bg-[var(--gold)]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gold)]">
+                          +{pack.bonusPct}% bonus
+                        </span>
+                      ) : null}
                     </div>
                     <div className="text-[10px] uppercase tracking-widest text-white/50">
                       One-time purchase
