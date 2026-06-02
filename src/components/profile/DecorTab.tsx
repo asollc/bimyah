@@ -173,7 +173,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /* ---------- Owned-item renderer (admin-uploaded / Bmart items) ---------- */
 
-function OwnedPreview(_props: { shape: "rect" | "square" | "wide" }) {
+function OwnedPreview({ imageUrl }: { imageUrl: string | null }) {
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt=""
+        draggable={false}
+        className="h-full w-full rounded-md object-cover"
+      />
+    );
+  }
   return (
     <div className="grid h-full w-full place-items-center rounded-md bg-gradient-to-br from-white/15 to-black/40 text-[10px] uppercase tracking-widest text-white/70">
       Owned
