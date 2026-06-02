@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, Upload, Lock, X } from "lucide-react";
+import { ArrowLeft, LogOut, Upload, Lock, X, Wallet } from "lucide-react";
 import { setMyAvatar } from "@/server/cosmetics.functions";
 import { getMyEntitlement } from "@/server/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
@@ -10,6 +10,7 @@ import { KeybindEditor } from "@/components/game/KeybindEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
+import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 
 function ComingSoon({ label }: { label: string }) {
   return (
