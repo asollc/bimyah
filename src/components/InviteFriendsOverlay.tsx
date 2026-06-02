@@ -3,8 +3,8 @@ import {
   listFriends,
   heartbeatPresence,
   type FriendshipRow,
-} from "@/server/friends.functions";
-import { inviteFriendsToGame } from "@/server/invites.functions";
+} from "@/lib/server/friends.functions";
+import { inviteFriendsToGame } from "@/lib/server/invites.functions";
 import { X, Send, ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 function OnlineDot({ online }: { online: boolean }) {
