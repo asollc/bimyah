@@ -52,9 +52,15 @@ function SoloGame() {
     }
     let cancelled = false;
     void (async () => {
-      let cosmetics: { avatarUrl: string | null; cardBackUrl: string | null } = {
+      let cosmetics: Awaited<ReturnType<typeof getMyCosmetics>> = {
         avatarUrl: null,
         cardBackUrl: null,
+        titleUrl: null,
+        badgeUrl: null,
+        victoryUrl: null,
+        backgroundUrl: null,
+        tabletopUrl: null,
+        tableArtUrl: null,
       };
       if (user) {
         try {
