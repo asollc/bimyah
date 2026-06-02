@@ -254,8 +254,8 @@ function ProfilePage() {
           <FriendsPanel />
         </TabsContent>
 
-        <TabsContent value="titles" className="mt-4">
-          <ComingSoon label="Titles & Badges" />
+        <TabsContent value="decor" className="mt-4">
+          <DecorTab />
         </TabsContent>
 
         <TabsContent value="keys" className="mt-4">
