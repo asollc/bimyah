@@ -118,8 +118,8 @@ export function CardsTab({
   );
 
   const ownedCards: CardDef[] = useMemo(
-    () => [...BUILTIN_CARDS, ...customCards],
-    [customCards],
+    () => [...BUILTIN_CARDS, ...customCards, ...purchasedCards],
+    [customCards, purchasedCards],
   );
 
   const exclusivesForMe: CardDef[] = useMemo(
