@@ -272,6 +272,10 @@ function ProfilePage() {
 
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
       {err && <div className="mt-3 text-center text-xs text-[var(--player-red)]">{err}</div>}
+
+      {walletOpen && user && (
+        <WalletOverlay userId={user.id} onClose={() => setWalletOpen(false)} />
+      )}
     </div>
   );
 }
