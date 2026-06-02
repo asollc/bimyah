@@ -13,8 +13,8 @@ import {
   getBplusStatus,
   getMyEntitlement,
   getPaypalClientConfig,
-} from "@/lib/server/bplus.functions";
-import { verifyGiftRecipient } from "@/lib/server/gifts.functions";
+} from "@/lib/rpc/bplus.functions";
+import { verifyGiftRecipient } from "@/lib/rpc/gifts.functions";
 
 const STRIPE_LIFETIME_PRICE_ID = "bplus_lifetime_onetime";
 

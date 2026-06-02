@@ -10,7 +10,7 @@ import {
   adminSetCardBack,
   adminClearCardBack,
   adminUploadAsset,
-} from "@/lib/server/admin.functions";
+} from "@/lib/rpc/admin.functions";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 

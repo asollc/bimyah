@@ -14,7 +14,7 @@ import {
   updateBplusConfig,
   getShareStats,
   deleteUserAccount,
-} from "@/lib/server/admin.functions";
+} from "@/lib/rpc/admin.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { listRandomGifts, allocateRandomGift } from "@/lib/server/gifts.functions";
+import { listRandomGifts, allocateRandomGift } from "@/lib/rpc/gifts.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";

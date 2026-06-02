@@ -8,7 +8,7 @@ import {
   removeFriendship,
   heartbeatPresence,
   type FriendshipRow,
-} from "@/lib/server/friends.functions";
+} from "@/lib/rpc/friends.functions";
 import { Check, X, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 
 function OnlineDot({ online }: { online: boolean }) {
