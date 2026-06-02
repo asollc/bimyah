@@ -8,9 +8,9 @@ import { hasStripeConfigured } from "@/lib/stripe";
 type Pack = { priceId: string; amount: number; priceUsd: number; bonusPct?: number };
 
 const PACKS: Pack[] = [
-  { priceId: "bimbucks_1000_onetime", amount: 1000, priceUsd: 1 },
-  { priceId: "bimbucks_5000_onetime", amount: 5500, priceUsd: 5, bonusPct: 10 },
-  { priceId: "bimbucks_10000_onetime", amount: 12000, priceUsd: 10, bonusPct: 20 },
+  { priceId: "bimbucks_1000_onetime", base: 1000, amount: 1000, priceUsd: 1 },
+  { priceId: "bimbucks_5000_onetime", base: 5000, amount: 5500, priceUsd: 5, bonusPct: 10 },
+  { priceId: "bimbucks_10000_onetime", base: 10000, amount: 12000, priceUsd: 10, bonusPct: 20 },
 ];
 
 type Wallet = { bimbucks: number; bimbits: number };
