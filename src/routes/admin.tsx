@@ -424,6 +424,16 @@ function UsersTab() {
     if (!["lifetime", "monthly", "annual"].includes(plan)) {
       toast.error("Invalid plan");
       return;
+    }
+    try {
+      await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
+      toast.success("Granted Bimyah!+");
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
+  }
+
   async function handleGiftCurrency(u: UserRow, currency: "bimbucks" | "bimbits") {
     const label = currency === "bimbucks" ? "Bimbucks" : "Bimbits";
     const input = prompt(`Gift ${label} to ${u.display_name}.\nAmount:`, "100");
@@ -441,14 +451,6 @@ function UsersTab() {
     }
   }
 
-    try {
-      await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
-      toast.success("Granted Bimyah!+");
-      await refresh();
-    } catch (e: unknown) {
-      toast.error(String((e as Error)?.message ?? e));
-    }
-  }
 
   return (
     <div className="space-y-4">
