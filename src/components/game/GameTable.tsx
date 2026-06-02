@@ -2084,7 +2084,23 @@ function ViewAllCardsModal({
                   >
                     {player.name.slice(0, 1).toUpperCase()}
                   </span>
+                  {player.titleUrl && (
+                    <img
+                      src={player.titleUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+                    />
+                  )}
                   <span>{player.name}</span>
+                  {player.badgeUrl && (
+                    <img
+                      src={player.badgeUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+                    />
+                  )}
                   {player.hand.length > 0 && (
                     <span className="text-[9px] uppercase tracking-wider text-white/50">
                       hand: {player.hand.length}
