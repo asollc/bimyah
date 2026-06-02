@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Lock, Upload, X, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  setMyActiveCardBack,
-  clearMyActiveCardBack,
-} from "@/server/cosmetics.functions";
-import { BplusIcon } from "@/components/BplusIcon";
-import { CardCropModal } from "@/components/profile/CardCropModal";
+import { X, Check } from "lucide-react";
+import { CustomCardBackSlots } from "@/components/profile/CustomCardBackSlots";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
