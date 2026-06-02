@@ -424,7 +424,23 @@ function UsersTab() {
     if (!["lifetime", "monthly", "annual"].includes(plan)) {
       toast.error("Invalid plan");
       return;
+  async function handleGiftCurrency(u: UserRow, currency: "bimbucks" | "bimbits") {
+    const label = currency === "bimbucks" ? "Bimbucks" : "Bimbits";
+    const input = prompt(`Gift ${label} to ${u.display_name}.\nAmount:`, "100");
+    if (!input) return;
+    const amount = parseInt(input, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Invalid amount");
+      return;
     }
+    try {
+      await giftUserCurrency({ data: { user_id: u.id, currency, amount } });
+      toast.success(`Gifted ${amount.toLocaleString()} ${label} to ${u.display_name}`);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
+  }
+
     try {
       await grantBplus({ data: { user_id: u.id, plan: plan as "lifetime" | "monthly" | "annual" } });
       toast.success("Granted Bimyah!+");
