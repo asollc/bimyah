@@ -274,7 +274,7 @@ function BmartPage() {
     toast.success(`Added to cart: ${p.name}`);
   }
 
-  function buyNow(p: Product) {
+  async function buyNow(p: Product) {
     const have = p.currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
     if (have < p.price) {
       if (p.currency === "bimbucks") {
@@ -285,7 +285,21 @@ function BmartPage() {
       }
       return;
     }
-    toast.success(`Purchased ${p.name}!`);
+    try {
+      const res = await purchaseItem({
+        data: {
+          itemId: p.id,
+          itemName: p.name,
+          currency: p.currency,
+          price: p.price,
+          kind: KIND_BY_CATEGORY[p.category],
+        },
+      });
+      setWallet({ bimbucks: res.bimbucks, bimbits: res.bimbits });
+      toast.success(`Purchased ${p.name}! Added to your profile.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
