@@ -32,6 +32,16 @@ export type Player = {
    *  slot is null/missing, the renderer falls back to `cardBackUrl` and
    *  then the default image. */
   cardBackUrls?: (string | null)[] | null;
+  /** Equipped decor URLs (resolved at game creation time). Title and badge
+   *  render next to the player's name everywhere; victory FX overlays the
+   *  win screen for the winning player only; background, tabletop and table
+   *  art only render in-game when this player is the host. */
+  titleUrl?: string | null;
+  badgeUrl?: string | null;
+  victoryUrl?: string | null;
+  backgroundUrl?: string | null;
+  tabletopUrl?: string | null;
+  tableArtUrl?: string | null;
   /** 4-digit personal reentry code, used to rejoin this seat after disconnect. */
   reentryCode?: string;
   // piles[i] is array of cards still face-down. If completed (4-of-a-kind set), it's locked.
