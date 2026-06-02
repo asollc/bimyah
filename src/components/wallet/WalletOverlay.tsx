@@ -5,12 +5,12 @@ import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
 
-type Pack = { priceId: string; amount: number; priceUsd: number };
+type Pack = { priceId: string; amount: number; priceUsd: number; bonusPct?: number };
 
 const PACKS: Pack[] = [
   { priceId: "bimbucks_1000_onetime", amount: 1000, priceUsd: 1 },
-  { priceId: "bimbucks_5000_onetime", amount: 5000, priceUsd: 5 },
-  { priceId: "bimbucks_10000_onetime", amount: 10000, priceUsd: 10 },
+  { priceId: "bimbucks_5000_onetime", amount: 5500, priceUsd: 5, bonusPct: 10 },
+  { priceId: "bimbucks_10000_onetime", amount: 12000, priceUsd: 10, bonusPct: 20 },
 ];
 
 type Wallet = { bimbucks: number; bimbits: number };
@@ -60,8 +60,9 @@ export function WalletOverlay({
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-[#0a0d0a] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
+      <div className="relative my-auto w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-[#0a0d0a] p-5 shadow-2xl">
+
         <div className="flex items-center justify-between">
           {view !== "wallet" ? (
             <button
@@ -140,8 +141,15 @@ export function WalletOverlay({
                 <div className="flex items-center gap-3">
                   <BimbucksIcon size={28} />
                   <div>
-                    <div className="font-display text-base text-white">
-                      {pack.amount.toLocaleString()} Bimbucks
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-base text-white">
+                        {pack.amount.toLocaleString()} Bimbucks
+                      </span>
+                      {pack.bonusPct ? (
+                        <span className="rounded-full bg-[var(--gold)]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gold)]">
+                          +{pack.bonusPct}% bonus
+                        </span>
+                      ) : null}
                     </div>
                     <div className="text-[10px] uppercase tracking-widest text-white/50">
                       One-time purchase
