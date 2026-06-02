@@ -553,3 +553,23 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Bmart logo — mirrors Bimyah! logo treatment (italic, skewed, gold tri-stroke) */
+.bmart-logo {
+  display: inline-block;
+  font-family: var(--font-display, "Sora"), system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(56px, 14vw, 112px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: #fbbf24;
+  transform: skewX(-8deg);
+  text-shadow:
+    0 2px 0 #b45309,
+    0 4px 0 #78350f,
+    0 6px 0 #422006,
+    0 10px 22px rgba(0, 0, 0, 0.75),
+    0 0 36px rgba(251, 191, 36, 0.35);
+}
+

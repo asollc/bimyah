@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PublicRouteImport } from './routes/public'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PlusRouteImport } from './routes/plus'
+import { Route as BmartRouteImport } from './routes/bmart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -70,6 +71,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PlusRoute = PlusRouteImport.update({
   id: '/plus',
   path: '/plus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BmartRoute = BmartRouteImport.update({
+  id: '/bmart',
+  path: '/bmart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bmart': typeof BmartRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bmart': typeof BmartRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bmart': typeof BmartRoute
   '/plus': typeof PlusRouteWithChildren
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bmart'
     | '/plus'
     | '/profile'
     | '/public'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bmart'
     | '/plus'
     | '/profile'
     | '/public'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bmart'
     | '/plus'
     | '/profile'
     | '/public'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  BmartRoute: typeof BmartRoute
   PlusRoute: typeof PlusRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   PublicRoute: typeof PublicRoute
@@ -375,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/plus'
       fullPath: '/plus'
       preLoaderRoute: typeof PlusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bmart': {
+      id: '/bmart'
+      path: '/bmart'
+      fullPath: '/bmart'
+      preLoaderRoute: typeof BmartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -492,6 +512,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  BmartRoute: BmartRoute,
   PlusRoute: PlusRouteWithChildren,
   ProfileRoute: ProfileRoute,
   PublicRoute: PublicRoute,
