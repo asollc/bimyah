@@ -2,12 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyDecor,
   setEquipped,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
+import {
+  persistEquippedDecorUrls,
+  type DecorKindKey,
+  type EquippedDecorUrls,
+} from "@/game/cosmetics";
+
 
 type InventoryRow = DecorInventoryItem;
 type EquippedRow = Record<string, string | null> | null;
