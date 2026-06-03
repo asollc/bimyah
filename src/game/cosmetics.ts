@@ -25,11 +25,87 @@ function imagesKey(userId: string) {
   return `bimyah:cardImagesById:${userId}`;
 }
 
+function decorKey(userId: string) {
+  return `bimyah:equippedDecorUrls:${userId}`;
+}
+
 /** Persist the id→image-url map used by `getActiveCardSlotImages`. */
 export function persistCardImageMap(
   userId: string | null | undefined,
   map: Record<string, string>,
 ) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(imagesKey(userId), JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+export type DecorKindKey =
+  | "title"
+  | "badge"
+  | "victory"
+  | "background"
+  | "tabletop"
+  | "table_art";
+
+export type EquippedDecorUrls = Partial<Record<DecorKindKey, string | null>>;
+
+/** Cache the URL for each equipped decor kind so the game can resolve the
+ *  active item locally even when the server lookup hasn't refreshed. */
+export function persistEquippedDecorUrls(
+  userId: string | null | undefined,
+  urls: EquippedDecorUrls,
+) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(decorKey(userId), JSON.stringify(urls));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readEquippedDecorUrls(
+  userId: string | null | undefined,
+): EquippedDecorUrls {
+  if (!userId) return {};
+  try {
+    const raw = localStorage.getItem(decorKey(userId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed as EquippedDecorUrls;
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+/** Merge the locally-cached equipped decor URLs onto a server cosmetics
+ *  payload. A non-null cached value wins so the active selection always
+ *  renders, mirroring the active-card-back resolution flow. */
+export function applyDecorOverrides<
+  T extends {
+    titleUrl: string | null;
+    badgeUrl: string | null;
+    victoryUrl: string | null;
+    backgroundUrl: string | null;
+    tabletopUrl: string | null;
+    tableArtUrl: string | null;
+  },
+>(userId: string | null | undefined, cosmetics: T): T {
+  const overrides = readEquippedDecorUrls(userId);
+  return {
+    ...cosmetics,
+    titleUrl: overrides.title ?? cosmetics.titleUrl,
+    badgeUrl: overrides.badge ?? cosmetics.badgeUrl,
+    victoryUrl: overrides.victory ?? cosmetics.victoryUrl,
+    backgroundUrl: overrides.background ?? cosmetics.backgroundUrl,
+    tabletopUrl: overrides.tabletop ?? cosmetics.tabletopUrl,
+    tableArtUrl: overrides.table_art ?? cosmetics.tableArtUrl,
+  };
+}
+
   if (!userId) return;
   try {
     localStorage.setItem(imagesKey(userId), JSON.stringify(map));
