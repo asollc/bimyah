@@ -207,6 +207,7 @@ function JoinGame() {
       } catch {
         /* ignore */
       }
+      cosmetics = applyDecorOverrides(user?.id ?? null, cosmetics);
       const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const newPlayer = {
         id: myId,
