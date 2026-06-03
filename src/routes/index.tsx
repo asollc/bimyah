@@ -24,7 +24,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 import { getMyCosmetics } from "@/lib/rpc/cosmetics.functions";
-import { getActiveCardSlotImages } from "@/game/cosmetics";
+import { getActiveCardSlotImages, applyDecorOverrides } from "@/game/cosmetics";
 import { getMyEntitlement } from "@/lib/rpc/bplus.functions";
 import { getMyAdminStatus, recordShareEvent } from "@/lib/rpc/admin.functions";
 import { createPublicMatch } from "@/lib/rpc/publicMatches.functions";
@@ -112,6 +112,7 @@ function HomePage() {
       } catch {
         /* not signed in or no cosmetics */
       }
+      cosmetics = applyDecorOverrides(user?.id ?? null, cosmetics);
       const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const initial = createInitialGame(
         "temp",

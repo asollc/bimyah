@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GameTable } from "@/components/game/GameTable";
 import { createInitialGame } from "@/game/engine";
 import { getMyCosmetics } from "@/lib/rpc/cosmetics.functions";
-import { getActiveCardSlotImages } from "@/game/cosmetics";
+import { getActiveCardSlotImages, applyDecorOverrides } from "@/game/cosmetics";
 import { useAuth } from "@/auth/AuthProvider";
 import type { GameMode, GameState } from "@/game/types";
 
@@ -69,6 +69,7 @@ function SoloGame() {
           /* ignore */
         }
       }
+      cosmetics = applyDecorOverrides(user?.id ?? null, cosmetics);
       const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const specs = setup.players.map((p) =>
         p.isBot ? p : { ...p, ...cosmetics, cardBackUrls },

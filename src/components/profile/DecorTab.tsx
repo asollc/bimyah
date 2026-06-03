@@ -2,12 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyDecor,
   setEquipped,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
+import {
+  persistEquippedDecorUrls,
+  type EquippedDecorUrls,
+} from "@/game/cosmetics";
+
+
 
 type InventoryRow = DecorInventoryItem;
 type EquippedRow = Record<string, string | null> | null;
@@ -230,6 +237,7 @@ function OwnedList({
 /* ---------- DecorTab ---------- */
 
 export function DecorTab() {
+  const { user } = useAuth();
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [equipped, setEquippedState] = useState<EquippedRow>(null);
   const [loading, setLoading] = useState(true);
@@ -238,6 +246,27 @@ export function DecorTab() {
     itemId: string | null;
     label: string;
   } | null>(null);
+
+  // Mirror the active-card-back pattern: cache the URL of each equipped decor
+  // kind in localStorage so the game can resolve the active selection locally.
+  useEffect(() => {
+    if (!user?.id) return;
+    const urlForId = (id: string | null | undefined) => {
+      if (!id) return null;
+      const row = inventory.find((r) => r.item_id === id);
+      return row?.image_url ?? null;
+    };
+    const map: EquippedDecorUrls = {
+      title: urlForId(equipped?.title_id),
+      badge: urlForId(equipped?.badge_id),
+      victory: urlForId(equipped?.victory_id),
+      background: urlForId(equipped?.background_id),
+      tabletop: urlForId(equipped?.tabletop_id),
+      table_art: urlForId(equipped?.table_art_id),
+    };
+    persistEquippedDecorUrls(user.id, map);
+  }, [user?.id, inventory, equipped]);
+
 
   useEffect(() => {
     void (async () => {
