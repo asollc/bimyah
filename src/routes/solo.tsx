@@ -69,6 +69,7 @@ function SoloGame() {
           /* ignore */
         }
       }
+      cosmetics = applyDecorOverrides(user?.id ?? null, cosmetics);
       const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const specs = setup.players.map((p) =>
         p.isBot ? p : { ...p, ...cosmetics, cardBackUrls },
