@@ -46,6 +46,12 @@ export function createInitialGame(
     avatarUrl?: string | null;
     cardBackUrl?: string | null;
     cardBackUrls?: (string | null)[] | null;
+    titleUrl?: string | null;
+    badgeUrl?: string | null;
+    victoryUrl?: string | null;
+    backgroundUrl?: string | null;
+    tabletopUrl?: string | null;
+    tableArtUrl?: string | null;
   }>,
   opts: CreateGameOptions = {},
 ): GameState {
@@ -58,6 +64,12 @@ export function createInitialGame(
     avatarUrl: p.avatarUrl ?? null,
     cardBackUrl: p.cardBackUrl ?? null,
     cardBackUrls: p.cardBackUrls ?? null,
+    titleUrl: p.titleUrl ?? null,
+    badgeUrl: p.badgeUrl ?? null,
+    victoryUrl: p.victoryUrl ?? null,
+    backgroundUrl: p.backgroundUrl ?? null,
+    tabletopUrl: p.tabletopUrl ?? null,
+    tableArtUrl: p.tableArtUrl ?? null,
     reentryCode: p.isBot ? undefined : generateReentryCode(),
     piles: [],
     pileLocked: [],
