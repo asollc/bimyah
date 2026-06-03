@@ -106,13 +106,6 @@ export function applyDecorOverrides<
   };
 }
 
-  if (!userId) return;
-  try {
-    localStorage.setItem(imagesKey(userId), JSON.stringify(map));
-  } catch {
-    /* ignore */
-  }
-}
 
 /**
  * Read the user's active card slot selections and resolve each to an image
