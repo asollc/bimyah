@@ -11,9 +11,9 @@ import {
 } from "@/lib/rpc/decor.functions";
 import {
   persistEquippedDecorUrls,
-  type DecorKindKey,
   type EquippedDecorUrls,
 } from "@/game/cosmetics";
+
 
 
 type InventoryRow = DecorInventoryItem;
