@@ -134,6 +134,16 @@ export function CardsTab({
     return map;
   }, [ownedCards, exclusivesForMe]);
 
+  // Persist id→url map so the game engine (cosmetics.ts) can resolve
+  // active-slot ids back to image URLs at game-start time.
+  useEffect(() => {
+    const obj: Record<string, string> = {};
+    cardImageById.forEach((url, id) => {
+      obj[id] = url;
+    });
+    persistCardImageMap(userId, obj);
+  }, [cardImageById, userId]);
+
   function handleCardTap(cardId: string) {
     if (selectedSlot !== null) {
       const next = [...activeSlots];
