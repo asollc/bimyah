@@ -112,6 +112,7 @@ function HomePage() {
       } catch {
         /* not signed in or no cosmetics */
       }
+      cosmetics = applyDecorOverrides(user?.id ?? null, cosmetics);
       const cardBackUrls = getActiveCardSlotImages(user?.id ?? null, cosmetics.cardBackUrl);
       const initial = createInitialGame(
         "temp",
