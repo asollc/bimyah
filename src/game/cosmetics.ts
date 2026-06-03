@@ -3,10 +3,9 @@
  * 6 card backs the player has equipped on the Cards tab of their profile.
  * Slots are persisted in localStorage by `CardsTab` under the key
  * `bimyah:activeCardSlots:${userId}` as a length-6 array of card IDs.
- *
- * We resolve those IDs to public image URLs here so they can be sent over
- * the wire as part of the Player payload (`cardBackUrls`) and rendered by
- * the game table.
+ * A sibling key `bimyah:cardImagesById:${userId}` holds an id→image-url map
+ * written by `CardsTab` so we can resolve custom / purchased card backs
+ * (whose images do not live in this module).
  */
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
@@ -22,6 +21,23 @@ function slotsKey(userId: string) {
   return `bimyah:activeCardSlots:${userId}`;
 }
 
+function imagesKey(userId: string) {
+  return `bimyah:cardImagesById:${userId}`;
+}
+
+/** Persist the id→image-url map used by `getActiveCardSlotImages`. */
+export function persistCardImageMap(
+  userId: string | null | undefined,
+  map: Record<string, string>,
+) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(imagesKey(userId), JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Read the user's active card slot selections and resolve each to an image
  * URL (or `null` for empty slots / unknown ids). Returns a length-6 array.
@@ -34,6 +50,7 @@ export function getActiveCardSlotImages(
   const out: (string | null)[] = Array(ACTIVE_SLOT_COUNT).fill(null);
   if (!userId) return out;
   let ids: (string | null)[] = [];
+  let imgMap: Record<string, string> = {};
   try {
     const raw = localStorage.getItem(slotsKey(userId));
     if (raw) {
@@ -43,13 +60,24 @@ export function getActiveCardSlotImages(
   } catch {
     /* ignore */
   }
+  try {
+    const raw = localStorage.getItem(imagesKey(userId));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") imgMap = parsed;
+    }
+  } catch {
+    /* ignore */
+  }
   for (let i = 0; i < ACTIVE_SLOT_COUNT; i++) {
     const id = ids[i];
     if (!id) continue;
     if (id === "custom-back") {
       out[i] = customCardBackUrl ?? null;
-    } else {
-      out[i] = BUILTIN_URL_BY_ID[id] ?? null;
+    } else if (imgMap[id]) {
+      out[i] = imgMap[id];
+    } else if (BUILTIN_URL_BY_ID[id]) {
+      out[i] = BUILTIN_URL_BY_ID[id];
     }
   }
   return out;

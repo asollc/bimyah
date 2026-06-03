@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { X, Check } from "lucide-react";
 import { CustomCardBackSlots } from "@/components/profile/CustomCardBackSlots";
 import { getMyDecor } from "@/lib/rpc/decor.functions";
+import { persistCardImageMap } from "@/game/cosmetics";
 import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
 import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
 
@@ -132,6 +133,16 @@ export function CardsTab({
     for (const c of [...ownedCards, ...exclusivesForMe]) map.set(c.id, c.imageUrl);
     return map;
   }, [ownedCards, exclusivesForMe]);
+
+  // Persist id→url map so the game engine (cosmetics.ts) can resolve
+  // active-slot ids back to image URLs at game-start time.
+  useEffect(() => {
+    const obj: Record<string, string> = {};
+    cardImageById.forEach((url, id) => {
+      obj[id] = url;
+    });
+    persistCardImageMap(userId, obj);
+  }, [cardImageById, userId]);
 
   function handleCardTap(cardId: string) {
     if (selectedSlot !== null) {
