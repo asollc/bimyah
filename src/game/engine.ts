@@ -1,5 +1,7 @@
 import type { GameState, Player, PlayerColor, Card, Rank, GameMode, MatchRecord } from "./types";
 import { deal, isFourOfAKind, pilesPerPlayer } from "./deck";
+import { secureNumericCode } from "@/lib/secureId";
+
 
 export const PLAYER_COLORS: PlayerColor[] = [
   "green",
