@@ -99,7 +99,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       let n = 1;
       while (usedNums.has(n)) n++;
       const bot: Player = {
-        id: `bot_${Math.random().toString(36).slice(2, 8)}`,
+        id: `bot_${secureShortId(8)}`,
         name: `Bot ${n}`,
         color,
         isBot: true,
