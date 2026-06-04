@@ -92,6 +92,7 @@ export function applyDecorOverrides<
     backgroundUrl: string | null;
     tabletopUrl: string | null;
     tableArtUrl: string | null;
+    specialBadgeUrl?: string | null;
   },
 >(userId: string | null | undefined, cosmetics: T): T {
   const overrides = readEquippedDecorUrls(userId);
@@ -103,6 +104,7 @@ export function applyDecorOverrides<
     backgroundUrl: overrides.background ?? cosmetics.backgroundUrl,
     tabletopUrl: overrides.tabletop ?? cosmetics.tabletopUrl,
     tableArtUrl: overrides.table_art ?? cosmetics.tableArtUrl,
+    specialBadgeUrl: cosmetics.specialBadgeUrl ?? null,
   };
 }
 

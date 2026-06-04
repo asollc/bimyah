@@ -203,6 +203,7 @@ function JoinGame() {
         backgroundUrl: null,
         tabletopUrl: null,
         tableArtUrl: null,
+        specialBadgeUrl: null,
       };
       try {
         cosmetics = await getMyCosmetics();

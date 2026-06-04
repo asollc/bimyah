@@ -124,6 +124,14 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
     const lookup = (id: string | null | undefined) =>
       id ? urlById.get(id) ?? null : null;
 
+    // Special founding-member badge for a specific user.
+    const SPECIAL_BADGE_USER_ID = "fa49ad9d-14a2-4743-bde3-95261e814c4f";
+    let specialBadgeUrl: string | null = null;
+    if (userId === SPECIAL_BADGE_USER_ID) {
+      const mod = await import("@/assets/bplus-special-badge.png.asset.json");
+      specialBadgeUrl = (mod.default as { url: string }).url;
+    }
+
     return {
       avatarUrl: (profile?.avatar_url as string | null) ?? null,
       cardBackUrl: (cardBack?.image_url as string | null) ?? null,
@@ -133,5 +141,6 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
       backgroundUrl: lookup(equipped?.background_id),
       tabletopUrl: lookup(equipped?.tabletop_id),
       tableArtUrl: lookup(equipped?.table_art_id),
+      specialBadgeUrl,
     };
   });
