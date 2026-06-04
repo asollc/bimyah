@@ -227,8 +227,9 @@ const PING_INTERVAL_MS = 2500;
 const PING_TIMEOUT_MS = 6000;
 
 function fourDigitCode(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return secureNumericCode(4);
 }
+
 
 function peerIdFor(code: string): string {
   return `bimyah-${code}`;
