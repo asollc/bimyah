@@ -143,7 +143,7 @@ function JoinGame() {
       }
 
 
-      const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
+      const myId = `p_${secureShortId(8)}`;
       const session = await joinGame(gameId, myId);
       const state = session.getState();
       if (!state) {
