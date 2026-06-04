@@ -533,3 +533,146 @@ function NewProductForm({
     </Card>
   );
 }
+
+function CategoryImagesSection() {
+  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listBmartCategoryImages();
+      const map: Record<string, string | null> = {};
+      for (const r of res.rows) map[r.id] = r.image_url;
+      setImages(map);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return (
+    <Card className="p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Category card images</h3>
+        {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {CATEGORIES.map((c) => (
+          <CategoryImageEditor
+            key={c}
+            category={c}
+            imageUrl={images[c] ?? null}
+            onChanged={refresh}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function CategoryImageEditor({
+  category,
+  imageUrl,
+  onChanged,
+}: {
+  category: Category;
+  imageUrl: string | null;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(imageUrl);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrl(imageUrl);
+  }, [imageUrl]);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `bmart/category-${category}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
+      toast.success("Category image saved");
+      setUrl(next);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border p-2 space-y-1.5">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{category}</div>
+      <div className="grid h-20 w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {url ? (
+          <img src={url} alt={category} className="h-full w-full object-contain" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">Default icon</span>
+        )}
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleUpload(f);
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload
+        </Button>
+        <Button
+          size="sm"
+          disabled={saving || url === imageUrl}
+          onClick={() => void save(url)}
+          className="h-7 text-xs"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        {imageUrl && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={() => void save(null)}
+            className="h-7 text-xs"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
