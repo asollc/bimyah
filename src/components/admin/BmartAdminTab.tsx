@@ -159,6 +159,8 @@ export function BmartAdminTab() {
         </Button>
       </div>
 
+      <CategoryImagesSection />
+
       {adding && (
         <NewProductForm
           existingIds={rows.map((r) => r.id)}
@@ -173,7 +175,7 @@ export function BmartAdminTab() {
       {loading && !rows.length ? (
         <Loader2 className="h-5 w-5 animate-spin" />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 text-xs [&_input]:h-7 [&_input]:text-xs [&_button]:text-xs [&_[role=combobox]]:h-7 [&_[role=combobox]]:text-xs">
           {rows.map((r) => (
             <ProductEditor key={r.id} row={r} onChanged={refresh} />
           ))}
