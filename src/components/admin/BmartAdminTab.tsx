@@ -25,8 +25,6 @@ const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
 type Currency = (typeof CURRENCIES)[number];
 type Category = (typeof CATEGORIES)[number];
-type Currency = (typeof CURRENCIES)[number];
-type Category = (typeof CATEGORIES)[number];
 
 // Mirror of bmart.tsx PRODUCTS list (id + default metadata only).
 const BUILTIN: Array<{ id: string; name: string; category: Category; price: number; currency: Currency }> = [
