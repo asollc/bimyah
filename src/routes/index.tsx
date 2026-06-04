@@ -20,6 +20,8 @@ import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode } from "@/game/reentry";
+import { secureShortId } from "@/lib/secureId";
+
 import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
