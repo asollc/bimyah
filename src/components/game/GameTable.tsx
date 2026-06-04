@@ -1821,6 +1821,14 @@ function PlayerSeat({
             className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
           />
         )}
+        {player.specialBadgeUrl && (
+          <img
+            src={player.specialBadgeUrl}
+            alt=""
+            aria-hidden
+            className="h-[1em] w-[1em] shrink-0 object-contain"
+          />
+        )}
         {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
@@ -2099,6 +2107,14 @@ function ViewAllCardsModal({
                       alt=""
                       aria-hidden
                       className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+                    />
+                  )}
+                  {player.specialBadgeUrl && (
+                    <img
+                      src={player.specialBadgeUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1em] w-[1em] shrink-0 object-contain"
                     />
                   )}
                   {player.hand.length > 0 && (
