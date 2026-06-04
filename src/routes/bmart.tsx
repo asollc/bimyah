@@ -369,9 +369,17 @@ function BmartPage() {
                   className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${c.accent} text-left shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/50`}
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_60%)]" />
-                  <div className="absolute inset-x-0 top-0 grid place-items-center pt-6">
-                    <CategoryIcon id={c.id} />
-                  </div>
+                  {categoryImages[c.id] ? (
+                    <img
+                      src={categoryImages[c.id] as string}
+                      alt={c.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-6">
+                      <CategoryIcon id={c.id} />
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/80 to-transparent p-3">
                     <div className="font-display text-sm font-black uppercase tracking-widest text-white">
                       {c.name}
