@@ -17,10 +17,14 @@ import {
   listBmartProducts,
   upsertBmartProduct,
   deleteBmartProduct,
+  listBmartCategoryImages,
+  upsertBmartCategoryImage,
 } from "@/lib/rpc/bmart.functions";
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
+type Currency = (typeof CURRENCIES)[number];
+type Category = (typeof CATEGORIES)[number];
 type Currency = (typeof CURRENCIES)[number];
 type Category = (typeof CATEGORIES)[number];
 
