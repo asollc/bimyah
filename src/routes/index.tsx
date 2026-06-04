@@ -20,6 +20,8 @@ import { hostGame } from "@/game/peer";
 import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { saveReentryCode } from "@/game/reentry";
+import { secureShortId } from "@/lib/secureId";
+
 import { useAuth } from "@/auth/AuthProvider";
 import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
@@ -96,7 +98,7 @@ function HomePage() {
       } catch {
         /* ignore */
       }
-      const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
+      const hostId = `host_${secureShortId(8)}`;
       let cosmetics: Awaited<ReturnType<typeof getMyCosmetics>> = {
         avatarUrl: null,
         cardBackUrl: null,

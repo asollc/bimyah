@@ -5,6 +5,8 @@ import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
 import { saveReentryCode, loadReentryCode, saveLastRoom } from "@/game/reentry";
+import { secureShortId } from "@/lib/secureId";
+
 import { PowLogo } from "@/components/game/Visuals";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
@@ -101,7 +103,7 @@ function JoinGame() {
       }
 
       if (mode === "spectate") {
-        const specId = `s_${Math.random().toString(36).slice(2, 8)}`;
+        const specId = `s_${secureShortId(8)}`;
         const session = await joinGame(gameId, specId, { asSpectator: true });
         const state = session.getState();
         if (!state) {
@@ -141,7 +143,7 @@ function JoinGame() {
       }
 
 
-      const myId = `p_${Math.random().toString(36).slice(2, 8)}`;
+      const myId = `p_${secureShortId(8)}`;
       const session = await joinGame(gameId, myId);
       const state = session.getState();
       if (!state) {

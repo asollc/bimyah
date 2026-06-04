@@ -1,5 +1,7 @@
 import Peer, { type DataConnection } from "peerjs";
 import type { GameState, Player } from "./types";
+import { secureNumericCode, secureShortId } from "@/lib/secureId";
+
 import {
   closePile,
   declareBimyah,
@@ -97,7 +99,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       let n = 1;
       while (usedNums.has(n)) n++;
       const bot: Player = {
-        id: `bot_${Math.random().toString(36).slice(2, 8)}`,
+        id: `bot_${secureShortId(8)}`,
         name: `Bot ${n}`,
         color,
         isBot: true,
@@ -225,8 +227,9 @@ const PING_INTERVAL_MS = 2500;
 const PING_TIMEOUT_MS = 6000;
 
 function fourDigitCode(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return secureNumericCode(4);
 }
+
 
 function peerIdFor(code: string): string {
   return `bimyah-${code}`;
