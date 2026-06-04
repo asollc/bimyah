@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      bmart_category_images: {
+        Row: {
+          id: string
+          image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bmart_products: {
         Row: {
           category: string | null
