@@ -1,5 +1,7 @@
 import Peer, { type DataConnection } from "peerjs";
 import type { GameState, Player } from "./types";
+import { secureNumericCode, secureShortId } from "@/lib/secureId";
+
 import {
   closePile,
   declareBimyah,
