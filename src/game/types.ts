@@ -38,6 +38,8 @@ export type Player = {
    *  art only render in-game when this player is the host. */
   titleUrl?: string | null;
   badgeUrl?: string | null;
+  /** Optional extra badge rendered to the right of `badgeUrl` (e.g. founding member icon). */
+  specialBadgeUrl?: string | null;
   victoryUrl?: string | null;
   backgroundUrl?: string | null;
   tabletopUrl?: string | null;
