@@ -15,34 +15,38 @@ export const Route = createFileRoute("/api/public/paypal-webhook")({
         const webhookId = process.env.PAYPAL_WEBHOOK_ID;
         const body = await request.text();
 
-        // Verify signature (skip only if webhook ID not yet configured — logs a warning).
-        if (webhookId) {
-          try {
-            const verifyRes = await paypalFetch<{ verification_status: string }>(
-              "/v1/notifications/verify-webhook-signature",
-              {
-                method: "POST",
-                json: {
-                  auth_algo: request.headers.get("paypal-auth-algo"),
-                  cert_url: request.headers.get("paypal-cert-url"),
-                  transmission_id: request.headers.get("paypal-transmission-id"),
-                  transmission_sig: request.headers.get("paypal-transmission-sig"),
-                  transmission_time: request.headers.get("paypal-transmission-time"),
-                  webhook_id: webhookId,
-                  webhook_event: JSON.parse(body),
-                },
-              }
-            );
-            if (verifyRes.verification_status !== "SUCCESS") {
-              return new Response("Invalid signature", { status: 401 });
-            }
-          } catch (e) {
-            console.error("Webhook verify error:", e);
-            return new Response("Verify failed", { status: 401 });
-          }
-        } else {
-          console.warn("PAYPAL_WEBHOOK_ID not set — skipping signature verification");
+        // Hard-fail if the webhook ID is not configured. Skipping signature
+        // verification would let an attacker forge PAYMENT.CAPTURE.COMPLETED
+        // events and grant themselves a free lifetime subscription.
+        if (!webhookId) {
+          console.error("PAYPAL_WEBHOOK_ID is not configured — refusing to process webhook");
+          return new Response("Webhook not configured", { status: 500 });
         }
+
+        try {
+          const verifyRes = await paypalFetch<{ verification_status: string }>(
+            "/v1/notifications/verify-webhook-signature",
+            {
+              method: "POST",
+              json: {
+                auth_algo: request.headers.get("paypal-auth-algo"),
+                cert_url: request.headers.get("paypal-cert-url"),
+                transmission_id: request.headers.get("paypal-transmission-id"),
+                transmission_sig: request.headers.get("paypal-transmission-sig"),
+                transmission_time: request.headers.get("paypal-transmission-time"),
+                webhook_id: webhookId,
+                webhook_event: JSON.parse(body),
+              },
+            }
+          );
+          if (verifyRes.verification_status !== "SUCCESS") {
+            return new Response("Invalid signature", { status: 401 });
+          }
+        } catch (e) {
+          console.error("Webhook verify error:", e);
+          return new Response("Verify failed", { status: 401 });
+        }
+
 
         let event: {
           event_type?: string;
