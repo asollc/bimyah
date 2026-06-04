@@ -239,10 +239,18 @@ function BmartPage() {
   const [walletOpen, setWalletOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
+  const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     void listBmartProducts()
       .then((res) => setOverrides(res.rows as BmartOverrideRow[]))
+      .catch(() => {});
+    void listBmartCategoryImages()
+      .then((res) => {
+        const map: Record<string, string | null> = {};
+        for (const r of res.rows) map[r.id] = r.image_url;
+        setCategoryImages(map);
+      })
       .catch(() => {});
   }, []);
 
