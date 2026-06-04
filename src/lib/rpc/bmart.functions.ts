@@ -80,3 +80,29 @@ export const giftUserCurrency = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Category images ----------
+const categoryImageSchema = z.object({
+  id: z.enum(CATEGORIES),
+  image_url: z.string().url().max(500).nullable(),
+});
+
+export const listBmartCategoryImages = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin
+    .from("bmart_category_images")
+    .select("id, image_url");
+  if (error) throw new Error(error.message);
+  return { rows: (data ?? []) as { id: string; image_url: string | null }[] };
+});
+
+export const upsertBmartCategoryImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => categoryImageSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("bmart_category_images")
+      .upsert({ id: data.id, image_url: data.image_url, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
