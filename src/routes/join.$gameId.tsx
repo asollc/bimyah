@@ -5,6 +5,8 @@ import { registerSession } from "@/game/sessionStore";
 import { saveIdentity } from "@/game/persistence";
 import { PLAYER_COLORS, generateReentryCode } from "@/game/engine";
 import { saveReentryCode, loadReentryCode, saveLastRoom } from "@/game/reentry";
+import { secureShortId } from "@/lib/secureId";
+
 import { PowLogo } from "@/components/game/Visuals";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
