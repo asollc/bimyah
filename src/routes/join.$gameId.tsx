@@ -103,7 +103,7 @@ function JoinGame() {
       }
 
       if (mode === "spectate") {
-        const specId = `s_${Math.random().toString(36).slice(2, 8)}`;
+        const specId = `s_${secureShortId(8)}`;
         const session = await joinGame(gameId, specId, { asSpectator: true });
         const state = session.getState();
         if (!state) {
