@@ -19,11 +19,12 @@ export const MAX_HAND = 5;
 export function generateReentryCode(existing: Iterable<string> = []): string {
   const used = new Set(existing);
   for (let i = 0; i < 200; i++) {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const code = secureNumericCode(4);
     if (!used.has(code)) return code;
   }
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return secureNumericCode(4);
 }
+
 
 /** Point value per card rank. Aces = 1, face cards = 11/12/13. */
 export const RANK_POINTS: Record<Rank, number> = {
