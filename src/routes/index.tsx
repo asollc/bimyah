@@ -98,7 +98,7 @@ function HomePage() {
       } catch {
         /* ignore */
       }
-      const hostId = `host_${Math.random().toString(36).slice(2, 8)}`;
+      const hostId = `host_${secureShortId(8)}`;
       let cosmetics: Awaited<ReturnType<typeof getMyCosmetics>> = {
         avatarUrl: null,
         cardBackUrl: null,
