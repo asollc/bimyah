@@ -17,6 +17,8 @@ import {
   listBmartProducts,
   upsertBmartProduct,
   deleteBmartProduct,
+  listBmartCategoryImages,
+  upsertBmartCategoryImage,
 } from "@/lib/rpc/bmart.functions";
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
@@ -157,6 +159,8 @@ export function BmartAdminTab() {
         </Button>
       </div>
 
+      <CategoryImagesSection />
+
       {adding && (
         <NewProductForm
           existingIds={rows.map((r) => r.id)}
@@ -171,7 +175,7 @@ export function BmartAdminTab() {
       {loading && !rows.length ? (
         <Loader2 className="h-5 w-5 animate-spin" />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 text-xs [&_input]:h-7 [&_input]:text-xs [&_button]:text-xs [&_[role=combobox]]:h-7 [&_[role=combobox]]:text-xs">
           {rows.map((r) => (
             <ProductEditor key={r.id} row={r} onChanged={refresh} />
           ))}
@@ -266,13 +270,13 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   }
 
   return (
-    <Card className="p-3 space-y-2">
-      <div className="flex items-start gap-3">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted/50">
+    <Card className="p-2 space-y-1.5">
+      <div className="flex items-start gap-2">
+        <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted/50">
           {imageUrl ? (
             <img src={imageUrl} alt={name} className="h-full w-full object-contain" />
           ) : (
-            <span className="text-[10px] text-muted-foreground text-center px-1">Built-in preview</span>
+            <span className="text-[8px] text-muted-foreground text-center px-1">Built-in</span>
           )}
         </div>
         <div className="flex-1 min-w-0 space-y-1">
@@ -527,5 +531,148 @@ function NewProductForm({
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create product"}
       </Button>
     </Card>
+  );
+}
+
+function CategoryImagesSection() {
+  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listBmartCategoryImages();
+      const map: Record<string, string | null> = {};
+      for (const r of res.rows) map[r.id] = r.image_url;
+      setImages(map);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return (
+    <Card className="p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Category card images</h3>
+        {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {CATEGORIES.map((c) => (
+          <CategoryImageEditor
+            key={c}
+            category={c}
+            imageUrl={images[c] ?? null}
+            onChanged={refresh}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function CategoryImageEditor({
+  category,
+  imageUrl,
+  onChanged,
+}: {
+  category: Category;
+  imageUrl: string | null;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(imageUrl);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrl(imageUrl);
+  }, [imageUrl]);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `bmart/category-${category}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
+      toast.success("Category image saved");
+      setUrl(next);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border p-2 space-y-1.5">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{category}</div>
+      <div className="grid h-20 w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {url ? (
+          <img src={url} alt={category} className="h-full w-full object-contain" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">Default icon</span>
+        )}
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleUpload(f);
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload
+        </Button>
+        <Button
+          size="sm"
+          disabled={saving || url === imageUrl}
+          onClick={() => void save(url)}
+          className="h-7 text-xs"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        {imageUrl && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={() => void save(null)}
+            className="h-7 text-xs"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
