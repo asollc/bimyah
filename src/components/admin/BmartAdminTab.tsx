@@ -270,13 +270,13 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   }
 
   return (
-    <Card className="p-3 space-y-2">
-      <div className="flex items-start gap-3">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted/50">
+    <Card className="p-2 space-y-1.5">
+      <div className="flex items-start gap-2">
+        <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted/50">
           {imageUrl ? (
             <img src={imageUrl} alt={name} className="h-full w-full object-contain" />
           ) : (
-            <span className="text-[10px] text-muted-foreground text-center px-1">Built-in preview</span>
+            <span className="text-[8px] text-muted-foreground text-center px-1">Built-in</span>
           )}
         </div>
         <div className="flex-1 min-w-0 space-y-1">
