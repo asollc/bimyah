@@ -113,6 +113,7 @@ export function BmartAdminTab() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Category | "all">("all");
   const [adding, setAdding] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -129,9 +130,17 @@ export function BmartAdminTab() {
     void refresh();
   }, []);
 
+  const allRows = useMemo(() => mergeRows(overrides), [overrides]);
+  const deletedCount = useMemo(
+    () => allRows.filter((r) => !r.is_custom && r.hidden).length,
+    [allRows],
+  );
   const rows = useMemo(
-    () => mergeRows(overrides).filter((r) => filter === "all" || r.category === filter),
-    [overrides, filter],
+    () =>
+      allRows
+        .filter((r) => showDeleted || r.is_custom || !r.hidden)
+        .filter((r) => filter === "all" || r.category === filter),
+    [allRows, filter, showDeleted],
   );
 
   return (
@@ -153,6 +162,11 @@ export function BmartAdminTab() {
         <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
+        {deletedCount > 0 && (
+          <Button variant="outline" onClick={() => setShowDeleted((v) => !v)}>
+            {showDeleted ? "Hide deleted" : `Show deleted (${deletedCount})`}
+          </Button>
+        )}
         <div className="flex-1" />
         <Button onClick={() => setAdding(true)}>
           <Plus className="mr-1 h-4 w-4" /> New custom product
