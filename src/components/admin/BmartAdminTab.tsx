@@ -411,10 +411,13 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
         <Button size="sm" disabled={busy} onClick={() => void handleSave()}>
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
         </Button>
-        {row.hasOverride && (
-          <Button size="sm" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
-            <Trash2 className="h-3 w-3 mr-1" />
-            {row.is_custom ? "Delete" : "Reset"}
+        <Button size="sm" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
+          <Trash2 className="h-3 w-3 mr-1" />
+          Delete
+        </Button>
+        {!row.is_custom && row.hasOverride && (
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => void handleReset()}>
+            Reset
           </Button>
         )}
       </div>
