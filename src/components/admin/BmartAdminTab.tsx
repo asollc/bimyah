@@ -235,12 +235,45 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   }
 
   async function handleDelete() {
-    const label = row.is_custom ? "Delete this custom product?" : "Reset overrides to defaults?";
+    const label = row.is_custom
+      ? "Delete this custom product?"
+      : "Delete this built-in product? It will be hidden from the Bmart store.";
     if (!confirm(label)) return;
     setBusy(true);
     try {
+      if (row.is_custom) {
+        await deleteBmartProduct({ data: { id: row.id } });
+      } else {
+        // Built-ins can't be removed from code, so mark as hidden via override
+        await upsertBmartProduct({
+          data: {
+            id: row.id,
+            name,
+            price,
+            currency,
+            category,
+            hidden: true,
+            image_url: imageUrl,
+            is_custom: false,
+          },
+        });
+        setHidden(true);
+      }
+      toast.success("Deleted");
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Reset overrides to defaults?")) return;
+    setBusy(true);
+    try {
       await deleteBmartProduct({ data: { id: row.id } });
-      toast.success(row.is_custom ? "Deleted" : "Reset");
+      toast.success("Reset");
       await onChanged();
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
@@ -378,10 +411,13 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
         <Button size="sm" disabled={busy} onClick={() => void handleSave()}>
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
         </Button>
-        {row.hasOverride && (
-          <Button size="sm" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
-            <Trash2 className="h-3 w-3 mr-1" />
-            {row.is_custom ? "Delete" : "Reset"}
+        <Button size="sm" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
+          <Trash2 className="h-3 w-3 mr-1" />
+          Delete
+        </Button>
+        {!row.is_custom && row.hasOverride && (
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => void handleReset()}>
+            Reset
           </Button>
         )}
       </div>
