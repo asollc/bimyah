@@ -137,19 +137,23 @@ function DecorTile({
   active: boolean;
   onClick: () => void;
 }) {
-  const w = item.shape === "rect" ? "w-32" : item.shape === "wide" ? "w-36" : "w-24";
-  const h = item.shape === "rect" ? "h-16" : item.shape === "wide" ? "h-20" : "h-24";
+  const aspect =
+    item.shape === "rect"
+      ? "aspect-[2/1]"
+      : item.shape === "wide"
+        ? "aspect-[9/5]"
+        : "aspect-square";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative shrink-0 overflow-hidden rounded-lg border bg-black/40 p-1 transition ${
+      className={`group relative overflow-hidden rounded-lg border bg-black/40 p-1 transition ${
         active
           ? "border-[var(--gold)] shadow-[0_0_0_2px_var(--gold)]"
           : "border-white/15 hover:border-white/40"
       }`}
     >
-      <div className={`${w} ${h} overflow-hidden rounded-md`}>{item.preview}</div>
+      <div className={`${aspect} w-full overflow-hidden rounded-md`}>{item.preview}</div>
       <div className="mt-1 truncate text-center text-[9px] uppercase tracking-widest text-white/70">
         {item.label}
       </div>
@@ -164,7 +168,7 @@ function DecorTile({
 
 function HRow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
+    <div className="grid grid-cols-4 gap-2 pb-2">
       {children}
     </div>
   );
