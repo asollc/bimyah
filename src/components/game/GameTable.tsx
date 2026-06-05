@@ -2089,31 +2089,38 @@ function ViewAllCardsModal({
                 key={player.id}
                 className="rounded-xl border border-white/10 bg-black/30 p-3"
               >
-                <div
-                  className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1 text-xs font-semibold w-fit"
-                  style={{ borderLeft: `3px solid ${colorHex}` }}
-                >
-                  <span
-                    className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
-                    style={{ backgroundColor: colorHex }}
-                  >
-                    {player.name.slice(0, 1).toUpperCase()}
-                  </span>
+                <div className="flex items-center gap-1.5 text-xs font-semibold w-fit">
                   {player.titleUrl && (
                     <img
                       src={player.titleUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+                      className="h-[1.4em] w-auto shrink-0 object-contain drop-shadow"
                     />
                   )}
-                  <span>{player.name}</span>
+                  <div
+                    className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1"
+                    style={{ borderLeft: `3px solid ${colorHex}` }}
+                  >
+                    <span
+                      className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+                      style={{ backgroundColor: colorHex }}
+                    >
+                      {player.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span>{player.name}</span>
+                    {player.hand.length > 0 && (
+                      <span className="text-[9px] uppercase tracking-wider text-white/50">
+                        hand: {player.hand.length}
+                      </span>
+                    )}
+                  </div>
                   {player.badgeUrl && (
                     <img
                       src={player.badgeUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
                   )}
                   {player.specialBadgeUrl && (
@@ -2121,13 +2128,8 @@ function ViewAllCardsModal({
                       src={player.specialBadgeUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-[1em] shrink-0 object-contain"
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
-                  )}
-                  {player.hand.length > 0 && (
-                    <span className="text-[9px] uppercase tracking-wider text-white/50">
-                      hand: {player.hand.length}
-                    </span>
                   )}
                 </div>
 
