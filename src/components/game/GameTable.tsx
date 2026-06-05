@@ -1767,58 +1767,66 @@ function PlayerSeat({
         </div>
       )}
 
-      {/* Name tag — also acts as the drag handle for non-me seats */}
+      {/* Name tag — also acts as the drag handle for non-me seats.
+          Title sits outside the oval on the left; badges outside on the right. */}
       <div
-        onPointerDown={onHandlePointerDown}
-        onPointerMove={onHandlePointerMove}
-        onPointerUp={onHandlePointerUp}
-        onPointerCancel={onHandlePointerUp}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur select-none",
-          isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
+          "flex items-center gap-1.5 text-[10px] font-semibold",
           !isMe && "mb-2",
-          draggable && "cursor-grab active:cursor-grabbing ring-1 ring-white/10",
         )}
-        style={{ borderLeft: `3px solid ${colorHex}`, touchAction: draggable ? "none" : undefined }}
-        title={draggable ? "Drag to reposition" : undefined}
       >
-        {player.avatarUrl ? (
-          <img
-            src={player.avatarUrl}
-            alt=""
-            draggable={false}
-            className="h-4 w-4 rounded-full object-cover"
-          />
-        ) : player.isBot ? (
-          <span
-            className="flex h-4 w-4 items-center justify-center rounded-full bg-black/40 text-[10px] leading-none"
-            aria-label="Bot"
-          >
-            🤖
-          </span>
-        ) : (
-          <span
-            className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
-            style={{ backgroundColor: colorHex }}
-          >
-            {player.name.slice(0, 1).toUpperCase()}
-          </span>
-        )}
         {player.titleUrl && (
           <img
             src={player.titleUrl}
             alt=""
             aria-hidden
-            className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+            className="h-[1.4em] w-auto shrink-0 object-contain drop-shadow"
           />
         )}
-        <span>{player.name}</span>
+        <div
+          onPointerDown={onHandlePointerDown}
+          onPointerMove={onHandlePointerMove}
+          onPointerUp={onHandlePointerUp}
+          onPointerCancel={onHandlePointerUp}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full px-2 py-0.5 backdrop-blur select-none",
+            isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
+            draggable && "cursor-grab active:cursor-grabbing ring-1 ring-white/10",
+          )}
+          style={{ borderLeft: `3px solid ${colorHex}`, touchAction: draggable ? "none" : undefined }}
+          title={draggable ? "Drag to reposition" : undefined}
+        >
+          {player.avatarUrl ? (
+            <img
+              src={player.avatarUrl}
+              alt=""
+              draggable={false}
+              className="h-4 w-4 rounded-full object-cover"
+            />
+          ) : player.isBot ? (
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full bg-black/40 text-[10px] leading-none"
+              aria-label="Bot"
+            >
+              🤖
+            </span>
+          ) : (
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+              style={{ backgroundColor: colorHex }}
+            >
+              {player.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span>{player.name}</span>
+          {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
+        </div>
         {player.badgeUrl && (
           <img
             src={player.badgeUrl}
             alt=""
             aria-hidden
-            className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
         {player.specialBadgeUrl && (
@@ -1826,10 +1834,9 @@ function PlayerSeat({
             src={player.specialBadgeUrl}
             alt=""
             aria-hidden
-            className="h-[1em] w-[1em] shrink-0 object-contain"
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
-        {status === "lobby" && player.ready && <span className="text-[var(--mint)]">✓</span>}
       </div>
 
       {/* Inactivity phase warning — shown next to the seat label / sort row.
@@ -2082,31 +2089,38 @@ function ViewAllCardsModal({
                 key={player.id}
                 className="rounded-xl border border-white/10 bg-black/30 p-3"
               >
-                <div
-                  className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1 text-xs font-semibold w-fit"
-                  style={{ borderLeft: `3px solid ${colorHex}` }}
-                >
-                  <span
-                    className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
-                    style={{ backgroundColor: colorHex }}
-                  >
-                    {player.name.slice(0, 1).toUpperCase()}
-                  </span>
+                <div className="flex items-center gap-1.5 text-xs font-semibold w-fit">
                   {player.titleUrl && (
                     <img
                       src={player.titleUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-auto shrink-0 rounded-sm object-contain"
+                      className="h-[1.4em] w-auto shrink-0 object-contain drop-shadow"
                     />
                   )}
-                  <span>{player.name}</span>
+                  <div
+                    className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1"
+                    style={{ borderLeft: `3px solid ${colorHex}` }}
+                  >
+                    <span
+                      className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+                      style={{ backgroundColor: colorHex }}
+                    >
+                      {player.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span>{player.name}</span>
+                    {player.hand.length > 0 && (
+                      <span className="text-[9px] uppercase tracking-wider text-white/50">
+                        hand: {player.hand.length}
+                      </span>
+                    )}
+                  </div>
                   {player.badgeUrl && (
                     <img
                       src={player.badgeUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-[1em] shrink-0 rounded-sm object-contain"
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
                   )}
                   {player.specialBadgeUrl && (
@@ -2114,13 +2128,8 @@ function ViewAllCardsModal({
                       src={player.specialBadgeUrl}
                       alt=""
                       aria-hidden
-                      className="h-[1em] w-[1em] shrink-0 object-contain"
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
-                  )}
-                  {player.hand.length > 0 && (
-                    <span className="text-[9px] uppercase tracking-wider text-white/50">
-                      hand: {player.hand.length}
-                    </span>
                   )}
                 </div>
 
