@@ -512,10 +512,10 @@ function CategoryView({
       >
         <ArrowLeft className="h-4 w-4" /> All categories
       </button>
-      <h2 className="font-display text-2xl font-black uppercase tracking-widest text-[var(--gold)]">
-        {cat.name}
-      </h2>
-      <p className="mb-5 text-xs uppercase tracking-widest text-white/50">{cat.tag}</p>
+      <header className="mb-6 text-center">
+        <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{cat.name}</h2>
+        <p className="mt-1 text-xs uppercase tracking-[0.25em] text-white/55">{cat.tag}</p>
+      </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((p) => (
@@ -539,59 +539,66 @@ function ProductCard({
 }) {
   const isVictory = product.category === "victory";
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-black/40 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/50">
-      {/* Add to cart icon */}
-      <button
-        type="button"
-        onClick={() => onAdd(product)}
-        aria-label="Add to cart"
-        className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur transition hover:border-[var(--gold)] hover:text-[var(--gold)]"
-      >
-        <ShoppingCart className="h-4 w-4" />
-      </button>
-
-      <div className="relative grid aspect-square place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_60%)] p-4">
-        {product.preview}
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <div className="font-display text-[13px] font-bold uppercase tracking-wide text-white">
-          {product.name}
-        </div>
-        <div className="flex items-center gap-1 text-sm">
-          {product.currency === "bimbucks" ? (
-            <BimbucksIcon size={16} />
-          ) : (
-            <BimbitsIcon size={16} />
-          )}
-          <span className="font-display text-[var(--gold)]">
-            {product.price.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="mt-1 flex items-center gap-2">
+    <div
+      className="group relative flex aspect-[4/5] flex-col overflow-hidden rounded-2xl border border-white/10 text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/60"
+      style={{
+        background:
+          "radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, rgba(60,10,12,0.55) 0%, rgba(10,4,5,0.85) 100%)",
+        boxShadow:
+          "0 18px 38px -14px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,200,120,0.05)",
+      }}
+    >
+      {/* Top-right actions */}
+      <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={() => onAdd(product)}
+          aria-label="Add to cart"
+          className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur transition hover:border-[var(--gold)] hover:text-[var(--gold)]"
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+        </button>
+        {isVictory && (
           <button
             type="button"
-            onClick={() => onBuy(product)}
-            className="btn-3d btn-3d-gold flex-1 !rounded-lg !px-2 !py-2 text-[10px]"
+            onClick={() => onPreview(product)}
+            aria-label="Preview effect"
+            className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur transition hover:border-[var(--gold)] hover:text-[var(--gold)]"
           >
-            Buy Now
+            <Eye className="h-3.5 w-3.5" />
           </button>
-          {isVictory && (
-            <button
-              type="button"
-              onClick={() => onPreview(product)}
-              aria-label="Preview effect"
-              className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 bg-black/40 text-white hover:border-[var(--gold)] hover:text-[var(--gold)]"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
+        )}
+      </div>
+
+      {/* Full-bleed preview */}
+      <button
+        type="button"
+        onClick={() => onBuy(product)}
+        className="relative flex flex-1 items-center justify-center overflow-hidden p-4"
+      >
+        {product.preview}
+      </button>
+
+      {/* Bottom info plate */}
+      <div className="relative z-[1] flex flex-col gap-0.5 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-3 pt-6">
+        <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white">
+          {product.name}
+        </div>
+        <div className="flex items-center gap-1">
+          {product.currency === "bimbucks" ? (
+            <BimbucksIcon size={13} />
+          ) : (
+            <BimbitsIcon size={13} />
           )}
+          <span className="font-display text-[11px] font-bold text-[var(--gold)]">
+            {product.price.toLocaleString()}
+          </span>
         </div>
       </div>
     </div>
   );
 }
+
 
 /* ---------------- Cart overlay ---------------- */
 
