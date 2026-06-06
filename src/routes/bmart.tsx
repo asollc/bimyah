@@ -319,9 +319,9 @@ function BmartPage() {
             <ArrowLeft className="h-4 w-4" />
             <span className="text-xs uppercase tracking-widest">Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <CurrencyChip icon={<BimbucksIcon size={16} />} value={wallet.bimbucks} />
-            <CurrencyChip icon={<BimbitsIcon size={16} />} value={wallet.bimbits} />
+          <div className="flex items-center gap-1.5">
+            <CurrencyChip icon={<BimbucksIcon size={14} />} value={wallet.bimbucks} />
+            <CurrencyChip icon={<BimbitsIcon size={14} />} value={wallet.bimbits} />
             <button
               type="button"
               onClick={() => setCartOpen(true)}
