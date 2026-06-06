@@ -366,9 +366,14 @@ function BmartPage() {
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCat(c.id)}
-                  className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${c.accent} text-left shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/50`}
+                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/60"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, rgba(60,10,12,0.55) 0%, rgba(10,4,5,0.85) 100%)",
+                    boxShadow:
+                      "0 20px 42px -14px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,200,120,0.05)",
+                  }}
                 >
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_60%)]" />
                   {categoryImages[c.id] ? (
                     <img
                       src={categoryImages[c.id] as string}
@@ -380,11 +385,11 @@ function BmartPage() {
                       <CategoryIcon id={c.id} />
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/80 to-transparent p-3">
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-8">
                     <div className="font-display text-sm font-black uppercase tracking-widest text-white">
                       {c.name}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-white/60">
+                    <div className="text-[10px] uppercase tracking-widest text-white/55">
                       {c.tag}
                     </div>
                   </div>
