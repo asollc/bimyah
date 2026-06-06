@@ -777,9 +777,9 @@ function PreviewModal({ product, onClose }: { product: Product; onClose: () => v
 
 function CurrencyChip({ icon, value }: { icon: React.ReactNode; value: number }) {
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/40 px-2.5 py-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+    <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-black/40 px-2 py-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
       {icon}
-      <span className="font-display text-xs font-bold text-white">
+      <span className="font-display text-[10px] font-bold text-white">
         {value.toLocaleString()}
       </span>
     </div>
