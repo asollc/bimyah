@@ -504,6 +504,7 @@ export function markActive(state: GameState, playerId: string): GameState {
  *  players. Only runs while a match is in progress. */
 export function tickIdle(state: GameState): GameState {
   if (state.status !== "playing") return state;
+  if (state.inactivityDisabled) return state;
   const now = Date.now();
   let changed = false;
   const players = state.players.map((p) => {
