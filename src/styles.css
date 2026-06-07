@@ -574,30 +574,31 @@
   text-transform: uppercase;
 }
 
-/* Bmart shop — neon/3d shop card surfaces */
+/* Bmart shop — glass case surfaces */
 .shop-card {
   position: relative;
   border-radius: 22px;
   background:
-    radial-gradient(ellipse at 30% 0%, rgba(255, 220, 150, 0.18), transparent 55%),
-    linear-gradient(180deg, #2a0a10 0%, #0a0306 100%);
-  border: 1px solid rgba(255, 200, 120, 0.18);
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%);
+  border: 1px solid rgba(255, 220, 170, 0.28);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   box-shadow:
-    0 22px 48px -18px rgba(0, 0, 0, 0.95),
-    0 6px 0 rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 0 0 1px rgba(255, 200, 120, 0.06);
+    0 18px 40px -18px rgba(0, 0, 0, 0.85),
+    0 0 24px -2px rgba(251, 191, 36, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 220, 170, 0.10);
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.22s ease;
 }
 .shop-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow:
-    0 30px 60px -18px rgba(0, 0, 0, 1),
-    0 8px 0 rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 200, 120, 0.35),
-    0 0 36px -4px rgba(251, 191, 36, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    0 28px 56px -18px rgba(0, 0, 0, 0.95),
+    0 0 36px -2px rgba(251, 191, 36, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 220, 170, 0.35);
 }
 .shop-card::after {
   content: "";
@@ -605,19 +606,22 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.16) 0%, transparent 35%);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, transparent 35%),
+    linear-gradient(20deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%);
   mix-blend-mode: screen;
-  opacity: 0.6;
+  opacity: 0.75;
 }
 
+/* Static glow halo behind glass cases */
 .shop-glow {
   position: absolute;
-  inset: -30% -20% auto -20%;
-  height: 80%;
-  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.35), transparent 65%);
-  filter: blur(20px);
+  inset: -10%;
+  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.22), transparent 70%);
+  filter: blur(18px);
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.7;
+  z-index: 0;
 }
 
 @keyframes float-y {
@@ -626,27 +630,5 @@
 }
 .animate-float-y { animation: float-y 3.6s ease-in-out infinite; }
 
-@keyframes shine-sweep {
-  0% { transform: translateX(-120%) skewX(-20deg); }
-  100% { transform: translateX(220%) skewX(-20deg); }
-}
-.shine-sweep {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-.shine-sweep::before {
-  content: "";
-  position: absolute;
-  top: -20%;
-  left: 0;
-  width: 35%;
-  height: 140%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
-  animation: shine-sweep 4.5s ease-in-out infinite;
-  animation-delay: var(--shine-delay, 0s);
-}
 
 

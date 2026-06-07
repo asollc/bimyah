@@ -7,9 +7,19 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
-import { listBmartProducts, listBmartCategoryImages } from "@/lib/rpc/bmart.functions";
+import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
   cards: "card_back",
@@ -220,13 +230,47 @@ const PRODUCTS: Product[] = [
   })),
 ];
 
-const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[] = [
+export const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[] = [
   { id: "cards", name: "Cards", tag: "Custom card backs", accent: "from-rose-500/30 to-rose-900/20" },
   { id: "victory", name: "Victory Effects", tag: "Win in style", accent: "from-amber-400/30 to-amber-800/20" },
   { id: "titles", name: "Titles", tag: "Wear the brag", accent: "from-emerald-400/30 to-emerald-900/20" },
   { id: "backgrounds", name: "Backgrounds", tag: "Set the mood", accent: "from-sky-400/30 to-sky-900/20" },
   { id: "tabletops", name: "Table Tops", tag: "Lay it down lux", accent: "from-yellow-300/30 to-yellow-800/20" },
 ];
+
+/* ---------------- Page ---------------- */
+
+export const BMART_TEXT_DEFAULTS: Record<string, string> = {
+  "hero.title": "Bmart",
+  "hero.subtitle": "Bimyah! bling for those who like to look good while they play good.",
+  "cat.cards.name": "Cards",
+  "cat.cards.tag": "Custom card backs",
+  "cat.victory.name": "Victory Effects",
+  "cat.victory.tag": "Win in style",
+  "cat.titles.name": "Titles",
+  "cat.titles.tag": "Wear the brag",
+  "cat.backgrounds.name": "Backgrounds",
+  "cat.backgrounds.tag": "Set the mood",
+  "cat.tabletops.name": "Table Tops",
+  "cat.tabletops.tag": "Lay it down lux",
+  "ui.buyBimbucks": "Buy Bimbucks",
+  "ui.buyBimbucksShort": "Buy",
+  "ui.allCategories": "All categories",
+  "ui.home": "Home",
+  "ui.buyNow": "Buy Now",
+  "ui.addToCart": "Add to cart",
+  "ui.cart": "Cart",
+  "ui.checkout": "Checkout",
+  "ui.clear": "Clear",
+  "ui.confirmTitle": "Confirm purchase",
+  "ui.confirmBuy": "Buy",
+  "ui.confirmCancel": "Cancel",
+};
+
+function makeT(overrides: Record<string, string>) {
+  return (key: string, fallback?: string) =>
+    overrides[key] ?? BMART_TEXT_DEFAULTS[key] ?? fallback ?? key;
+}
 
 /* ---------------- Page ---------------- */
 
@@ -238,8 +282,10 @@ function BmartPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void listBmartProducts()
@@ -252,8 +298,16 @@ function BmartPage() {
         setCategoryImages(map);
       })
       .catch(() => {});
+    void listBmartText()
+      .then((res) => {
+        const map: Record<string, string> = {};
+        for (const r of res.rows) map[r.key] = r.value;
+        setTextOverrides(map);
+      })
+      .catch(() => {});
   }, []);
 
+  const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
 
   useEffect(() => {
@@ -312,39 +366,52 @@ function BmartPage() {
 
   return (
     <div className="relative min-h-[calc(100dvh-50px)] w-full text-white">
-      {/* Top bar */}
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-black/60 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2">
-          <Link to="/" className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs uppercase tracking-widest">Home</span>
-          </Link>
-          <div className="flex items-center gap-1.5">
-            <CurrencyChip icon={<BimbucksIcon size={14} />} value={wallet.bimbucks} />
-            <CurrencyChip icon={<BimbitsIcon size={14} />} value={wallet.bimbits} />
+      {/* Sticky top bar — back button, centered wallet+buy, cart */}
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-black/70 backdrop-blur-md">
+        <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2">
+          {activeCat === null ? (
+            <Link to="/" className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs uppercase tracking-widest">{t("ui.home")}</span>
+            </Link>
+          ) : (
             <button
               type="button"
-              onClick={() => setCartOpen(true)}
-              aria-label="Open cart"
-              className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-white/10 to-black/40 text-white shadow-[0_4px_0_0_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5"
+              onClick={() => setActiveCat(null)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white"
             >
-              <ShoppingCart className="h-4 w-4" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-black text-black">
-                  {cartCount}
-                </span>
-              )}
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs uppercase tracking-widest">{t("ui.allCategories")}</span>
             </button>
+          )}
+
+          <div className="flex items-center justify-center gap-1.5">
+            <CurrencyChip icon={<BimbucksIcon size={14} />} value={wallet.bimbucks} />
+            <CurrencyChip icon={<BimbitsIcon size={14} />} value={wallet.bimbits} />
             <button
               type="button"
               onClick={() => setWalletOpen(true)}
               className="group relative inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--gold)]/60 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] px-3 text-[11px] font-black uppercase tracking-wider text-[#1a1303] shadow-[0_4px_0_0_#5a4310,0_6px_12px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)] active:translate-y-0.5"
             >
               <BimbucksIcon size={14} />
-              <span className="hidden sm:inline">Buy Bimbucks</span>
-              <span className="sm:hidden">Buy</span>
+              <span className="hidden sm:inline">{t("ui.buyBimbucks")}</span>
+              <span className="sm:hidden">{t("ui.buyBimbucksShort")}</span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            aria-label="Open cart"
+            className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-white/10 to-black/40 text-white shadow-[0_4px_0_0_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-black text-black">
+                {cartCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -366,45 +433,43 @@ function BmartPage() {
               <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-56 w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
                 style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.32), transparent 65%)", filter: "blur(20px)" }}
               />
-              <h1 className="bmart-logo">Bmart</h1>
+              <h1 className="bmart-logo">{t("hero.title")}</h1>
               <p className="mx-auto mt-4 max-w-xl text-sm text-white/75 sm:text-base">
-                Bimyah! bling for those who like to look good while they play good.
+                {t("hero.subtitle")}
               </p>
             </header>
 
-            {/* Category grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c, idx) => (
+            {/* Category grid — 15% smaller cards */}
+            <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCat(c.id)}
-                  className="shop-card group relative aspect-[4/5] overflow-hidden text-left"
-                  style={{ ["--shine-delay" as string]: `${idx * 0.6}s` }}
+                  className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
-                  <span className="shine-sweep" />
                   {categoryImages[c.id] ? (
                     <img
                       src={categoryImages[c.id] as string}
-                      alt={c.name}
+                      alt={t(`cat.${c.id}.name`, c.name)}
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-8">
-                      <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.65)]">
+                    <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
+                      <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
                         <CategoryIcon id={c.id} />
                       </div>
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
-                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.55) 60%, transparent)" }}
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
-                    <div className="font-display text-sm font-black uppercase tracking-widest text-white drop-shadow">
-                      {c.name}
+                    <div className="font-display text-xs font-black uppercase tracking-widest text-white drop-shadow">
+                      {t(`cat.${c.id}.name`, c.name)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
-                      {c.tag}
+                    <div className="text-[9px] uppercase tracking-widest text-[var(--gold)]/80">
+                      {t(`cat.${c.id}.tag`, c.tag)}
                     </div>
                   </div>
                 </button>
@@ -415,9 +480,9 @@ function BmartPage() {
           <CategoryView
             categoryId={activeCat}
             catalog={catalog}
-            onBack={() => setActiveCat(null)}
+            t={t}
             onAdd={addToCart}
-            onBuy={buyNow}
+            onBuy={(p) => setConfirmProduct(p)}
             onPreview={(p) => setPreviewProduct(p)}
           />
         )}
@@ -498,6 +563,43 @@ function BmartPage() {
       {previewProduct && (
         <PreviewModal product={previewProduct} onClose={() => setPreviewProduct(null)} />
       )}
+
+      {/* Buy Now confirmation */}
+      <AlertDialog open={!!confirmProduct} onOpenChange={(o) => !o && setConfirmProduct(null)}>
+        <AlertDialogContent className="border-[var(--gold)]/40 bg-[#0a0d0a] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display uppercase tracking-widest text-[var(--gold)]">
+              {t("ui.confirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/80">
+              {confirmProduct && (
+                <>
+                  Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
+                  <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
+                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                    {confirmProduct.price.toLocaleString()}
+                  </span>?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              {t("ui.confirmCancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+              onClick={async () => {
+                const p = confirmProduct;
+                setConfirmProduct(null);
+                if (p) await buyNow(p);
+              }}
+            >
+              {t("ui.confirmBuy")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -507,14 +609,14 @@ function BmartPage() {
 function CategoryView({
   categoryId,
   catalog,
-  onBack,
+  t,
   onAdd,
   onBuy,
   onPreview,
 }: {
   categoryId: CategoryId;
   catalog: Product[];
-  onBack: () => void;
+  t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
@@ -522,27 +624,19 @@ function CategoryView({
   const cat = CATEGORIES.find((c) => c.id === categoryId)!;
   const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
 
-
   return (
     <div>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs uppercase tracking-widest text-white/70 hover:bg-white/5 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" /> All categories
-      </button>
       <header className="relative mb-8 text-center">
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-40 w-[110%] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.28), transparent 65%)", filter: "blur(18px)" }}
         />
-        <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{cat.name}</h2>
-        <p className="mt-2 text-xs uppercase tracking-[0.25em] text-[var(--gold)]/80">{cat.tag}</p>
+        <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{t(`cat.${cat.id}.name`, cat.name)}</h2>
+        <p className="mt-2 text-xs uppercase tracking-[0.25em] text-[var(--gold)]/80">{t(`cat.${cat.id}.tag`, cat.tag)}</p>
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {items.map((p, idx) => (
-          <ProductCard key={p.id} product={p} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} delay={idx * 0.4} />
+        {items.map((p) => (
+          <ProductCard key={p.id} product={p} t={t} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} />
         ))}
       </div>
     </div>
@@ -551,33 +645,29 @@ function CategoryView({
 
 function ProductCard({
   product,
+  t,
   onAdd,
   onBuy,
   onPreview,
-  delay = 0,
 }: {
   product: Product;
+  t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
-  delay?: number;
 }) {
   const isVictory = product.category === "victory";
   return (
-    <div
-      className="shop-card group relative flex aspect-[4/5] flex-col overflow-hidden text-left"
-      style={{ ["--shine-delay" as string]: `${delay}s` }}
-    >
+    <div className="shop-card group relative flex aspect-[4/5] flex-col overflow-hidden text-left">
       <span className="shop-glow" />
-      <span className="shine-sweep" />
 
       {/* Top-right actions */}
       <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
         <button
           type="button"
           onClick={() => onAdd(product)}
-          aria-label="Add to cart"
-          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+          aria-label={t("ui.addToCart")}
+          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/40 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)]"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
         </button>
@@ -586,29 +676,25 @@ function ProductCard({
             type="button"
             onClick={() => onPreview(product)}
             aria-label="Preview effect"
-            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/40 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)]"
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      {/* Floating preview */}
-      <button
-        type="button"
-        onClick={() => onBuy(product)}
-        className="relative z-[1] flex flex-1 items-center justify-center overflow-hidden p-4"
-      >
-        <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.75)] transition-transform duration-300 group-hover:scale-[1.06]">
+      {/* Static preview, glass-case style */}
+      <div className="relative z-[1] flex flex-1 items-center justify-center overflow-hidden p-4">
+        <div className="drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]">
           {product.preview}
         </div>
-      </button>
+      </div>
 
-      {/* Bottom info plate */}
-      <div className="relative z-[2] flex items-end justify-between gap-2 px-3 pb-3 pt-8"
-        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.5) 70%, transparent)" }}
+      {/* Bottom info plate + Buy Now */}
+      <div className="relative z-[2] flex flex-col gap-2 px-3 pb-3 pt-6"
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 10%, rgba(0,0,0,0.35) 70%, transparent)" }}
       >
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white drop-shadow">
             {product.name}
           </div>
@@ -623,6 +709,13 @@ function ProductCard({
             </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => onBuy(product)}
+          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border border-[var(--gold)]/70 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] px-2 text-[10px] font-black uppercase tracking-widest text-[#1a1303] shadow-[0_3px_0_0_#5a4310,inset_0_1px_0_0_rgba(255,255,255,0.5)] transition active:translate-y-0.5"
+        >
+          {t("ui.buyNow")}
+        </button>
       </div>
     </div>
   );
