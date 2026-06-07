@@ -175,6 +175,37 @@ function JoinGame() {
         return;
       }
 
+      // Reclaim by name: if a seat already exists with the same display name
+      // (e.g. a stale connection or a previous tab), take over that seat instead
+      // of adding a new player. This prevents "game is full" errors when the
+      // same user re-joins, and avoids ghost duplicates that leave the joiner
+      // stuck on the loading screen while the host shows them as present.
+      const normalize = (s: string) => s.trim().toLowerCase();
+      const nameMatch = state.players.find(
+        (p) => !p.isBot && normalize(p.name) === normalize(playerName),
+      );
+      if (nameMatch) {
+        // Re-open the connection as the existing seat so the host maps this
+        // peer to the existing playerId (hello → markReconnected).
+        session.destroy();
+        const reclaimSession = await joinGame(gameId, nameMatch.id);
+        registerSession(reclaimSession);
+        sessionStorage.setItem(`bimyah_me_${gameId}`, nameMatch.id);
+        sessionStorage.setItem(`bimyah_name_${gameId}`, nameMatch.name);
+        sessionStorage.removeItem(`bimyah_spec_${gameId}`);
+        saveIdentity(gameId, {
+          meId: nameMatch.id,
+          name: nameMatch.name,
+          role: "joiner",
+        });
+        if (nameMatch.reentryCode) {
+          saveReentryCode(gameId, nameMatch.reentryCode);
+        }
+        saveLastRoom(gameId);
+        void navigate({ to: "/game/$gameId", params: { gameId } });
+        return;
+      }
+
       if (state.status !== "lobby") {
         setErr("Game already started — try Spectate instead");
         setBusy(false);
@@ -190,6 +221,7 @@ function JoinGame() {
         startedRef.current = false;
         return;
       }
+
       const existingCodes = state.players
         .map((p) => p.reentryCode)
         .filter((c): c is string => !!c);
