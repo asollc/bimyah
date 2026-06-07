@@ -855,8 +855,9 @@ export function GameTable({
 
       {/* Invite (lobby only) — show 4-digit code */}
       {state.status === "lobby" && inviteUrl && (
-        <div className="pointer-events-none absolute left-1/2 top-2 z-30 -translate-x-1/2">
-          <Movable id="invite-code" {...movables} origin="top center" className="pointer-events-auto">
+        <div className="pointer-events-none absolute left-12 top-2 z-30">
+          <Movable id="invite-code" {...movables} origin="top left" defaultLayout={{ s: 0.85 }} className="pointer-events-auto">
+
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
               <div className="flex items-center gap-2">
                 <span className="font-display text-[10px] uppercase tracking-widest text-white/60">

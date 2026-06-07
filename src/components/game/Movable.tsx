@@ -102,6 +102,7 @@ export function Movable({
   className,
   origin = "top left",
   zIndex,
+  defaultLayout,
 }: {
   id: string;
   layouts: MovableLayoutMap;
@@ -111,8 +112,9 @@ export function Movable({
   className?: string;
   origin?: string;
   zIndex?: number;
+  defaultLayout?: Partial<MovableLayout>;
 }) {
-  const layout = layouts[id] ?? DEFAULT_LAYOUT;
+  const layout = layouts[id] ?? { ...DEFAULT_LAYOUT, ...(defaultLayout ?? {}) };
   const rootRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
