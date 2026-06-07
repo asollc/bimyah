@@ -230,7 +230,7 @@ const PRODUCTS: Product[] = [
   })),
 ];
 
-const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[] = [
+export const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[] = [
   { id: "cards", name: "Cards", tag: "Custom card backs", accent: "from-rose-500/30 to-rose-900/20" },
   { id: "victory", name: "Victory Effects", tag: "Win in style", accent: "from-amber-400/30 to-amber-800/20" },
   { id: "titles", name: "Titles", tag: "Wear the brag", accent: "from-emerald-400/30 to-emerald-900/20" },
