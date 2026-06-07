@@ -609,14 +609,14 @@ function BmartPage() {
 function CategoryView({
   categoryId,
   catalog,
-  onBack,
+  t,
   onAdd,
   onBuy,
   onPreview,
 }: {
   categoryId: CategoryId;
   catalog: Product[];
-  onBack: () => void;
+  t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
@@ -624,27 +624,19 @@ function CategoryView({
   const cat = CATEGORIES.find((c) => c.id === categoryId)!;
   const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
 
-
   return (
     <div>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs uppercase tracking-widest text-white/70 hover:bg-white/5 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" /> All categories
-      </button>
       <header className="relative mb-8 text-center">
         <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-40 w-[110%] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.28), transparent 65%)", filter: "blur(18px)" }}
         />
-        <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{cat.name}</h2>
-        <p className="mt-2 text-xs uppercase tracking-[0.25em] text-[var(--gold)]/80">{cat.tag}</p>
+        <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{t(`cat.${cat.id}.name`, cat.name)}</h2>
+        <p className="mt-2 text-xs uppercase tracking-[0.25em] text-[var(--gold)]/80">{t(`cat.${cat.id}.tag`, cat.tag)}</p>
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {items.map((p, idx) => (
-          <ProductCard key={p.id} product={p} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} delay={idx * 0.4} />
+        {items.map((p) => (
+          <ProductCard key={p.id} product={p} t={t} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} />
         ))}
       </div>
     </div>
@@ -653,33 +645,29 @@ function CategoryView({
 
 function ProductCard({
   product,
+  t,
   onAdd,
   onBuy,
   onPreview,
-  delay = 0,
 }: {
   product: Product;
+  t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
-  delay?: number;
 }) {
   const isVictory = product.category === "victory";
   return (
-    <div
-      className="shop-card group relative flex aspect-[4/5] flex-col overflow-hidden text-left"
-      style={{ ["--shine-delay" as string]: `${delay}s` }}
-    >
+    <div className="shop-card group relative flex aspect-[4/5] flex-col overflow-hidden text-left">
       <span className="shop-glow" />
-      <span className="shine-sweep" />
 
       {/* Top-right actions */}
       <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
         <button
           type="button"
           onClick={() => onAdd(product)}
-          aria-label="Add to cart"
-          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+          aria-label={t("ui.addToCart")}
+          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/40 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)]"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
         </button>
@@ -688,29 +676,25 @@ function ProductCard({
             type="button"
             onClick={() => onPreview(product)}
             aria-label="Preview effect"
-            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/40 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)]"
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      {/* Floating preview */}
-      <button
-        type="button"
-        onClick={() => onBuy(product)}
-        className="relative z-[1] flex flex-1 items-center justify-center overflow-hidden p-4"
-      >
-        <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.75)] transition-transform duration-300 group-hover:scale-[1.06]">
+      {/* Static preview, glass-case style */}
+      <div className="relative z-[1] flex flex-1 items-center justify-center overflow-hidden p-4">
+        <div className="drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]">
           {product.preview}
         </div>
-      </button>
+      </div>
 
-      {/* Bottom info plate */}
-      <div className="relative z-[2] flex items-end justify-between gap-2 px-3 pb-3 pt-8"
-        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.5) 70%, transparent)" }}
+      {/* Bottom info plate + Buy Now */}
+      <div className="relative z-[2] flex flex-col gap-2 px-3 pb-3 pt-6"
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 10%, rgba(0,0,0,0.35) 70%, transparent)" }}
       >
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white drop-shadow">
             {product.name}
           </div>
@@ -725,6 +709,13 @@ function ProductCard({
             </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => onBuy(product)}
+          className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border border-[var(--gold)]/70 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] px-2 text-[10px] font-black uppercase tracking-widest text-[#1a1303] shadow-[0_3px_0_0_#5a4310,inset_0_1px_0_0_rgba(255,255,255,0.5)] transition active:translate-y-0.5"
+        >
+          {t("ui.buyNow")}
+        </button>
       </div>
     </div>
   );
