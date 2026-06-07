@@ -7,9 +7,19 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
-import { listBmartProducts, listBmartCategoryImages } from "@/lib/rpc/bmart.functions";
+import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
   cards: "card_back",
