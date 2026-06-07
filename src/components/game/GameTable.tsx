@@ -1689,6 +1689,7 @@ function PlayerSeat({
   colorMap?: Record<PlayerColor, string>;
   players?: Player[];
   now?: number;
+  inactivityDisabled?: boolean;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
