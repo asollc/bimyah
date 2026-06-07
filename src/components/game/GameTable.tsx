@@ -1865,7 +1865,7 @@ function PlayerSeat({
       {/* Inactivity phase warning — shown next to the seat label / sort row.
           Phases: "Inactive in Ns" (idle warning) → "Inactive — free cards in Ns"
           → "Free Cards" (terminal). Bots never show this. */}
-      {!player.isBot && status === "playing" && (() => {
+      {!player.isBot && status === "playing" && !inactivityDisabled && (() => {
         const t = now ?? Date.now();
         if (player.freeCards) {
           return (
