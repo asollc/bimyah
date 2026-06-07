@@ -1358,8 +1358,23 @@ export function GameTable({
               </button>
             </div>
 
+            <div className="flex items-center justify-center gap-3">
+              <HomeButton />
+              <button
+                onClick={() => {
+                  const next = !muted;
+                  sfx.setMuted(next);
+                  setMuted(next);
+                }}
+                className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/80 ring-1 ring-white/15 active:scale-90"
+                aria-label="Mute"
+              >
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </div>
+
             {inviteUrl && (
-              <div className="mb-4">
+              <div className="mt-4">
                 <div className="mb-1 text-center text-[10px] uppercase tracking-widest text-white/50">
                   Room code
                 </div>
@@ -1378,20 +1393,6 @@ export function GameTable({
               </div>
             )}
 
-            <div className="flex items-center justify-center gap-3">
-              <HomeButton />
-              <button
-                onClick={() => {
-                  const next = !muted;
-                  sfx.setMuted(next);
-                  setMuted(next);
-                }}
-                className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/80 ring-1 ring-white/15 active:scale-90"
-                aria-label="Mute"
-              >
-                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
-            </div>
 
             <button
               onClick={() => { setShowSettings(false); setShowKeybinds(true); }}
