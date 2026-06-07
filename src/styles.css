@@ -554,24 +554,99 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Bmart logo — mirrors Bimyah! logo treatment (italic, skewed, gold tri-stroke) */
+/* Bmart logo — mirrors Bimyah! win-popup logo treatment (italic, skewed, gold tri-stroke) */
 .bmart-logo {
   display: inline-block;
-  font-family: "Allura", "Brush Script MT", cursive;
-  font-weight: 400;
-  font-style: normal;
-  font-size: clamp(72px, 18vw, 144px);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #fff2b0 0%, #f7d774 35%, #c9962a 70%, #8a5d10 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  filter:
-    drop-shadow(0 2px 0 rgba(120, 70, 10, 0.55))
-    drop-shadow(0 6px 14px rgba(0, 0, 0, 0.65))
-    drop-shadow(0 0 24px rgba(251, 191, 36, 0.35));
+  font-family: var(--font-display, "Sora", system-ui, sans-serif);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(64px, 16vw, 128px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: #fbbf24;
+  text-shadow:
+    0 2px 0 #b45309,
+    0 4px 0 #78350f,
+    0 6px 0 #451a03,
+    0 8px 18px rgba(0, 0, 0, 0.75),
+    0 0 32px rgba(251, 191, 36, 0.35);
+  transform: skewX(-6deg);
+  text-transform: uppercase;
+}
+
+/* Bmart shop — neon/3d shop card surfaces */
+.shop-card {
+  position: relative;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 30% 0%, rgba(255, 220, 150, 0.18), transparent 55%),
+    linear-gradient(180deg, #2a0a10 0%, #0a0306 100%);
+  border: 1px solid rgba(255, 200, 120, 0.18);
+  box-shadow:
+    0 22px 48px -18px rgba(0, 0, 0, 0.95),
+    0 6px 0 rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 200, 120, 0.06);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease;
+}
+.shop-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 30px 60px -18px rgba(0, 0, 0, 1),
+    0 8px 0 rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 200, 120, 0.35),
+    0 0 36px -4px rgba(251, 191, 36, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.shop-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.16) 0%, transparent 35%);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.shop-glow {
+  position: absolute;
+  inset: -30% -20% auto -20%;
+  height: 80%;
+  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.35), transparent 65%);
+  filter: blur(20px);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float-y { animation: float-y 3.6s ease-in-out infinite; }
+
+@keyframes shine-sweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+.shine-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.shine-sweep::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 35%;
+  height: 140%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  animation: shine-sweep 4.5s ease-in-out infinite;
+  animation-delay: var(--shine-delay, 0s);
 }
 
 
