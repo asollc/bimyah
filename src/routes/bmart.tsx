@@ -240,6 +240,40 @@ const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[
 
 /* ---------------- Page ---------------- */
 
+export const BMART_TEXT_DEFAULTS: Record<string, string> = {
+  "hero.title": "Bmart",
+  "hero.subtitle": "Bimyah! bling for those who like to look good while they play good.",
+  "cat.cards.name": "Cards",
+  "cat.cards.tag": "Custom card backs",
+  "cat.victory.name": "Victory Effects",
+  "cat.victory.tag": "Win in style",
+  "cat.titles.name": "Titles",
+  "cat.titles.tag": "Wear the brag",
+  "cat.backgrounds.name": "Backgrounds",
+  "cat.backgrounds.tag": "Set the mood",
+  "cat.tabletops.name": "Table Tops",
+  "cat.tabletops.tag": "Lay it down lux",
+  "ui.buyBimbucks": "Buy Bimbucks",
+  "ui.buyBimbucksShort": "Buy",
+  "ui.allCategories": "All categories",
+  "ui.home": "Home",
+  "ui.buyNow": "Buy Now",
+  "ui.addToCart": "Add to cart",
+  "ui.cart": "Cart",
+  "ui.checkout": "Checkout",
+  "ui.clear": "Clear",
+  "ui.confirmTitle": "Confirm purchase",
+  "ui.confirmBuy": "Buy",
+  "ui.confirmCancel": "Cancel",
+};
+
+function makeT(overrides: Record<string, string>) {
+  return (key: string, fallback?: string) =>
+    overrides[key] ?? BMART_TEXT_DEFAULTS[key] ?? fallback ?? key;
+}
+
+/* ---------------- Page ---------------- */
+
 function BmartPage() {
   const { user } = useAuth();
   const [wallet, setWallet] = useState({ bimbucks: 0, bimbits: 0 });
@@ -248,8 +282,10 @@ function BmartPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
+  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void listBmartProducts()
@@ -262,8 +298,16 @@ function BmartPage() {
         setCategoryImages(map);
       })
       .catch(() => {});
+    void listBmartText()
+      .then((res) => {
+        const map: Record<string, string> = {};
+        for (const r of res.rows) map[r.key] = r.value;
+        setTextOverrides(map);
+      })
+      .catch(() => {});
   }, []);
 
+  const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
 
   useEffect(() => {
@@ -322,39 +366,52 @@ function BmartPage() {
 
   return (
     <div className="relative min-h-[calc(100dvh-50px)] w-full text-white">
-      {/* Top bar */}
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-black/60 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2">
-          <Link to="/" className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs uppercase tracking-widest">Home</span>
-          </Link>
-          <div className="flex items-center gap-1.5">
-            <CurrencyChip icon={<BimbucksIcon size={14} />} value={wallet.bimbucks} />
-            <CurrencyChip icon={<BimbitsIcon size={14} />} value={wallet.bimbits} />
+      {/* Sticky top bar — back button, centered wallet+buy, cart */}
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-black/70 backdrop-blur-md">
+        <div className="mx-auto grid max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2">
+          {activeCat === null ? (
+            <Link to="/" className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs uppercase tracking-widest">{t("ui.home")}</span>
+            </Link>
+          ) : (
             <button
               type="button"
-              onClick={() => setCartOpen(true)}
-              aria-label="Open cart"
-              className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-white/10 to-black/40 text-white shadow-[0_4px_0_0_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5"
+              onClick={() => setActiveCat(null)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 hover:bg-white/5 hover:text-white"
             >
-              <ShoppingCart className="h-4 w-4" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-black text-black">
-                  {cartCount}
-                </span>
-              )}
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs uppercase tracking-widest">{t("ui.allCategories")}</span>
             </button>
+          )}
+
+          <div className="flex items-center justify-center gap-1.5">
+            <CurrencyChip icon={<BimbucksIcon size={14} />} value={wallet.bimbucks} />
+            <CurrencyChip icon={<BimbitsIcon size={14} />} value={wallet.bimbits} />
             <button
               type="button"
               onClick={() => setWalletOpen(true)}
               className="group relative inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--gold)]/60 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] px-3 text-[11px] font-black uppercase tracking-wider text-[#1a1303] shadow-[0_4px_0_0_#5a4310,0_6px_12px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.5)] active:translate-y-0.5"
             >
               <BimbucksIcon size={14} />
-              <span className="hidden sm:inline">Buy Bimbucks</span>
-              <span className="sm:hidden">Buy</span>
+              <span className="hidden sm:inline">{t("ui.buyBimbucks")}</span>
+              <span className="sm:hidden">{t("ui.buyBimbucksShort")}</span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            aria-label="Open cart"
+            className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-white/10 to-black/40 text-white shadow-[0_4px_0_0_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--gold)] px-1 text-[10px] font-black text-black">
+                {cartCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -376,45 +433,43 @@ function BmartPage() {
               <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-56 w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
                 style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.32), transparent 65%)", filter: "blur(20px)" }}
               />
-              <h1 className="bmart-logo">Bmart</h1>
+              <h1 className="bmart-logo">{t("hero.title")}</h1>
               <p className="mx-auto mt-4 max-w-xl text-sm text-white/75 sm:text-base">
-                Bimyah! bling for those who like to look good while they play good.
+                {t("hero.subtitle")}
               </p>
             </header>
 
-            {/* Category grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c, idx) => (
+            {/* Category grid — 15% smaller cards */}
+            <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCat(c.id)}
-                  className="shop-card group relative aspect-[4/5] overflow-hidden text-left"
-                  style={{ ["--shine-delay" as string]: `${idx * 0.6}s` }}
+                  className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
-                  <span className="shine-sweep" />
                   {categoryImages[c.id] ? (
                     <img
                       src={categoryImages[c.id] as string}
-                      alt={c.name}
+                      alt={t(`cat.${c.id}.name`, c.name)}
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-8">
-                      <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.65)]">
+                    <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
+                      <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
                         <CategoryIcon id={c.id} />
                       </div>
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
-                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.55) 60%, transparent)" }}
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
-                    <div className="font-display text-sm font-black uppercase tracking-widest text-white drop-shadow">
-                      {c.name}
+                    <div className="font-display text-xs font-black uppercase tracking-widest text-white drop-shadow">
+                      {t(`cat.${c.id}.name`, c.name)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
-                      {c.tag}
+                    <div className="text-[9px] uppercase tracking-widest text-[var(--gold)]/80">
+                      {t(`cat.${c.id}.tag`, c.tag)}
                     </div>
                   </div>
                 </button>
@@ -425,9 +480,9 @@ function BmartPage() {
           <CategoryView
             categoryId={activeCat}
             catalog={catalog}
-            onBack={() => setActiveCat(null)}
+            t={t}
             onAdd={addToCart}
-            onBuy={buyNow}
+            onBuy={(p) => setConfirmProduct(p)}
             onPreview={(p) => setPreviewProduct(p)}
           />
         )}
