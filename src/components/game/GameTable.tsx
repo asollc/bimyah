@@ -1120,6 +1120,7 @@ export function GameTable({
             colorMap={PLAYER_COLOR_HEX}
             players={state.players}
             now={now}
+            inactivityDisabled={state.inactivityDisabled}
           />
         );
       })}
