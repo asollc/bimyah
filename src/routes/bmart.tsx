@@ -348,48 +348,62 @@ function BmartPage() {
         </div>
       </div>
 
+      {/* Ambient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-[50px] -z-10 h-[60vh]"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 0%, rgba(251,191,36,0.18), transparent 70%), radial-gradient(80% 70% at 50% 100%, rgba(225,29,72,0.18), transparent 70%)",
+        }}
+      />
+
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         {activeCat === null ? (
           <>
             {/* Hero */}
-            <header className="mb-8 mt-2 text-center">
+            <header className="relative mb-10 mt-2 text-center">
+              <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-56 w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.32), transparent 65%)", filter: "blur(20px)" }}
+              />
               <h1 className="bmart-logo">Bmart</h1>
-              <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 sm:text-base">
+              <p className="mx-auto mt-4 max-w-xl text-sm text-white/75 sm:text-base">
                 Bimyah! bling for those who like to look good while they play good.
               </p>
             </header>
 
             {/* Category grid */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {CATEGORIES.map((c, idx) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCat(c.id)}
-                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/60"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, rgba(60,10,12,0.55) 0%, rgba(10,4,5,0.85) 100%)",
-                    boxShadow:
-                      "0 20px 42px -14px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,200,120,0.05)",
-                  }}
+                  className="shop-card group relative aspect-[4/5] overflow-hidden text-left"
+                  style={{ ["--shine-delay" as string]: `${idx * 0.6}s` }}
                 >
+                  <span className="shop-glow" />
+                  <span className="shine-sweep" />
                   {categoryImages[c.id] ? (
                     <img
                       src={categoryImages[c.id] as string}
                       alt={c.name}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-6">
-                      <CategoryIcon id={c.id} />
+                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-8">
+                      <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.65)]">
+                        <CategoryIcon id={c.id} />
+                      </div>
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-8">
-                    <div className="font-display text-sm font-black uppercase tracking-widest text-white">
+                  <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.55) 60%, transparent)" }}
+                  >
+                    <div className="font-display text-sm font-black uppercase tracking-widest text-white drop-shadow">
                       {c.name}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-white/55">
+                    <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
                       {c.tag}
                     </div>
                   </div>
@@ -408,6 +422,7 @@ function BmartPage() {
           />
         )}
       </div>
+
 
       {/* Cart drawer */}
       {cartOpen && (
@@ -517,14 +532,17 @@ function CategoryView({
       >
         <ArrowLeft className="h-4 w-4" /> All categories
       </button>
-      <header className="mb-6 text-center">
+      <header className="relative mb-8 text-center">
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-40 w-[110%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.28), transparent 65%)", filter: "blur(18px)" }}
+        />
         <h2 className="bmart-logo !text-[clamp(44px,10vw,84px)]">{cat.name}</h2>
-        <p className="mt-1 text-xs uppercase tracking-[0.25em] text-white/55">{cat.tag}</p>
+        <p className="mt-2 text-xs uppercase tracking-[0.25em] text-[var(--gold)]/80">{cat.tag}</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {items.map((p) => (
-          <ProductCard key={p.id} product={p} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {items.map((p, idx) => (
+          <ProductCard key={p.id} product={p} onAdd={onAdd} onBuy={onBuy} onPreview={onPreview} delay={idx * 0.4} />
         ))}
       </div>
     </div>
@@ -536,30 +554,30 @@ function ProductCard({
   onAdd,
   onBuy,
   onPreview,
+  delay = 0,
 }: {
   product: Product;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
+  delay?: number;
 }) {
   const isVictory = product.category === "victory";
   return (
     <div
-      className="group relative flex aspect-[4/5] flex-col overflow-hidden rounded-2xl border border-white/10 text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/60"
-      style={{
-        background:
-          "radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, rgba(60,10,12,0.55) 0%, rgba(10,4,5,0.85) 100%)",
-        boxShadow:
-          "0 18px 38px -14px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,200,120,0.05)",
-      }}
+      className="shop-card group relative flex aspect-[4/5] flex-col overflow-hidden text-left"
+      style={{ ["--shine-delay" as string]: `${delay}s` }}
     >
+      <span className="shop-glow" />
+      <span className="shine-sweep" />
+
       {/* Top-right actions */}
       <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
         <button
           type="button"
           onClick={() => onAdd(product)}
           aria-label="Add to cart"
-          className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur transition hover:border-[var(--gold)] hover:text-[var(--gold)]"
+          className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
         </button>
@@ -568,41 +586,48 @@ function ProductCard({
             type="button"
             onClick={() => onPreview(product)}
             aria-label="Preview effect"
-            className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur transition hover:border-[var(--gold)] hover:text-[var(--gold)]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/70 text-white backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:scale-110 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_18px_rgba(251,191,36,0.55)]"
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      {/* Full-bleed preview */}
+      {/* Floating preview */}
       <button
         type="button"
         onClick={() => onBuy(product)}
-        className="relative flex flex-1 items-center justify-center overflow-hidden p-4"
+        className="relative z-[1] flex flex-1 items-center justify-center overflow-hidden p-4"
       >
-        {product.preview}
+        <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.75)] transition-transform duration-300 group-hover:scale-[1.06]">
+          {product.preview}
+        </div>
       </button>
 
       {/* Bottom info plate */}
-      <div className="relative z-[1] flex flex-col gap-0.5 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-3 pt-6">
-        <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white">
-          {product.name}
-        </div>
-        <div className="flex items-center gap-1">
-          {product.currency === "bimbucks" ? (
-            <BimbucksIcon size={13} />
-          ) : (
-            <BimbitsIcon size={13} />
-          )}
-          <span className="font-display text-[11px] font-bold text-[var(--gold)]">
-            {product.price.toLocaleString()}
-          </span>
+      <div className="relative z-[2] flex items-end justify-between gap-2 px-3 pb-3 pt-8"
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.5) 70%, transparent)" }}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white drop-shadow">
+            {product.name}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1">
+            {product.currency === "bimbucks" ? (
+              <BimbucksIcon size={13} />
+            ) : (
+              <BimbitsIcon size={13} />
+            )}
+            <span className="font-display text-[12px] font-black text-[var(--gold)] drop-shadow-[0_0_6px_rgba(251,191,36,0.55)]">
+              {product.price.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 /* ---------------- Cart overlay ---------------- */
