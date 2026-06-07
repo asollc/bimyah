@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Trash2, Upload, Plus, Eye, EyeOff } from "lucide-react";
+import { Loader2, Trash2, Upload, Plus, Eye, EyeOff, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,10 @@ import {
   deleteBmartProduct,
   listBmartCategoryImages,
   upsertBmartCategoryImage,
+  listBmartText,
+  upsertBmartText,
 } from "@/lib/rpc/bmart.functions";
+import { BMART_TEXT_DEFAULTS, CATEGORIES as BMART_CATEGORIES } from "@/routes/bmart";
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
