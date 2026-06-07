@@ -1663,6 +1663,7 @@ function PlayerSeat({
   colorMap,
   players,
   now,
+  inactivityDisabled,
 }: {
   player: Player;
   position: SeatPos;
