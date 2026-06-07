@@ -523,6 +523,7 @@ export function tickIdle(state: GameState): GameState {
 /** Promote any player past the grace window to free-cards. Auto-closes
  *  their open pile so all their cards live in piles. */
 export function tickInactive(state: GameState): GameState {
+  if (state.inactivityDisabled) return state;
   const now = Date.now();
   let changed = false;
   const players = state.players.map((p) => {
