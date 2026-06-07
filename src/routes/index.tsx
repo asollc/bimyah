@@ -296,7 +296,7 @@ function HomePage() {
               <span className="flex flex-col items-center leading-tight">
                 <span>Training</span>
                 <span className="text-[10px] font-normal opacity-80 normal-case">
-                  All cards viewable
+                  Practice with full card view
                 </span>
               </span>
             </button>
