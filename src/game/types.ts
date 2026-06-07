@@ -146,4 +146,7 @@ export type GameState = {
   spectators?: Spectator[];
   /** Chat messages (both match and spectator channels). Capped to last 200. */
   chat?: ChatMessage[];
+  /** Host toggle: when true, idle/inactivity timers do not promote players
+   *  to disconnected or free-cards. Defaults to false (timers enabled). */
+  inactivityDisabled?: boolean;
 };

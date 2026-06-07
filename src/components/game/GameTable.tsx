@@ -1120,6 +1120,7 @@ export function GameTable({
             colorMap={PLAYER_COLOR_HEX}
             players={state.players}
             now={now}
+            inactivityDisabled={state.inactivityDisabled}
           />
         );
       })}
@@ -1396,6 +1397,26 @@ export function GameTable({
             >
               Keyboard controls
             </button>
+
+            {isHost && (
+              <button
+                onClick={() => setState((s) => ({ ...s, inactivityDisabled: !s.inactivityDisabled }))}
+                className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[11px] uppercase tracking-widest text-white/80 hover:border-[var(--mint)]/60 hover:text-white"
+                aria-pressed={!state.inactivityDisabled}
+              >
+                <span>Inactivity timers</span>
+                <span
+                  className={
+                    "rounded-full px-2 py-[1px] text-[10px] font-bold tracking-wider " +
+                    (state.inactivityDisabled
+                      ? "bg-white/10 text-white/60 ring-1 ring-white/20"
+                      : "bg-[var(--mint)]/20 text-[var(--mint)] ring-1 ring-[var(--mint)]/50")
+                  }
+                >
+                  {state.inactivityDisabled ? "OFF" : "ON"}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1642,6 +1663,7 @@ function PlayerSeat({
   colorMap,
   players,
   now,
+  inactivityDisabled,
 }: {
   player: Player;
   position: SeatPos;
@@ -1667,6 +1689,7 @@ function PlayerSeat({
   colorMap?: Record<PlayerColor, string>;
   players?: Player[];
   now?: number;
+  inactivityDisabled?: boolean;
 }) {
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
@@ -1842,7 +1865,7 @@ function PlayerSeat({
       {/* Inactivity phase warning — shown next to the seat label / sort row.
           Phases: "Inactive in Ns" (idle warning) → "Inactive — free cards in Ns"
           → "Free Cards" (terminal). Bots never show this. */}
-      {!player.isBot && status === "playing" && (() => {
+      {!player.isBot && status === "playing" && !inactivityDisabled && (() => {
         const t = now ?? Date.now();
         if (player.freeCards) {
           return (
