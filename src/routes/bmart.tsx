@@ -348,48 +348,62 @@ function BmartPage() {
         </div>
       </div>
 
+      {/* Ambient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-[50px] -z-10 h-[60vh]"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 0%, rgba(251,191,36,0.18), transparent 70%), radial-gradient(80% 70% at 50% 100%, rgba(225,29,72,0.18), transparent 70%)",
+        }}
+      />
+
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         {activeCat === null ? (
           <>
             {/* Hero */}
-            <header className="mb-8 mt-2 text-center">
+            <header className="relative mb-10 mt-2 text-center">
+              <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-56 w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{ background: "radial-gradient(ellipse at center, rgba(251,191,36,0.32), transparent 65%)", filter: "blur(20px)" }}
+              />
               <h1 className="bmart-logo">Bmart</h1>
-              <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 sm:text-base">
+              <p className="mx-auto mt-4 max-w-xl text-sm text-white/75 sm:text-base">
                 Bimyah! bling for those who like to look good while they play good.
               </p>
             </header>
 
             {/* Category grid */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {CATEGORIES.map((c, idx) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCat(c.id)}
-                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--gold)]/60"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at 30% 15%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, rgba(60,10,12,0.55) 0%, rgba(10,4,5,0.85) 100%)",
-                    boxShadow:
-                      "0 20px 42px -14px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,200,120,0.05)",
-                  }}
+                  className="shop-card group relative aspect-[4/5] overflow-hidden text-left"
+                  style={{ ["--shine-delay" as string]: `${idx * 0.6}s` }}
                 >
+                  <span className="shop-glow" />
+                  <span className="shine-sweep" />
                   {categoryImages[c.id] ? (
                     <img
                       src={categoryImages[c.id] as string}
                       alt={c.name}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-6">
-                      <CategoryIcon id={c.id} />
+                    <div className="absolute inset-x-0 top-0 grid place-items-center pt-8">
+                      <div className="animate-float-y drop-shadow-[0_18px_24px_rgba(0,0,0,0.65)]">
+                        <CategoryIcon id={c.id} />
+                      </div>
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-8">
-                    <div className="font-display text-sm font-black uppercase tracking-widest text-white">
+                  <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
+                    style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.55) 60%, transparent)" }}
+                  >
+                    <div className="font-display text-sm font-black uppercase tracking-widest text-white drop-shadow">
                       {c.name}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-white/55">
+                    <div className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
                       {c.tag}
                     </div>
                   </div>
@@ -408,6 +422,7 @@ function BmartPage() {
           />
         )}
       </div>
+
 
       {/* Cart drawer */}
       {cartOpen && (
