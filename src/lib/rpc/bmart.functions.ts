@@ -106,3 +106,29 @@ export const upsertBmartCategoryImage = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------- Bmart text overrides ----------
+const textUpsertSchema = z.object({
+  key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_.-]+$/),
+  value: z.string().min(0).max(500),
+});
+
+export const listBmartText = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin
+    .from("bmart_text")
+    .select("key, value");
+  if (error) throw new Error(error.message);
+  return { rows: (data ?? []) as { key: string; value: string }[] };
+});
+
+export const upsertBmartText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => textUpsertSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("bmart_text")
+      .upsert({ key: data.key, value: data.value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
