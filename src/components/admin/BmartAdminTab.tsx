@@ -113,6 +113,23 @@ function mergeRows(overrides: Override[]): Row[] {
 }
 
 export function BmartAdminTab() {
+  return (
+    <Tabs defaultValue="products" className="w-full">
+      <TabsList>
+        <TabsTrigger value="products">Products</TabsTrigger>
+        <TabsTrigger value="elements">Store Elements</TabsTrigger>
+      </TabsList>
+      <TabsContent value="products" className="mt-4">
+        <ProductsTab />
+      </TabsContent>
+      <TabsContent value="elements" className="mt-4">
+        <StoreElementsTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function ProductsTab() {
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Category | "all">("all");
@@ -177,8 +194,6 @@ export function BmartAdminTab() {
         </Button>
       </div>
 
-      <CategoryImagesSection />
-
       {adding && (
         <NewProductForm
           existingIds={rows.map((r) => r.id)}
@@ -207,6 +222,134 @@ export function BmartAdminTab() {
     </div>
   );
 }
+
+function StoreElementsTab() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [initial, setInitial] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listBmartText();
+      const map: Record<string, string> = {};
+      for (const r of res.rows) map[r.key] = r.value;
+      // Seed missing keys with defaults so admin always sees full editable surface.
+      const merged: Record<string, string> = { ...BMART_TEXT_DEFAULTS, ...map };
+      setValues(merged);
+      setInitial(merged);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  function setKey(k: string, v: string) {
+    setValues((prev) => ({ ...prev, [k]: v }));
+  }
+
+  async function saveAll() {
+    setSaving(true);
+    try {
+      const changed = Object.keys(values).filter((k) => values[k] !== initial[k]);
+      for (const k of changed) {
+        await upsertBmartText({ data: { key: k, value: values[k] } });
+      }
+      toast.success(changed.length ? `Saved ${changed.length} change${changed.length === 1 ? "" : "s"}` : "No changes");
+      setInitial({ ...values });
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetKey(k: string) {
+    setKey(k, BMART_TEXT_DEFAULTS[k] ?? "");
+  }
+
+  const groups: { label: string; keys: string[] }[] = [
+    { label: "Hero", keys: ["hero.title", "hero.subtitle"] },
+    {
+      label: "Categories",
+      keys: BMART_CATEGORIES.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+    },
+    {
+      label: "Buttons & labels",
+      keys: [
+        "ui.buyBimbucks",
+        "ui.buyBimbucksShort",
+        "ui.home",
+        "ui.allCategories",
+        "ui.buyNow",
+        "ui.addToCart",
+        "ui.cart",
+        "ui.checkout",
+        "ui.clear",
+        "ui.confirmTitle",
+        "ui.confirmBuy",
+        "ui.confirmCancel",
+      ],
+    },
+  ];
+
+  const dirty = Object.keys(values).some((k) => values[k] !== initial[k]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <p className="flex-1 text-sm text-muted-foreground">
+          Edit the text and category images shown in Bmart. Changes apply to the live store after saving.
+        </p>
+        <Button variant="outline" onClick={() => void refresh()} disabled={loading || saving}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+        </Button>
+        <Button disabled={!dirty || saving} onClick={() => void saveAll()}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save changes
+        </Button>
+      </div>
+
+      <CategoryImagesSection />
+
+      {groups.map((g) => (
+        <Card key={g.label} className="p-3 space-y-2">
+          <h3 className="text-sm font-semibold">{g.label}</h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {g.keys.map((k) => {
+              const isLong = k === "hero.subtitle";
+              return (
+                <div key={k} className={`space-y-1 ${isLong ? "sm:col-span-2" : ""}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{k}</label>
+                    {values[k] !== (BMART_TEXT_DEFAULTS[k] ?? "") && (
+                      <button
+                        type="button"
+                        onClick={() => resetKey(k)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={values[k] ?? ""}
+                    onChange={(e) => setKey(k, e.target.value)}
+                    placeholder={BMART_TEXT_DEFAULTS[k] ?? ""}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 
 function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | Promise<void> }) {
   const [name, setName] = useState(row.name);
