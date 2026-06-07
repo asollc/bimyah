@@ -563,6 +563,43 @@ function BmartPage() {
       {previewProduct && (
         <PreviewModal product={previewProduct} onClose={() => setPreviewProduct(null)} />
       )}
+
+      {/* Buy Now confirmation */}
+      <AlertDialog open={!!confirmProduct} onOpenChange={(o) => !o && setConfirmProduct(null)}>
+        <AlertDialogContent className="border-[var(--gold)]/40 bg-[#0a0d0a] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display uppercase tracking-widest text-[var(--gold)]">
+              {t("ui.confirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/80">
+              {confirmProduct && (
+                <>
+                  Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
+                  <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
+                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                    {confirmProduct.price.toLocaleString()}
+                  </span>?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+              {t("ui.confirmCancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+              onClick={async () => {
+                const p = confirmProduct;
+                setConfirmProduct(null);
+                if (p) await buyNow(p);
+              }}
+            >
+              {t("ui.confirmBuy")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
