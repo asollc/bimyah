@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Check, Upload, X, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyDecor,
   setEquipped,
+  adminCreateTestDecor,
+  deleteMyInventoryItem,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
+import { getMyAdminStatus } from "@/lib/rpc/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   persistEquippedDecorUrls,
   type EquippedDecorUrls,
