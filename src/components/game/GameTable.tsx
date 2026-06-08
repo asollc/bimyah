@@ -728,7 +728,7 @@ export function GameTable({
 
   return (
     <div
-      className="relative h-[calc(100dvh-50px)] w-screen overflow-hidden"
+      className="relative h-[100dvh] w-screen overflow-hidden"
       data-spectator={spectator ? "1" : undefined}
       style={
         hostBackgroundUrl
