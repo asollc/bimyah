@@ -7,9 +7,9 @@ import type { FC } from "react";
  * admins can add new presets by appending to `VICTORY_EFFECTS` below.
  */
 
-type EffectProps = Record<string, never>;
+type EffectProps = Record<string, unknown>;
 
-const overlay = "pointer-events-none fixed inset-0 z-50 overflow-hidden";
+const overlay = "pointer-events-none fixed inset-0 z-[200] overflow-hidden";
 
 /* ---------- helpers ---------- */
 function rand(min: number, max: number) {

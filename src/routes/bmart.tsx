@@ -7,6 +7,11 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
+import {
+  VICTORY_EFFECTS,
+  isVictoryEffectKey,
+  type VictoryEffectKey,
+} from "@/components/game/VictoryEffects";
 import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
@@ -67,9 +72,20 @@ type BmartOverrideRow = {
   category: CategoryId | null;
   hidden: boolean;
   image_url: string | null;
+  effect_type: string | null;
   is_custom: boolean;
   sort_order: number;
 };
+
+function buildVictoryBigPreview(
+  effectKey: VictoryEffectKey | null,
+  imageUrl: string | null,
+  name: string,
+  fallback: React.ReactNode,
+): React.ReactNode {
+  if (!effectKey) return imageUrl ? <VictoryImageBigPreview src={imageUrl} alt={name} /> : fallback;
+  return <VictoryEffectBigPreview effectKey={effectKey} imageUrl={imageUrl} name={name} />;
+}
 
 function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[] {
   const byId = new Map(overrides.map((o) => [o.id, o]));
@@ -81,6 +97,8 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       continue;
     }
     if (o.hidden) continue;
+    const effectKey = o.effect_type && isVictoryEffectKey(o.effect_type) ? o.effect_type : null;
+    const isVictory = (o.category ?? p.category) === "victory";
     merged.push({
       ...p,
       name: o.name ?? p.name,
@@ -88,6 +106,9 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       currency: o.currency ?? p.currency,
       category: o.category ?? p.category,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? p.name} /> : p.preview,
+      bigPreview: isVictory
+        ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? p.name, p.bigPreview ?? p.preview)
+        : p.bigPreview,
     });
     byId.delete(p.id);
   }
@@ -96,21 +117,65 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
     if (o.hidden) continue;
     if (!o.is_custom) continue;
     if (!o.category || !o.currency || o.price == null) continue;
+    const effectKey = o.effect_type && isVictoryEffectKey(o.effect_type) ? o.effect_type : null;
+    const isVictory = o.category === "victory";
+    const fallback = (
+      <div className="grid h-full w-full place-items-center text-xs text-white/40">No preview</div>
+    );
     merged.push({
       id: o.id,
       name: o.name ?? o.id,
       category: o.category,
       currency: o.currency,
       price: o.price,
-      preview: o.image_url ? (
-        <ImagePreview src={o.image_url} alt={o.name ?? o.id} />
-      ) : (
-        <div className="grid h-full w-full place-items-center text-xs text-white/40">No preview</div>
-      ),
+      preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? o.id} /> : fallback,
+      bigPreview: isVictory
+        ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? o.id, fallback)
+        : undefined,
     });
   }
   return merged;
 }
+
+function VictoryImageBigPreview({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="relative grid h-72 place-items-center overflow-hidden rounded-xl border border-white/15 bg-gradient-to-b from-[#1a0608] to-black">
+      <img src={src} alt={alt} className="max-h-full max-w-full object-contain" />
+    </div>
+  );
+}
+
+function VictoryEffectBigPreview({
+  effectKey,
+  imageUrl,
+  name,
+}: {
+  effectKey: VictoryEffectKey;
+  imageUrl: string | null;
+  name: string;
+}) {
+  const EffectComp = VICTORY_EFFECTS[effectKey];
+  return (
+    <>
+      <div className="relative grid h-72 place-items-center overflow-hidden rounded-xl border border-white/15 bg-gradient-to-b from-[#1a0608] to-black">
+        {imageUrl ? (
+          <img src={imageUrl} alt={name} className="max-h-full max-w-full object-contain" />
+        ) : (
+          <div className="win-popup relative !w-[80%]">
+            <div className="win-popup-inner">
+              <div className="win-popup-title">BIMYAH!</div>
+              <div className="win-popup-sub">Player1 Wins</div>
+              <div className="win-popup-tag text-[var(--gold)]">Champion of the Round</div>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Effect overlays the whole viewport so it visually plays "over" the preview popup */}
+      <EffectComp key={effectKey} />
+    </>
+  );
+}
+
 
 function ImagePreview({ src, alt }: { src: string; alt: string }) {
   return (
