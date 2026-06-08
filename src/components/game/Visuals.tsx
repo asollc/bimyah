@@ -121,11 +121,25 @@ export function RotationIcon({ className }: { className?: string }) {
 
 /**
  * Round home button. Tapping prompts the user to confirm before returning to
- * the home screen (so they don't accidentally drop out of an active game).
+ * the home screen. Hosts get an "End Match" prompt that closes the room for
+ * everyone via `onEndMatch` before navigating away.
  */
-export function HomeButton({ className }: { className?: string }) {
+export function HomeButton({
+  className,
+  isHost = false,
+  onEndMatch,
+}: {
+  className?: string;
+  isHost?: boolean;
+  onEndMatch?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const title = isHost ? "End match?" : "Leave the game?";
+  const description = isHost
+    ? "Ending the match will completely close the room for everyone inside and kill the game instance. This cannot be undone."
+    : "Returning to the home screen will leave your current game behind. You can rejoin if it's still in the lobby, but in-progress games will keep going without you.";
+  const action = isHost ? "End Match" : "Go Home";
   return (
     <>
       <button
@@ -135,7 +149,7 @@ export function HomeButton({ className }: { className?: string }) {
           "grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur transition active:scale-90",
           className,
         )}
-        aria-label="Return to home screen"
+        aria-label={isHost ? "End match" : "Return to home screen"}
       >
         <Home className="h-4 w-4" />
       </button>
@@ -143,26 +157,29 @@ export function HomeButton({ className }: { className?: string }) {
         <AlertDialogContent className="border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-display text-xl text-[var(--mint)]">
-              Leave the game?
+              {title}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-white/70">
-              Returning to the home screen will leave your current game behind.
-              You can rejoin if it's still in the lobby, but in-progress games
-              will keep going without you.
+              {description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-white/10 bg-black/30 text-white hover:bg-black/50 hover:text-white">
-              Stay
+              {isHost ? "Keep Playing" : "Stay"}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setOpen(false);
+                if (isHost && onEndMatch) onEndMatch();
                 void navigate({ to: "/" });
               }}
-              className="bg-[var(--mint)] text-[oklch(0.18_0.04_165)] hover:bg-[var(--mint)]/90"
+              className={
+                isHost
+                  ? "bg-[var(--player-red)] text-white hover:bg-[var(--player-red)]/90"
+                  : "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] hover:bg-[var(--mint)]/90"
+              }
             >
-              Go Home
+              {action}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
