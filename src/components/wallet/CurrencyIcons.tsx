@@ -1,40 +1,34 @@
+import bimbucksAsset from "@/assets/bimbucks-icon.png.asset.json";
+import bimbitsAsset from "@/assets/bimbits-icon.png.asset.json";
+
 type Props = {
   size?: number;
   className?: string;
 };
 
-/** Bimbucks icon — uppercase "B" in player-green, matching the Bimyah! logo style. */
+/** Bimbucks icon — red & gold "B" coin emblem. */
 export function BimbucksIcon({ size = 18, className }: Props) {
+  // Source art is taller than wide (~0.55 aspect ratio).
+  const width = Math.round(size * 0.62);
   return (
-    <span
-      aria-label="Bimbucks"
-      className={`inline-flex items-center justify-center font-display font-black leading-none text-[var(--player-green)] ${className ?? ""}`}
-      style={{
-        fontSize: size,
-        width: size,
-        height: size,
-        textShadow: "0 1px 0 rgba(0,0,0,0.5)",
-      }}
-    >
-      B
-    </span>
+    <img
+      src={bimbucksAsset.url}
+      alt="Bimbucks"
+      className={`inline-block object-contain ${className ?? ""}`}
+      style={{ height: size, width, filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.45))" }}
+    />
   );
 }
 
-/** Bimbits icon — lowercase "b" in player-green, matching the Bimyah! logo style. */
+/** Bimbits icon — green & gold "b" coin emblem. */
 export function BimbitsIcon({ size = 18, className }: Props) {
+  const width = Math.round(size * 0.62);
   return (
-    <span
-      aria-label="Bimbits"
-      className={`inline-flex items-center justify-center font-display font-black leading-none text-[var(--player-green)] ${className ?? ""}`}
-      style={{
-        fontSize: size,
-        width: size,
-        height: size,
-        textShadow: "0 1px 0 rgba(0,0,0,0.5)",
-      }}
-    >
-      b
-    </span>
+    <img
+      src={bimbitsAsset.url}
+      alt="Bimbits"
+      className={`inline-block object-contain ${className ?? ""}`}
+      style={{ height: size, width, filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.45))" }}
+    />
   );
 }
