@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { X, ArrowLeft } from "lucide-react";
+import { X, ArrowLeft, Send } from "lucide-react";
+import { toast } from "sonner";
+import { sendBimbucks } from "@/lib/rpc/transfers.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { BimbucksIcon, BimbitsIcon } from "./CurrencyIcons";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
