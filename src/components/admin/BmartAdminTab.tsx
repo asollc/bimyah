@@ -431,6 +431,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
             hidden: true,
             image_url: imageUrl,
             is_custom: false,
+            effect_type: category === "victory" ? effectType : null,
           },
         });
         setHidden(true);
