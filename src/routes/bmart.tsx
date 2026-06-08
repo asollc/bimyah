@@ -7,6 +7,11 @@ import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { Confetti } from "@/components/game/Visuals";
 import { CardBack } from "@/components/game/Card";
+import {
+  VICTORY_EFFECTS,
+  isVictoryEffectKey,
+  type VictoryEffectKey,
+} from "@/components/game/VictoryEffects";
 import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
