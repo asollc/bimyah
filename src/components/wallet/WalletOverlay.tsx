@@ -26,7 +26,12 @@ export function WalletOverlay({
   onClose: () => void;
 }) {
   const [wallet, setWallet] = useState<Wallet>({ bimbucks: 0, bimbits: 0 });
-  const [view, setView] = useState<"wallet" | "buy" | "checkout">("wallet");
+  const [view, setView] = useState<"wallet" | "buy" | "checkout" | "share">("wallet");
+  const [shareRecipient, setShareRecipient] = useState("");
+  const [shareAmount, setShareAmount] = useState("");
+  const [shareNote, setShareNote] = useState("");
+  const [shareSending, setShareSending] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
   type LedgerRow = {
     id: string;
