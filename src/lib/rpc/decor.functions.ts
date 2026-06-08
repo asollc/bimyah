@@ -145,3 +145,121 @@ export const getMyLedger = createServerFn({ method: "GET" })
       .limit(100);
     return { rows: data ?? [] };
   });
+
+async function assertAdmin(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error("Role check failed");
+  if (!data) throw new Response("Forbidden", { status: 403 });
+}
+
+const adminTestUploadSchema = z.object({
+  kind: z.enum(KINDS),
+  name: z.string().min(1).max(120),
+  image_url: z.string().url().max(500),
+});
+
+/** Admin-only: register a test decor item (creates a hidden bmart_products
+ *  row + adds it to the admin's own inventory so it appears under the matching
+ *  category in the profile Decor tab). */
+export const adminCreateTestDecor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => adminTestUploadSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const id = `test_${data.kind}_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    const categoryByKind: Partial<Record<DecorKind, string>> = {
+      card_back: "cards",
+      title: "titles",
+      victory: "victory",
+      background: "backgrounds",
+      tabletop: "tabletops",
+    };
+    const { error: prodErr } = await supabaseAdmin.from("bmart_products").insert({
+      id,
+      name: data.name,
+      price: 0,
+      currency: "bimbucks",
+      category: categoryByKind[data.kind] ?? null,
+      hidden: true,
+      image_url: data.image_url,
+      is_custom: true,
+      kind: data.kind,
+    });
+    if (prodErr) throw new Error(prodErr.message);
+    const { error: invErr } = await supabaseAdmin.from("user_inventory").insert({
+      user_id: context.userId,
+      kind: data.kind,
+      item_id: id,
+      source: "admin_test",
+    });
+    if (invErr) throw new Error(invErr.message);
+    return { id, name: data.name, image_url: data.image_url };
+  });
+
+const deleteInventorySchema = z.object({
+  kind: z.enum(KINDS),
+  itemId: z.string().min(1).max(200),
+});
+
+/** Delete an item from the signed-in user's inventory plus any matching
+ *  purchase-ledger entries. If the item is currently equipped, unequip it so
+ *  the default takes over. Admin test items (id starts with `test_`) also
+ *  remove the underlying bmart_products row when no longer owned. */
+export const deleteMyInventoryItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => deleteInventorySchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { userId } = context;
+    const col = equippedKindToColumn[data.kind];
+
+    const { data: eq } = await supabaseAdmin
+      .from("user_equipped")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const wasActive =
+      !!eq && (eq as Record<string, string | null>)[col] === data.itemId;
+    if (wasActive) {
+      const patch: Record<string, string | null> = { user_id: userId };
+      patch[col] = null;
+      await supabaseAdmin
+        .from("user_equipped")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .upsert(patch as any, { onConflict: "user_id" });
+    }
+
+    await supabaseAdmin
+      .from("user_inventory")
+      .delete()
+      .eq("user_id", userId)
+      .eq("kind", data.kind)
+      .eq("item_id", data.itemId);
+    await supabaseAdmin
+      .from("purchase_ledger")
+      .delete()
+      .eq("user_id", userId)
+      .eq("item_id", data.itemId);
+
+    if (data.itemId.startsWith("test_")) {
+      const { data: stillOwned } = await supabaseAdmin
+        .from("user_inventory")
+        .select("id")
+        .eq("item_id", data.itemId)
+        .limit(1);
+      if (!stillOwned || stillOwned.length === 0) {
+        await supabaseAdmin.from("bmart_products").delete().eq("id", data.itemId);
+      }
+    }
+
+    return { ok: true, wasActive };
+  });

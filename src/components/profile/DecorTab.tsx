@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Check, Upload, X, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getMyDecor,
   setEquipped,
+  adminCreateTestDecor,
+  deleteMyInventoryItem,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
+import { getMyAdminStatus } from "@/lib/rpc/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   persistEquippedDecorUrls,
   type EquippedDecorUrls,
@@ -132,10 +136,12 @@ function DecorTile({
   item,
   active,
   onClick,
+  onDelete,
 }: {
   item: { id: string; label: string; shape: Shape; preview: React.ReactNode };
   active: boolean;
   onClick: () => void;
+  onDelete?: () => void;
 }) {
   const aspect =
     item.shape === "rect"
@@ -144,25 +150,40 @@ function DecorTile({
         ? "aspect-[9/5]"
         : "aspect-square";
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group relative overflow-hidden rounded-lg border bg-black/40 p-1 transition ${
-        active
-          ? "border-[var(--gold)] shadow-[0_0_0_2px_var(--gold)]"
-          : "border-white/15 hover:border-white/40"
-      }`}
-    >
-      <div className={`${aspect} w-full overflow-hidden rounded-md`}>{item.preview}</div>
-      <div className="mt-1 truncate text-center text-[9px] uppercase tracking-widest text-white/70">
-        {item.label}
-      </div>
-      {active && (
-        <div className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[var(--gold)] text-black">
-          <Check className="h-3 w-3" strokeWidth={3} />
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`group relative w-full overflow-hidden rounded-lg border bg-black/40 p-1 transition ${
+          active
+            ? "border-[var(--gold)] shadow-[0_0_0_2px_var(--gold)]"
+            : "border-white/15 hover:border-white/40"
+        }`}
+      >
+        <div className={`${aspect} w-full overflow-hidden rounded-md`}>{item.preview}</div>
+        <div className="mt-1 truncate text-center text-[9px] uppercase tracking-widest text-white/70">
+          {item.label}
         </div>
+        {active && (
+          <div className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[var(--gold)] text-black">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </div>
+        )}
+      </button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          aria-label="Delete item"
+          className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600/90 text-white hover:bg-red-500"
+        >
+          <X className="h-3 w-3" strokeWidth={3} />
+        </button>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -206,6 +227,7 @@ function OwnedList({
   isActive,
   ask,
   excludeId,
+  onDelete,
 }: {
   items: InventoryRow[];
   shape: Shape;
@@ -213,6 +235,7 @@ function OwnedList({
   isActive: (kind: DecorKind, id: string | null) => boolean;
   ask: (kind: DecorKind, label: string, id: string | null) => void;
   excludeId?: string;
+  onDelete?: (kind: DecorKind, label: string, id: string) => void;
 }) {
   return (
     <>
@@ -231,10 +254,90 @@ function OwnedList({
               }}
               active={isActive(kind, r.item_id)}
               onClick={() => ask(kind, label, r.item_id)}
+              onDelete={onDelete ? () => onDelete(kind, label, r.item_id) : undefined}
             />
           );
         })}
     </>
+  );
+}
+
+/* ---------- Admin Test uploader ---------- */
+
+function AdminTestUploader({
+  kind,
+  onCreated,
+}: {
+  kind: DecorKind;
+  onCreated: (item: InventoryRow) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(file: File) {
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const baseName = file.name.replace(/\.[^.]+$/, "").slice(0, 60) || `test ${kind}`;
+      const path = `bmart/test-${kind}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("public-assets")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("public-assets").getPublicUrl(path);
+      const res = await adminCreateTestDecor({
+        data: { kind, name: baseName, image_url: pub.publicUrl },
+      });
+      onCreated({
+        kind,
+        item_id: res.id,
+        acquired_at: new Date().toISOString(),
+        name: res.name,
+        image_url: res.image_url,
+      });
+      toast.success("Test item added");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-dashed border-[var(--gold)]/40 bg-[var(--gold)]/5 p-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-widest text-[var(--gold)]/80">
+          Admin · Test upload
+        </span>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1 rounded-md border border-[var(--gold)]/50 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--gold)] hover:bg-[var(--gold)]/10 disabled:opacity-50"
+        >
+          {busy ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Upload className="h-3 w-3" />
+          )}
+          Upload media
+        </button>
+      </div>
+      <p className="text-[9px] text-white/40">
+        Pick any image — it appears below and previews automatically.
+      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
+        }}
+      />
+    </div>
   );
 }
 
@@ -245,14 +348,18 @@ export function DecorTab() {
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [equipped, setEquippedState] = useState<EquippedRow>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [pending, setPending] = useState<{
     kind: DecorKind;
     itemId: string | null;
     label: string;
   } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: DecorKind;
+    itemId: string;
+    label: string;
+  } | null>(null);
 
-  // Mirror the active-card-back pattern: cache the URL of each equipped decor
-  // kind in localStorage so the game can resolve the active selection locally.
   useEffect(() => {
     if (!user?.id) return;
     const urlForId = (id: string | null | undefined) => {
@@ -275,9 +382,13 @@ export function DecorTab() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await getMyDecor();
+        const [res, admin] = await Promise.all([
+          getMyDecor(),
+          getMyAdminStatus().catch(() => ({ is_admin: false })),
+        ]);
         setInventory(res.inventory);
         setEquippedState(res.equipped);
+        setIsAdmin(!!admin.is_admin);
       } catch (e) {
         toast.error((e as Error).message);
       } finally {
@@ -323,6 +434,29 @@ export function DecorTab() {
     }
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const { kind, itemId } = pendingDelete;
+    try {
+      const res = await deleteMyInventoryItem({ data: { kind, itemId } });
+      setInventory((prev) =>
+        prev.filter((r) => !(r.kind === kind && r.item_id === itemId)),
+      );
+      if (res.wasActive) {
+        setEquippedState((prev) => {
+          const next = { ...(prev ?? {}) } as Record<string, string | null>;
+          next[`${kind}_id`] = null;
+          return next;
+        });
+      }
+      toast.success("Deleted");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPendingDelete(null);
+    }
+  }
+
   function isActive(kind: DecorKind, itemId: string | null): boolean {
     const col = `${kind}_id`;
     const cur = equipped?.[col] ?? null;
@@ -333,6 +467,14 @@ export function DecorTab() {
     setPending({ kind, label, itemId });
   }
 
+  function askDelete(kind: DecorKind, label: string, itemId: string) {
+    setPendingDelete({ kind, label, itemId });
+  }
+
+  function handleTestCreated(item: InventoryRow) {
+    setInventory((prev) => [...prev, item]);
+  }
+
   if (loading) {
     return (
       <div className="grid h-24 place-items-center text-xs text-white/40">
@@ -340,6 +482,9 @@ export function DecorTab() {
       </div>
     );
   }
+
+  const deleteFn = (kind: DecorKind, label: string, id: string) =>
+    askDelete(kind, label, id);
 
   return (
     <>
@@ -360,11 +505,12 @@ export function DecorTab() {
               active={isActive("title", null)}
               onClick={() => ask("title", "No title", null)}
             />
-            <OwnedList items={ownedByKind.title} shape="rect" kind="title" isActive={isActive} ask={ask} />
+            <OwnedList items={ownedByKind.title} shape="rect" kind="title" isActive={isActive} ask={ask} onDelete={deleteFn} />
           </HRow>
           {ownedByKind.title.length === 0 && (
             <EmptyHint label="Purchased titles will appear here." />
           )}
+          {isAdmin && <AdminTestUploader kind="title" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="badges" className="mt-3">
@@ -375,11 +521,12 @@ export function DecorTab() {
               active={isActive("badge", null)}
               onClick={() => ask("badge", "No badge", null)}
             />
-            <OwnedList items={ownedByKind.badge} shape="square" kind="badge" isActive={isActive} ask={ask} />
+            <OwnedList items={ownedByKind.badge} shape="square" kind="badge" isActive={isActive} ask={ask} onDelete={deleteFn} />
           </HRow>
           {ownedByKind.badge.length === 0 && (
             <EmptyHint label="Purchased badges will appear here." />
           )}
+          {isAdmin && <AdminTestUploader kind="badge" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="victory" className="mt-3">
@@ -397,8 +544,10 @@ export function DecorTab() {
               isActive={isActive}
               ask={ask}
               excludeId={DEFAULT_VICTORY.id}
+              onDelete={deleteFn}
             />
           </HRow>
+          {isAdmin && <AdminTestUploader kind="victory" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="backgrounds" className="mt-3">
@@ -416,8 +565,10 @@ export function DecorTab() {
               isActive={isActive}
               ask={ask}
               excludeId={DEFAULT_BACKGROUND.id}
+              onDelete={deleteFn}
             />
           </HRow>
+          {isAdmin && <AdminTestUploader kind="background" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="tables" className="mt-3 flex flex-col gap-4">
@@ -436,8 +587,10 @@ export function DecorTab() {
                 isActive={isActive}
                 ask={ask}
                 excludeId={DEFAULT_TABLETOP.id}
+                onDelete={deleteFn}
               />
             </HRow>
+            {isAdmin && <AdminTestUploader kind="tabletop" onCreated={handleTestCreated} />}
           </div>
           <div>
             <SectionLabel>Table Art (host-only in matches)</SectionLabel>
@@ -454,8 +607,10 @@ export function DecorTab() {
                 isActive={isActive}
                 ask={ask}
                 excludeId={DEFAULT_TABLE_ART.id}
+                onDelete={deleteFn}
               />
             </HRow>
+            {isAdmin && <AdminTestUploader kind="table_art" onCreated={handleTestCreated} />}
           </div>
         </TabsContent>
       </Tabs>
@@ -467,7 +622,53 @@ export function DecorTab() {
           onConfirm={() => void confirmEquip()}
         />
       )}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          label={pendingDelete.label}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </>
+  );
+}
+
+function ConfirmDeleteModal({
+  label,
+  onCancel,
+  onConfirm,
+}: {
+  label: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[120] grid place-items-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xs rounded-2xl border border-red-500/40 bg-[#0a0d0a] p-5 text-center shadow-2xl">
+        <div className="font-display text-sm uppercase tracking-widest text-red-400">
+          Delete item?
+        </div>
+        <div className="mt-3 text-sm text-white/80">
+          Remove <span className="font-bold text-white">{label}</span> from your decor? Purchase history for this item will also be erased. If it's currently active, the default will take over.
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-3d btn-3d-dark flex-1 !rounded-lg !px-2 !py-2 text-[11px]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="btn-3d flex-1 !rounded-lg !bg-red-600 !px-2 !py-2 text-[11px] !text-white hover:!bg-red-500"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
