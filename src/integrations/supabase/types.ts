@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      bimbuck_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          recipient_id: string
+          seen_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          recipient_id: string
+          seen_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          recipient_id?: string
+          seen_at?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
       bmart_category_images: {
         Row: {
           id: string
@@ -975,6 +1005,15 @@ export type Database = {
         }[]
       }
       release_lifetime_slot: { Args: never; Returns: undefined }
+      transfer_bimbucks: {
+        Args: {
+          _amount: number
+          _note?: string
+          _recipient_id: string
+          _sender_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "user" | "admin"
