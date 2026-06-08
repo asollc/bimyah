@@ -131,17 +131,26 @@ function AuthPage() {
       </p>
 
       <div className="w-full max-w-xs rounded-2xl border border-[var(--mint)]/30 bg-black/40 p-5 backdrop-blur">
-        <div className="mb-4 flex justify-center gap-2 text-xs font-display uppercase tracking-widest">
+        <div className="mb-4 grid grid-cols-2 overflow-hidden rounded-lg border border-white/10">
           <button
+            type="button"
             onClick={() => setMode("signin")}
-            className={mode === "signin" ? "text-[var(--mint)]" : "text-white/50"}
+            className={`px-3 py-2 font-display text-base font-black uppercase tracking-widest transition-colors ${
+              mode === "signin"
+                ? "bg-[var(--gold)]/15 text-[var(--gold)]"
+                : "bg-transparent text-[var(--gold)]/40 hover:text-[var(--gold)]/70"
+            }`}
           >
             Sign In
           </button>
-          <span className="text-white/30">or</span>
           <button
+            type="button"
             onClick={() => setMode("signup")}
-            className={mode === "signup" ? "text-[var(--gold)]" : "text-white/50"}
+            className={`px-3 py-2 font-display text-base font-black uppercase tracking-widest transition-colors ${
+              mode === "signup"
+                ? "bg-[var(--mint)]/15 text-[var(--mint)]"
+                : "bg-transparent text-[var(--mint)]/40 hover:text-[var(--mint)]/70"
+            }`}
           >
             Create Account
           </button>
