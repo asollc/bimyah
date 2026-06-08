@@ -733,13 +733,19 @@ export function GameTable({
       style={
         hostBackgroundUrl
           ? {
+              // Solid base so the body's default red gradient never bleeds
+              // through if the equipped background image has transparency or
+              // doesn't fully cover the viewport.
+              backgroundColor: "#000",
               backgroundImage: `url(${hostBackgroundUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
             }
           : undefined
       }
     >
+
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
