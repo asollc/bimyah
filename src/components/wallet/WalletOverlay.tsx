@@ -207,6 +207,106 @@ export function WalletOverlay({
           </div>
         )}
 
+        {view === "share" && (
+          <form
+            className="mt-5 flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setShareError(null);
+              const amt = parseInt(shareAmount, 10);
+              if (!shareRecipient.trim()) {
+                setShareError("Enter a player name or email.");
+                return;
+              }
+              if (!Number.isFinite(amt) || amt <= 0) {
+                setShareError("Enter a valid amount.");
+                return;
+              }
+              if (amt > wallet.bimbucks) {
+                setShareError("You don't have enough Bimbucks.");
+                return;
+              }
+              setShareSending(true);
+              try {
+                const res = await sendBimbucks({
+                  data: {
+                    recipient: shareRecipient.trim(),
+                    amount: amt,
+                    note: shareNote.trim() || undefined,
+                  },
+                });
+                toast.success(
+                  `Sent ${res.amount.toLocaleString()} Bimbucks to ${res.recipient_name}`,
+                  { icon: <BimbucksIcon size={18} /> },
+                );
+                await loadWallet();
+                await loadLedger();
+                setShareRecipient("");
+                setShareAmount("");
+                setShareNote("");
+                setView("wallet");
+              } catch (err) {
+                setShareError((err as Error).message ?? "Failed to send.");
+              } finally {
+                setShareSending(false);
+              }
+            }}
+          >
+            <div className="rounded-lg border border-[var(--gold)]/30 bg-black/40 px-3 py-2 text-center text-xs text-white/80">
+              Your balance: <BimbucksIcon size={12} className="inline" />{" "}
+              <span className="font-display text-[var(--gold)]">
+                {wallet.bimbucks.toLocaleString()}
+              </span>
+            </div>
+            <label className="text-[10px] uppercase tracking-widest text-white/60">
+              Recipient (player name or email)
+            </label>
+            <input
+              type="text"
+              value={shareRecipient}
+              onChange={(e) => setShareRecipient(e.target.value)}
+              placeholder="e.g. Bimster or player@email.com"
+              maxLength={255}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[var(--gold)]/60"
+            />
+            <label className="text-[10px] uppercase tracking-widest text-white/60">Amount</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={wallet.bimbucks || undefined}
+              value={shareAmount}
+              onChange={(e) => setShareAmount(e.target.value)}
+              placeholder="0"
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[var(--gold)]/60"
+            />
+            <label className="text-[10px] uppercase tracking-widest text-white/60">
+              Note (optional)
+            </label>
+            <input
+              type="text"
+              value={shareNote}
+              onChange={(e) => setShareNote(e.target.value)}
+              placeholder="Thanks for the game!"
+              maxLength={140}
+              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[var(--gold)]/60"
+            />
+            {shareError && (
+              <div className="rounded-lg border border-[var(--player-red)]/40 bg-black/40 p-2 text-center text-[11px] text-[var(--player-red)]">
+                {shareError}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={shareSending}
+              className="btn-3d btn-3d-gold mt-2 inline-flex items-center justify-center gap-2 text-xs disabled:opacity-50"
+            >
+              <Send className="h-3 w-3" />
+              {shareSending ? "Sending…" : "Send Bimbucks"}
+            </button>
+          </form>
+        )}
+
         {view === "buy" && (
           <div className="mt-5 flex flex-col gap-3">
             {!hasStripeConfigured() && (
