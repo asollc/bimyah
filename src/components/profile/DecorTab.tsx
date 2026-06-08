@@ -505,11 +505,12 @@ export function DecorTab() {
               active={isActive("title", null)}
               onClick={() => ask("title", "No title", null)}
             />
-            <OwnedList items={ownedByKind.title} shape="rect" kind="title" isActive={isActive} ask={ask} />
+            <OwnedList items={ownedByKind.title} shape="rect" kind="title" isActive={isActive} ask={ask} onDelete={deleteFn} />
           </HRow>
           {ownedByKind.title.length === 0 && (
             <EmptyHint label="Purchased titles will appear here." />
           )}
+          {isAdmin && <AdminTestUploader kind="title" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="badges" className="mt-3">
@@ -520,11 +521,12 @@ export function DecorTab() {
               active={isActive("badge", null)}
               onClick={() => ask("badge", "No badge", null)}
             />
-            <OwnedList items={ownedByKind.badge} shape="square" kind="badge" isActive={isActive} ask={ask} />
+            <OwnedList items={ownedByKind.badge} shape="square" kind="badge" isActive={isActive} ask={ask} onDelete={deleteFn} />
           </HRow>
           {ownedByKind.badge.length === 0 && (
             <EmptyHint label="Purchased badges will appear here." />
           )}
+          {isAdmin && <AdminTestUploader kind="badge" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="victory" className="mt-3">
@@ -542,8 +544,10 @@ export function DecorTab() {
               isActive={isActive}
               ask={ask}
               excludeId={DEFAULT_VICTORY.id}
+              onDelete={deleteFn}
             />
           </HRow>
+          {isAdmin && <AdminTestUploader kind="victory" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="backgrounds" className="mt-3">
@@ -561,8 +565,10 @@ export function DecorTab() {
               isActive={isActive}
               ask={ask}
               excludeId={DEFAULT_BACKGROUND.id}
+              onDelete={deleteFn}
             />
           </HRow>
+          {isAdmin && <AdminTestUploader kind="background" onCreated={handleTestCreated} />}
         </TabsContent>
 
         <TabsContent value="tables" className="mt-3 flex flex-col gap-4">
@@ -581,8 +587,10 @@ export function DecorTab() {
                 isActive={isActive}
                 ask={ask}
                 excludeId={DEFAULT_TABLETOP.id}
+                onDelete={deleteFn}
               />
             </HRow>
+            {isAdmin && <AdminTestUploader kind="tabletop" onCreated={handleTestCreated} />}
           </div>
           <div>
             <SectionLabel>Table Art (host-only in matches)</SectionLabel>
@@ -599,8 +607,10 @@ export function DecorTab() {
                 isActive={isActive}
                 ask={ask}
                 excludeId={DEFAULT_TABLE_ART.id}
+                onDelete={deleteFn}
               />
             </HRow>
+            {isAdmin && <AdminTestUploader kind="table_art" onCreated={handleTestCreated} />}
           </div>
         </TabsContent>
       </Tabs>
@@ -612,7 +622,53 @@ export function DecorTab() {
           onConfirm={() => void confirmEquip()}
         />
       )}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          label={pendingDelete.label}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </>
+  );
+}
+
+function ConfirmDeleteModal({
+  label,
+  onCancel,
+  onConfirm,
+}: {
+  label: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[120] grid place-items-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-xs rounded-2xl border border-red-500/40 bg-[#0a0d0a] p-5 text-center shadow-2xl">
+        <div className="font-display text-sm uppercase tracking-widest text-red-400">
+          Delete item?
+        </div>
+        <div className="mt-3 text-sm text-white/80">
+          Remove <span className="font-bold text-white">{label}</span> from your decor? Purchase history for this item will also be erased. If it's currently active, the default will take over.
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-3d btn-3d-dark flex-1 !rounded-lg !px-2 !py-2 text-[11px]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="btn-3d flex-1 !rounded-lg !bg-red-600 !px-2 !py-2 text-[11px] !text-white hover:!bg-red-500"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
