@@ -1376,7 +1376,20 @@ export function GameTable({
             </div>
 
             <div className="flex items-center justify-center gap-3">
-              <HomeButton />
+              <HomeButton
+                isHost={isHost}
+                onEndMatch={
+                  isHost
+                    ? () => {
+                        try {
+                          setState((s) => ({ ...s, roomClosed: true }));
+                        } catch {
+                          /* ignore */
+                        }
+                      }
+                    : undefined
+                }
+              />
               <button
                 onClick={() => {
                   const next = !muted;
