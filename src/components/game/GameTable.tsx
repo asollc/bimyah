@@ -944,13 +944,18 @@ export function GameTable({
             }}
           >
             {hostTableArtUrl && (
+              // Sized to match the default Bimyah table art (~78% of the
+              // tabletop, centered, object-contain) so custom art "fits the
+              // table" just like the default does — keeping the wooden /
+              // metallic look of the tabletop around it.
               <img
                 src={hostTableArtUrl}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute inset-0 h-full w-full rounded-full object-contain opacity-90"
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
               />
             )}
+
              {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
              <div className="relative flex flex-col items-center justify-center gap-1.5">
                {state.status !== "lobby" && (() => {
