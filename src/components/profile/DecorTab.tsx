@@ -722,6 +722,7 @@ export function DecorTab() {
     if (!user?.id) return;
     const urlForId = (id: string | null | undefined) => {
       if (!id) return null;
+      if (id === "__none__") return "__none__";
       const row = inventory.find((r) => r.item_id === id);
       return row?.image_url ?? null;
     };
@@ -1136,6 +1137,20 @@ export function DecorTab() {
                 active={isActive("table_art", null) || isActive("table_art", dTableArt.id)}
                 onClick={() => ask("table_art", dTableArt.label, null)}
                 onEditDefault={editAdmin(DEFAULT_TABLE_ART)}
+              />
+              <DecorTile
+                item={{
+                  id: "__none__",
+                  label: "None",
+                  shape: "square",
+                  preview: (
+                    <div className="grid h-full w-full place-items-center rounded-md bg-black/60 text-[10px] uppercase tracking-widest text-white/60">
+                      None
+                    </div>
+                  ),
+                }}
+                active={isActive("table_art", "__none__")}
+                onClick={() => ask("table_art", "None (hide art)", "__none__")}
               />
               <OwnedList
                 items={ownedByKind.table_art}
