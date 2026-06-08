@@ -98,6 +98,7 @@ export function WalletOverlay({
                   setSelectedPack(null);
                   setView("buy");
                 } else {
+                  setShareError(null);
                   setView("wallet");
                 }
               }}
@@ -110,7 +111,13 @@ export function WalletOverlay({
             <span />
           )}
           <h2 className="font-display text-lg uppercase tracking-widest text-[var(--gold)]">
-            {view === "wallet" ? "Wallet" : view === "buy" ? "Buy Bimbucks" : "Checkout"}
+            {view === "wallet"
+              ? "Wallet"
+              : view === "buy"
+                ? "Buy Bimbucks"
+                : view === "share"
+                  ? "Send Bimbucks"
+                  : "Checkout"}
           </h2>
           <button
             type="button"
@@ -136,13 +143,28 @@ export function WalletOverlay({
               sublabel="Earned by completing tasks"
               value={wallet.bimbits}
             />
-            <button
-              type="button"
-              onClick={() => setView("buy")}
-              className="btn-3d btn-3d-gold mt-4 inline-flex items-center justify-center gap-2 text-xs"
-            >
-              <BimbucksIcon size={14} /> Buy Bimbucks
-            </button>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setView("buy")}
+                className="btn-3d btn-3d-gold inline-flex items-center justify-center gap-2 text-xs"
+              >
+                <BimbucksIcon size={14} /> Buy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShareError(null);
+                  setShareRecipient("");
+                  setShareAmount("");
+                  setShareNote("");
+                  setView("share");
+                }}
+                className="btn-3d btn-3d-gold inline-flex items-center justify-center gap-2 text-xs"
+              >
+                <Send className="h-3 w-3" /> Share
+              </button>
+            </div>
 
             <div className="mt-4">
               <div className="mb-2 text-[10px] uppercase tracking-widest text-white/50">
