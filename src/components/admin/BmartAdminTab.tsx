@@ -655,6 +655,7 @@ function NewProductForm({
   const [currency, setCurrency] = useState<Currency>("bimbucks");
   const [category, setCategory] = useState<Category>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [effectType, setEffectType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -704,6 +705,7 @@ function NewProductForm({
           image_url: imageUrl,
           is_custom: true,
           hidden: false,
+          effect_type: category === "victory" ? effectType : null,
         },
       });
       toast.success("Product created");
