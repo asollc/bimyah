@@ -263,16 +263,21 @@ export const deleteMyInventoryItem = createServerFn({ method: "POST" })
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
-    const wasActive =
-      !!eq && (eq as Record<string, string | null>)[col] === data.itemId;
+    const eqRow = (eq ?? {}) as Record<string, string | null>;
+    // Badges have a second slot — clear whichever slot held the deleted item.
+    const colsToCheck =
+      data.kind === "badge" ? [col, "badge_id_2"] : [col];
+    const activeCols = colsToCheck.filter((c) => eqRow[c] === data.itemId);
+    const wasActive = activeCols.length > 0;
     if (wasActive) {
       const patch: Record<string, string | null> = { user_id: userId };
-      patch[col] = null;
+      for (const c of activeCols) patch[c] = null;
       await supabaseAdmin
         .from("user_equipped")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .upsert(patch as any, { onConflict: "user_id" });
     }
+
 
     await supabaseAdmin
       .from("user_inventory")
