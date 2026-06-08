@@ -225,7 +225,7 @@ function AuthPage() {
                 setBusy(false);
               }
             }}
-            className="mt-3 block w-full text-center text-xs text-white/60 hover:text-white"
+            className="mt-3 block w-full text-center text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)] hover:text-white"
           >
             Forgot password?
           </button>
