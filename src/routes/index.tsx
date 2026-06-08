@@ -255,8 +255,8 @@ function HomePage() {
           With No Turns!
         </div>
         {!isAuthed && !authLoading && (
-          <div className="text-center text-[10px] uppercase tracking-widest border-stone-950 border-0 bg-transparent text-slate-50 font-sans">
-            Play as guest or <Link to="/auth" className="text-[var(--mint)] underline">sign up free</Link>
+          <div className="animate-arcade-flash font-display text-center text-sm sm:text-base font-black uppercase tracking-[0.18em] text-white" style={{ textShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(251,191,36,0.7), 0 2px 0 #000" }}>
+            Play as guest or <Link to="/auth" className="text-[var(--gold)] underline decoration-2 underline-offset-2">sign up free</Link>
           </div>
         )}
       </div>
