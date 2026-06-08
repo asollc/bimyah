@@ -24,6 +24,13 @@ import {
   upsertBmartText,
 } from "@/lib/rpc/bmart.functions";
 import { BMART_TEXT_DEFAULTS, CATEGORIES as BMART_CATEGORIES } from "@/routes/bmart";
+import {
+  VICTORY_EFFECT_KEYS,
+  VICTORY_EFFECT_LABELS,
+  VICTORY_EFFECTS,
+  isVictoryEffectKey,
+  type VictoryEffectKey,
+} from "@/components/game/VictoryEffects";
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
@@ -61,6 +68,7 @@ type Override = {
   image_url: string | null;
   is_custom: boolean;
   sort_order: number;
+  effect_type: string | null;
 };
 
 type Row = {
@@ -74,6 +82,7 @@ type Row = {
   is_custom: boolean;
   isBuiltin: boolean;
   hasOverride: boolean;
+  effect_type: string | null;
 };
 
 function mergeRows(overrides: Override[]): Row[] {
@@ -89,6 +98,7 @@ function mergeRows(overrides: Override[]): Row[] {
       currency: (o?.currency as Currency) ?? b.currency,
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
+      effect_type: o?.effect_type ?? null,
       is_custom: false,
       isBuiltin: true,
       hasOverride: !!o,
@@ -104,6 +114,7 @@ function mergeRows(overrides: Override[]): Row[] {
       currency: (o.currency as Currency) ?? "bimbucks",
       hidden: o.hidden,
       image_url: o.image_url,
+      effect_type: o.effect_type ?? null,
       is_custom: true,
       isBuiltin: false,
       hasOverride: true,
