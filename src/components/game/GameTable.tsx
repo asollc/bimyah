@@ -930,15 +930,18 @@ export function GameTable({
       >
         <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
           <div
-            className="wood-table grid place-items-center rounded-full relative"
+            className={`${hostTabletopUrl ? "" : "wood-table"} grid place-items-center rounded-full relative overflow-hidden`}
             style={{
               width: "min(38vw, 32vh, 280px)",
               height: "min(38vw, 32vh, 280px)",
               ...(hostTabletopUrl
                 ? {
+                    backgroundColor: "#000",
                     backgroundImage: `url(${hostTabletopUrl})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    boxShadow: "0 18px 40px rgba(0,0,0,0.6)",
                   }
                 : null),
             }}
