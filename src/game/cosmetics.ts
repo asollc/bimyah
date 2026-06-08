@@ -7,8 +7,8 @@
  * written by `CardsTab` so we can resolve custom / purchased card backs
  * (whose images do not live in this module).
  */
-import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
-import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
+import standardBimyahImg from "@/assets/card-standard-bimyah.webp";
+import foundingCarderImg from "@/assets/card-founding-carder.webp";
 
 export const ACTIVE_SLOT_COUNT = 6;
 

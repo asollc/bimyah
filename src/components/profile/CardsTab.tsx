@@ -3,8 +3,8 @@ import { X, Check } from "lucide-react";
 import { CustomCardBackSlots } from "@/components/profile/CustomCardBackSlots";
 import { getMyDecor } from "@/lib/rpc/decor.functions";
 import { persistCardImageMap } from "@/game/cosmetics";
-import foundingCarderImg from "@/assets/card-founding-carder.jpeg";
-import standardBimyahImg from "@/assets/card-standard-bimyah.jpeg";
+import foundingCarderImg from "@/assets/card-founding-carder.webp";
+import standardBimyahImg from "@/assets/card-standard-bimyah.webp";
 
 type CardDef = {
   id: string;

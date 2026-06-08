@@ -1,6 +1,6 @@
 import type { Card } from "@/game/types";
 import { cn } from "@/lib/utils";
-import cardBackImg from "@/assets/card-back.jpeg";
+import cardBackImg from "@/assets/card-back.webp";
 
 export function PlayingCard({
   card,

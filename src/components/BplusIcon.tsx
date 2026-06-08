@@ -1,4 +1,4 @@
-import bplusIcon from "@/assets/bplus-icon.png";
+import bplusIcon from "@/assets/bplus-icon.webp";
 
 type Props = {
   size?: number;
