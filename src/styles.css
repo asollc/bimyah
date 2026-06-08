@@ -121,7 +121,7 @@
 
   #app-shell {
     position: fixed;
-    top: 50px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -137,13 +137,10 @@
       height: auto;
       min-height: 100%;
     }
-    body {
-      padding-top: 50px;
-    }
     #app-shell {
       position: static;
       overflow: visible;
-      min-height: calc(100vh - 50px);
+      min-height: 100vh;
     }
   }
 
@@ -159,8 +156,6 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
   }
 
   /* Allow selection only inside inputs / textareas */
@@ -169,31 +164,7 @@
     user-select: text;
   }
 
-  /* Top ad slot — fixed 320x50 black bar, centered */
-  #ad-slot {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    background: #000;
-    z-index: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #ad-slot a {
-    display: block;
-    width: 320px;
-    height: 50px;
-    line-height: 0;
-  }
-  #ad-slot img {
-    width: 320px;
-    height: 50px;
-    display: block;
-    object-fit: cover;
-  }
+
 
   h1,
   h2,
