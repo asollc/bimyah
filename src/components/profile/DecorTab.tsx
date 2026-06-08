@@ -348,14 +348,18 @@ export function DecorTab() {
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [equipped, setEquippedState] = useState<EquippedRow>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [pending, setPending] = useState<{
     kind: DecorKind;
     itemId: string | null;
     label: string;
   } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: DecorKind;
+    itemId: string;
+    label: string;
+  } | null>(null);
 
-  // Mirror the active-card-back pattern: cache the URL of each equipped decor
-  // kind in localStorage so the game can resolve the active selection locally.
   useEffect(() => {
     if (!user?.id) return;
     const urlForId = (id: string | null | undefined) => {
@@ -378,9 +382,13 @@ export function DecorTab() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await getMyDecor();
+        const [res, admin] = await Promise.all([
+          getMyDecor(),
+          getMyAdminStatus().catch(() => ({ is_admin: false })),
+        ]);
         setInventory(res.inventory);
         setEquippedState(res.equipped);
+        setIsAdmin(!!admin.is_admin);
       } catch (e) {
         toast.error((e as Error).message);
       } finally {
@@ -426,6 +434,29 @@ export function DecorTab() {
     }
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const { kind, itemId } = pendingDelete;
+    try {
+      const res = await deleteMyInventoryItem({ data: { kind, itemId } });
+      setInventory((prev) =>
+        prev.filter((r) => !(r.kind === kind && r.item_id === itemId)),
+      );
+      if (res.wasActive) {
+        setEquippedState((prev) => {
+          const next = { ...(prev ?? {}) } as Record<string, string | null>;
+          next[`${kind}_id`] = null;
+          return next;
+        });
+      }
+      toast.success("Deleted");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPendingDelete(null);
+    }
+  }
+
   function isActive(kind: DecorKind, itemId: string | null): boolean {
     const col = `${kind}_id`;
     const cur = equipped?.[col] ?? null;
@@ -436,6 +467,14 @@ export function DecorTab() {
     setPending({ kind, label, itemId });
   }
 
+  function askDelete(kind: DecorKind, label: string, itemId: string) {
+    setPendingDelete({ kind, label, itemId });
+  }
+
+  function handleTestCreated(item: InventoryRow) {
+    setInventory((prev) => [...prev, item]);
+  }
+
   if (loading) {
     return (
       <div className="grid h-24 place-items-center text-xs text-white/40">
@@ -443,6 +482,9 @@ export function DecorTab() {
       </div>
     );
   }
+
+  const deleteFn = (kind: DecorKind, label: string, id: string) =>
+    askDelete(kind, label, id);
 
   return (
     <>
