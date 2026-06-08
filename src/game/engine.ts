@@ -100,6 +100,7 @@ export function createInitialGame(
     maxSeats: opts.maxSeats ?? 4,
     hostId: players.find((p) => !p.isBot)?.id ?? players[0]?.id,
     wonAt: null,
+    inactivityDisabled: true,
   };
 }
 
