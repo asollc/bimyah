@@ -966,9 +966,9 @@ export function GameTable({
         onPointerCancel={centerPointerUp}
         style={{ touchAction: "none" }}
       >
-        <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
+        <div style={{ transform: `translate(${centerOffset.dx}px, ${centerOffset.dy}px) scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : pinchRef.current.dragging ? "none" : "transform 140ms ease-out" }}>
           <div
-            className={`${hostTabletopUrl ? "" : "wood-table"} grid place-items-center rounded-full relative overflow-hidden`}
+            className={`${hostTabletopUrl ? "" : "wood-table"} grid place-items-center rounded-full relative`}
             style={{
               width: "min(38vw, 32vh, 280px)",
               height: "min(38vw, 32vh, 280px)",
