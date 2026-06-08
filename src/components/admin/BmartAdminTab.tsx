@@ -759,6 +759,23 @@ function NewProductForm({
             </SelectContent>
           </Select>
         </div>
+        {category === "victory" && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">Victory Effect</label>
+            <Select
+              value={effectType ?? "__image__"}
+              onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+                {VICTORY_EFFECT_KEYS.map((k) => (
+                  <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <input
