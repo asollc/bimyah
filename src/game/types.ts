@@ -44,6 +44,9 @@ export type Player = {
 
   specialBadgeUrl?: string | null;
   victoryUrl?: string | null;
+  /** Optional preset key for an animated victory effect (e.g. "fireworks",
+   *  "falling_stars"). When set, supersedes `victoryUrl` overlay. */
+  victoryEffectType?: string | null;
   backgroundUrl?: string | null;
   tabletopUrl?: string | null;
   tableArtUrl?: string | null;
