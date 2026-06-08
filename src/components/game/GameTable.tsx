@@ -13,6 +13,7 @@ import {
   INACTIVE_GRACE_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
+import { VICTORY_EFFECTS } from "@/components/game/VictoryEffects";
 import {
   Confetti,
   Countdown,
@@ -1239,17 +1240,25 @@ export function GameTable({
 
         return (
           <>
-            {winner?.victoryUrl ? (
-              <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-                <img
-                  src={winner.victoryUrl}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover opacity-90 animate-pop-in"
-                />
-              </div>
-            ) : (
-              <Confetti />
-            )}
+            {(() => {
+              const effectKey = winner?.victoryEffectType;
+              if (effectKey && VICTORY_EFFECTS[effectKey as keyof typeof VICTORY_EFFECTS]) {
+                const EffectComp = VICTORY_EFFECTS[effectKey as keyof typeof VICTORY_EFFECTS];
+                return <EffectComp />;
+              }
+              if (winner?.victoryUrl) {
+                return (
+                  <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+                    <img
+                      src={winner.victoryUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 animate-pop-in"
+                    />
+                  </div>
+                );
+              }
+              return <Confetti />;
+            })()}
             <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
               {/* Ready status row — shown above the winner announcement
                   whenever there's more than one human in the lobby. */}

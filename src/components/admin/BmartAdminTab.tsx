@@ -24,6 +24,13 @@ import {
   upsertBmartText,
 } from "@/lib/rpc/bmart.functions";
 import { BMART_TEXT_DEFAULTS, CATEGORIES as BMART_CATEGORIES } from "@/routes/bmart";
+import {
+  VICTORY_EFFECT_KEYS,
+  VICTORY_EFFECT_LABELS,
+  VICTORY_EFFECTS,
+  isVictoryEffectKey,
+  type VictoryEffectKey,
+} from "@/components/game/VictoryEffects";
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
@@ -61,6 +68,7 @@ type Override = {
   image_url: string | null;
   is_custom: boolean;
   sort_order: number;
+  effect_type: string | null;
 };
 
 type Row = {
@@ -74,6 +82,7 @@ type Row = {
   is_custom: boolean;
   isBuiltin: boolean;
   hasOverride: boolean;
+  effect_type: string | null;
 };
 
 function mergeRows(overrides: Override[]): Row[] {
@@ -89,6 +98,7 @@ function mergeRows(overrides: Override[]): Row[] {
       currency: (o?.currency as Currency) ?? b.currency,
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
+      effect_type: o?.effect_type ?? null,
       is_custom: false,
       isBuiltin: true,
       hasOverride: !!o,
@@ -104,6 +114,7 @@ function mergeRows(overrides: Override[]): Row[] {
       currency: (o.currency as Currency) ?? "bimbucks",
       hidden: o.hidden,
       image_url: o.image_url,
+      effect_type: o.effect_type ?? null,
       is_custom: true,
       isBuiltin: false,
       hasOverride: true,
@@ -358,6 +369,8 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   const [category, setCategory] = useState<Category>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
+  const [effectType, setEffectType] = useState<string | null>(row.effect_type);
+  const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -369,6 +382,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
     setCategory(row.category);
     setHidden(row.hidden);
     setImageUrl(row.image_url);
+    setEffectType(row.effect_type);
   }, [row]);
 
   async function handleSave() {
@@ -384,6 +398,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           hidden,
           image_url: imageUrl,
           is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
         },
       });
       toast.success("Saved");
@@ -416,6 +431,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
             hidden: true,
             image_url: imageUrl,
             is_custom: false,
+            effect_type: category === "victory" ? effectType : null,
           },
         });
         setHidden(true);
@@ -527,6 +543,44 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
         </Select>
       </div>
 
+      {category === "victory" && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Victory Effect
+          </label>
+          <Select
+            value={effectType ?? "__image__"}
+            onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+              {VICTORY_EFFECT_KEYS.map((k) => (
+                <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {effectType && isVictoryEffectKey(effectType) && (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setPreviewKey(effectType as VictoryEffectKey);
+                window.setTimeout(() => setPreviewKey(null), 3500);
+              }}
+            >
+              Preview effect
+            </Button>
+          )}
+        </div>
+      )}
+
+      {previewKey && (() => {
+        const EffectComp = VICTORY_EFFECTS[previewKey];
+        return <EffectComp />;
+      })()}
+
       <div className="flex items-center gap-2">
         <input
           ref={fileInput}
@@ -601,6 +655,7 @@ function NewProductForm({
   const [currency, setCurrency] = useState<Currency>("bimbucks");
   const [category, setCategory] = useState<Category>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [effectType, setEffectType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -650,6 +705,7 @@ function NewProductForm({
           image_url: imageUrl,
           is_custom: true,
           hidden: false,
+          effect_type: category === "victory" ? effectType : null,
         },
       });
       toast.success("Product created");
@@ -703,6 +759,23 @@ function NewProductForm({
             </SelectContent>
           </Select>
         </div>
+        {category === "victory" && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">Victory Effect</label>
+            <Select
+              value={effectType ?? "__image__"}
+              onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+                {VICTORY_EFFECT_KEYS.map((k) => (
+                  <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <input

@@ -37,6 +37,7 @@ export type Database = {
           category: string | null
           created_at: string
           currency: string | null
+          effect_type: string | null
           hidden: boolean
           id: string
           image_url: string | null
@@ -52,6 +53,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           currency?: string | null
+          effect_type?: string | null
           hidden?: boolean
           id: string
           image_url?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           currency?: string | null
+          effect_type?: string | null
           hidden?: boolean
           id?: string
           image_url?: string | null

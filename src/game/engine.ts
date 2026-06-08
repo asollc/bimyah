@@ -53,6 +53,7 @@ export function createInitialGame(
     badgeUrl?: string | null;
     specialBadgeUrl?: string | null;
     victoryUrl?: string | null;
+    victoryEffectType?: string | null;
     backgroundUrl?: string | null;
     tabletopUrl?: string | null;
     tableArtUrl?: string | null;
@@ -72,6 +73,7 @@ export function createInitialGame(
     badgeUrl: p.badgeUrl ?? null,
     specialBadgeUrl: p.specialBadgeUrl ?? null,
     victoryUrl: p.victoryUrl ?? null,
+    victoryEffectType: p.victoryEffectType ?? null,
     backgroundUrl: p.backgroundUrl ?? null,
     tabletopUrl: p.tabletopUrl ?? null,
     tableArtUrl: p.tableArtUrl ?? null,

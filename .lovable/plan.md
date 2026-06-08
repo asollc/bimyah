@@ -1,96 +1,91 @@
-## Goal
-Make every equipped decor item fully replace the previous one in-game, give table art the same chrome as the default, introduce purchasable badge slots with tap-to-equip, normalize sizing across all decor, and let admins edit/replace the built-in defaults for every user.
+# Admin-Configurable Victory Effects
 
-## 1. Exclusive equip rendering (backgrounds, tabletops, victory FX, titles)
-Audit `GameTable.tsx` and `Visuals.tsx` for the 4 decor kinds. Today the equipped layer renders **on top of** the default (red gradient still visible under an emerald background, confetti still bursts under a custom victory FX, etc.).
+Today every victory product is just an image overlay (`winner.victoryUrl`) and the only animated effect is the built-in `<Confetti />`. We'll extend Bmart victory items so an admin can pick from a library of animated presets (or keep the image overlay), and the game renders the matching effect when the equipped item is owned.
 
-Fix: render the default ONLY when `equipped[kind]` is null. When an item is equipped, mount that layer alone — no default underneath. For backgrounds and tabletops this means swapping the base layer, not stacking. Victory FX swaps the animation component entirely. Titles already swap text but currently keep the default styling box around them; remove the default wrapper when a custom title is active.
+## 1. Data model
 
-## 2. Table art chrome
-Default table art (Bimyah! graphic) sits inside the tabletop frame with object-fit/inset that matches the wood grain. Custom table-art uploads currently render raw and break the look.
+Add one column to `bmart_products` (used only by `category = 'victory'`):
+- `effect_type TEXT NULL` — preset key. `null` = legacy image overlay using `image_url`.
 
-Fix: wrap every active table-art image in the same container the default uses (rounded inset, drop-shadow, mask matched to the tabletop). Container reads the active **tabletop** to pick the matching frame style (wooden, metallic, etc.) so the table-art "belongs" to the table beneath it. Add `tabletop_style` metadata (`wood | metal | neutral`) on each tabletop product; default falls back to `wood`.
+Preset keys shipped in v1: `confetti`, `fireworks`, `falling_stars`, `falling_roses`, `snow`, `hearts`, `coins`, `bubbles`, `sparkles`, `lightning`.
 
-## 3. Active Badges slots (Bmart + B+ + tap-to-equip)
-Mirrors Active Cards on the Cards tab.
+(Optional follow-up: `effect_config JSONB` for per-product color/density tuning. Out of scope for v1.)
 
-- Add `badge_slots_purchased INT NOT NULL DEFAULT 0` to `wallets`.
-- Effective slot count = `1 + badge_slots_purchased + (has_bimyah_plus ? 1 : 0)`, capped at 2.
-- New DB function `purchase_badge_slot(_user)` — 150 Bimbucks per slot, max 1 purchasable. RPC returns updated wallet.
-- `user_equipped` already has `badge_id`; add `badge_id_2 TEXT NULL` for the second slot.
-- Profile → Decor → Badges tab gets an **Active Badges** strip above the grid: 1–2 slot tiles + a `+` tile (150 Bimbucks) when a slot can be purchased. B+ members see slot 2 unlocked automatically with no purchase tile.
-- Tap-to-equip rules:
-  - 1 slot unlocked: tap an owned badge → instantly equips into slot 1 (tap equipped badge to clear).
-  - 2 slots unlocked: tap an owned badge → highlights it; tap a slot to place it (or tap the slot's existing badge to clear).
-- In-game: render both equipped badges next to the local player's nameplate.
+## 2. Effect component library
 
-## 4. Badge sizing rule
-All badges (default + purchased + admin-test) render at a fixed `height = nameplate oval height`, `width: auto`, `object-fit: contain`. Applies in:
-- Active Badges slot tiles
-- Owned badge grid tiles
-- In-game nameplate
-This guarantees a tall badge can't push the nameplate row taller than the oval.
+Create `src/components/game/VictoryEffects.tsx` exporting one component per preset. Each is a fixed full-viewport overlay (`pointer-events-none fixed inset-0 z-50`) built with CSS keyframes + a small particle generator (same pattern as the existing `Confetti`). No new deps.
 
-## 5. Consistent decor sizing
-Each kind has the default item's bounding box. Apply that box to every tile and in-game render of that kind:
-- Titles → default title's text box width/height
-- Backgrounds → full-viewport (already)
-- Tabletops → table frame box
-- Table art → tabletop inner inset
-- Victory FX → centered overlay box of default confetti
-Tiles in the Decor tab use the same aspect ratios so previews are visually comparable.
-
-## 6. Admin-edit defaults (image + name, applies to all users)
-New table `decor_defaults` keyed by `(kind, default_key)` with columns `name_override TEXT NULL`, `image_url_override TEXT NULL`, `updated_by`, `updated_at`. Built-in defaults stay in code as the fallback; the loader merges DB overrides over them.
-
-- New admin-only server fns: `adminUpsertDefaultOverride({ kind, defaultKey, name?, imageUrl? })`, `adminClearDefaultOverride(...)`, `getDecorDefaults()` (public read).
-- Admin Test section in each Decor category gains an **Edit Default** button next to the default item: opens a dialog with name input + image uploader (uses `public-assets` bucket).
-- Client-side default lookup in `cosmetics.ts` / `DecorTab.tsx` / `GameTable.tsx` reads from a single cached `getDecorDefaults()` query so changes appear for every user on next load.
-
-## Technical details
-
-### DB migration
-```sql
-ALTER TABLE wallets ADD COLUMN badge_slots_purchased INT NOT NULL DEFAULT 0
-  CHECK (badge_slots_purchased BETWEEN 0 AND 1);
-ALTER TABLE user_equipped ADD COLUMN badge_id_2 TEXT NULL;
-ALTER TABLE bmart_products ADD COLUMN tabletop_style TEXT NULL; -- 'wood' | 'metal' | 'neutral'
-
-CREATE TABLE public.decor_defaults (
-  kind inventory_kind NOT NULL,
-  default_key TEXT NOT NULL,
-  name_override TEXT,
-  image_url_override TEXT,
-  updated_by UUID REFERENCES auth.users(id),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (kind, default_key)
-);
-GRANT SELECT ON public.decor_defaults TO anon, authenticated;
-GRANT ALL ON public.decor_defaults TO service_role;
-ALTER TABLE public.decor_defaults ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can read defaults" ON public.decor_defaults FOR SELECT USING (true);
-CREATE POLICY "Admins manage defaults" ON public.decor_defaults FOR ALL
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
-CREATE FUNCTION public.purchase_badge_slot(_user_id UUID) RETURNS JSONB ... ;
+A registry maps key → component:
+```ts
+export const VICTORY_EFFECTS: Record<string, FC> = {
+  confetti: ConfettiEffect,
+  fireworks: FireworksEffect,
+  falling_stars: FallingStarsEffect,
+  falling_roses: FallingRosesEffect,
+  snow: SnowEffect,
+  hearts: HeartsEffect,
+  coins: CoinsEffect,
+  bubbles: BubblesEffect,
+  sparkles: SparklesEffect,
+  lightning: LightningEffect,
+};
 ```
 
-### Files
+Add the matching `@keyframes` in `src/styles.css` (fall, drift, burst, twinkle).
+
+## 3. Carry effect_type through cosmetics
+
+- Extend the equipped victory payload to include `effectType` alongside `victoryUrl`:
+  - `src/lib/rpc/cosmetics.functions.ts` — join `bmart_products.effect_type` when resolving the equipped victory item.
+  - `src/game/types.ts` — add `victoryEffectType?: string | null` on `Player`.
+  - `src/game/cosmetics.ts` — pass-through in `applyDecorOverrides`.
+  - `src/game/engine.ts` / room creation — propagate the field onto the host/player record (same path used today for `victoryUrl`).
+
+## 4. Render
+
+In `src/components/game/GameTable.tsx` (around line 1242), replace the current `victoryUrl ? <img/> : <Confetti/>` block with:
+
+```tsx
+const EffectComp = winner?.victoryEffectType ? VICTORY_EFFECTS[winner.victoryEffectType] : null;
+return EffectComp
+  ? <EffectComp />
+  : winner?.victoryUrl
+    ? <img ... />               // legacy image overlay
+    : <Confetti />;             // default
+```
+
+This keeps the existing "exclusive layer" rule from the decor plan — only one victory layer renders.
+
+## 5. Admin UI
+
+In `src/components/admin/BmartAdminTab.tsx`, when editing a product whose category is `victory`, show a new **Effect** dropdown:
+- "Image overlay (use Image URL)" — `effect_type = null`
+- One option per preset key with a short label and a small live-preview button that mounts the component for ~3s.
+
+Wire it through `upsertBmartProduct`:
+- `src/lib/rpc/bmart.functions.ts` — extend `upsertSchema` with `effect_type: z.enum([...PRESET_KEYS]).nullable().optional()` and pass through to the upsert.
+
+## 6. Default-item story
+
+Built-in `Confetti` stays as the fallback when no victory item is equipped. To let admins replace the default confetti too, the existing `decor_defaults` flow (from the decor plan) can be reused: store `default_key = 'confetti'` with an `effect_type_override`. Not required for v1.
+
+## Files
+
 **Created**
-- `supabase/migrations/<ts>_decor_v2.sql`
-- `src/lib/rpc/decorDefaults.functions.ts`
+- `src/components/game/VictoryEffects.tsx`
 
 **Edited**
-- `src/lib/rpc/decor.functions.ts` — `purchaseBadgeSlot`, second-slot equip, badge slot-aware setEquipped
-- `src/components/profile/DecorTab.tsx` — Active Badges strip, tap-to-equip flow, Edit Default admin action, consistent tile sizes
-- `src/components/game/GameTable.tsx` — exclusive layer rendering, table-art chrome, dual badge render
-- `src/components/game/Visuals.tsx` — victory FX exclusivity
-- `src/game/cosmetics.ts` — merge defaults overrides, persist 2nd badge URL
-- `src/game/types.ts` — `equippedBadge2Url`, extended `Player`
-- `src/components/wallet/WalletOverlay.tsx` — show badge slot purchase in ledger
+- `supabase/migrations/<ts>_victory_effect_type.sql` (adds the column)
+- `src/lib/rpc/bmart.functions.ts`
+- `src/lib/rpc/cosmetics.functions.ts`
+- `src/components/admin/BmartAdminTab.tsx`
+- `src/components/game/GameTable.tsx`
+- `src/game/types.ts`
+- `src/game/cosmetics.ts`
+- `src/game/engine.ts`
+- `src/styles.css` (new keyframes)
 
 ## Out of scope
-- Earning badges outside Bmart (existing inventory insert path stays)
-- New artwork for defaults (admin replaces via UI)
-- Mobile-specific badge layout beyond the nameplate-height rule
+- Per-product color/intensity tuning (`effect_config`)
+- User-uploaded Lottie / video effects (presets only in v1)
+- Replacing the built-in default confetti via admin UI (handled by decor_defaults later)

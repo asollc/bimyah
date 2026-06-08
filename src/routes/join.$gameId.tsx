@@ -233,6 +233,7 @@ function JoinGame() {
         badgeUrl: null,
         badgeUrl2: null,
         victoryUrl: null,
+        victoryEffectType: null,
         backgroundUrl: null,
         tabletopUrl: null,
         tableArtUrl: null,
