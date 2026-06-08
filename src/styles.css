@@ -641,3 +641,17 @@
 .animate-arcade-flash {
   animation: arcade-flash 0.7s steps(2, end) infinite;
 }
+
+/* Force all faded/grey text to bright white across the app.
+   Preserves placeholder opacity so empty inputs remain distinguishable. */
+[class*="text-white/"]:not(input):not(textarea) {
+  color: rgb(255 255 255) !important;
+}
+.text-muted-foreground,
+[class*="text-gray-"],
+[class*="text-slate-"],
+[class*="text-neutral-"],
+[class*="text-zinc-"],
+[class*="text-stone-"] {
+  color: rgb(255 255 255) !important;
+}
