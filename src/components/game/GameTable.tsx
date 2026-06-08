@@ -13,6 +13,7 @@ import {
   INACTIVE_GRACE_MS,
 } from "@/game/engine";
 import { isFourOfAKind } from "@/game/deck";
+import { VICTORY_EFFECTS } from "@/components/game/VictoryEffects";
 import {
   Confetti,
   Countdown,
