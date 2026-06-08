@@ -162,7 +162,7 @@ export function WalletOverlay({
                 }}
                 className="btn-3d btn-3d-gold inline-flex items-center justify-center gap-2 text-xs"
               >
-                <Send className="h-3 w-3" /> Share
+                <Send className="h-3 w-3" /> 💸SEND
               </button>
             </div>
 
