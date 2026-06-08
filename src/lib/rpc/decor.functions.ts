@@ -38,17 +38,29 @@ export const getMyDecor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const [{ data: inv }, { data: eq }] = await Promise.all([
-      supabase
-        .from("user_inventory")
-        .select("kind, item_id, acquired_at")
-        .eq("user_id", userId),
-      supabase
-        .from("user_equipped")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle(),
-    ]);
+    const [{ data: inv }, { data: eq }, { data: wallet }, { data: sub }] =
+      await Promise.all([
+        supabase
+          .from("user_inventory")
+          .select("kind, item_id, acquired_at")
+          .eq("user_id", userId),
+        supabase
+          .from("user_equipped")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("wallets")
+          .select("badge_slots_purchased")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .limit(1),
+      ]);
     const inventoryRows = (inv ?? []) as Array<{
       kind: DecorKind;
       item_id: string;
@@ -76,11 +88,18 @@ export const getMyDecor = createServerFn({ method: "GET" })
       name: productMap.get(r.item_id)?.name ?? null,
       image_url: productMap.get(r.item_id)?.image_url ?? null,
     }));
+    const isPlus = !!(sub && sub.length);
+    const purchased = (wallet?.badge_slots_purchased as number | undefined) ?? 0;
+    const badgeSlotCount = Math.min(2, 1 + purchased + (isPlus ? 1 : 0));
     return {
       inventory,
       equipped: (eq ?? null) as null | Record<string, string | null>,
+      badgeSlotCount,
+      badgeSlotsPurchased: purchased,
+      isPlus,
     };
   });
+
 
 const equipSchema = z.object({
   kind: z.enum(KINDS),
