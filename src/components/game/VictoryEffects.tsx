@@ -9,7 +9,7 @@ import type { FC } from "react";
 
 type EffectProps = Record<string, unknown>;
 
-const overlay = "pointer-events-none fixed inset-0 z-50 overflow-hidden";
+const overlay = "pointer-events-none fixed inset-0 z-[200] overflow-hidden";
 
 /* ---------- helpers ---------- */
 function rand(min: number, max: number) {
