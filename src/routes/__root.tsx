@@ -71,28 +71,19 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const isAdmin = router.state.location.pathname.startsWith("/admin");
-
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        {!isAdmin && (
-          <div id="ad-slot" aria-label="Advertisement">
-            <a href="https://www.paypal.com/ncp/payment/4CT5MUJMGU344" target="_blank" rel="noopener noreferrer sponsored">
-              <img src={adBanner} alt="Get the $5 PDF Profits bundle of 500 Make Money Online E-books" />
-            </a>
-          </div>
-        )}
         <div id="app-shell">{children}</div>
         <Scripts />
       </body>
     </html>
   );
 }
+
 
 function RootComponent() {
   return (
