@@ -5,6 +5,7 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { WhitelistAckGuard } from "@/auth/WhitelistAckGuard";
 import { Toaster } from "@/components/ui/sonner";
+import { TransferNotifier } from "@/components/wallet/TransferNotifier";
 
 function NotFoundComponent() {
   return (
@@ -89,6 +90,7 @@ function RootComponent() {
   return (
     <AuthProvider>
       <WhitelistAckGuard />
+      <TransferNotifier />
       <Outlet />
       <Toaster richColors position="top-right" offset={60} style={{ zIndex: 2147483647 }} />
     </AuthProvider>
