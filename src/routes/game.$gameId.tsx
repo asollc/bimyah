@@ -159,6 +159,16 @@ function OnlineGame() {
   const identity = loadIdentity(gameId);
   const isSpectator = identity?.role === "spectator";
 
+  // ===== Detect host closing the room (End Match) =====
+  useEffect(() => {
+    if (!session || !state) return;
+    if (!state.roomClosed) return;
+    clearGame(gameId);
+    clearReentryCode(gameId);
+    session.destroy();
+    void navigate({ to: "/" });
+  }, [session, state, gameId, navigate]);
+
   // ===== Detect being removed from the game =====
   useEffect(() => {
     if (!session || !state || !meId) return;
