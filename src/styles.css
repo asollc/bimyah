@@ -626,3 +626,18 @@
 
 
 
+
+/* Arcade flashing text */
+@keyframes arcade-flash {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(251,191,36,0.9));
+  }
+  50% {
+    opacity: 0.55;
+    filter: brightness(0.85) drop-shadow(0 0 2px rgba(251,191,36,0.3));
+  }
+}
+.animate-arcade-flash {
+  animation: arcade-flash 0.7s steps(2, end) infinite;
+}
