@@ -107,6 +107,7 @@ function HomePage() {
         badgeUrl2: null,
         specialBadgeUrl: null,
         victoryUrl: null,
+        victoryEffectType: null,
         backgroundUrl: null,
         tabletopUrl: null,
         tableArtUrl: null,
