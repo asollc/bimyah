@@ -369,6 +369,8 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   const [category, setCategory] = useState<Category>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
+  const [effectType, setEffectType] = useState<string | null>(row.effect_type);
+  const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -380,6 +382,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
     setCategory(row.category);
     setHidden(row.hidden);
     setImageUrl(row.image_url);
+    setEffectType(row.effect_type);
   }, [row]);
 
   async function handleSave() {
@@ -395,6 +398,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           hidden,
           image_url: imageUrl,
           is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
         },
       });
       toast.success("Saved");
