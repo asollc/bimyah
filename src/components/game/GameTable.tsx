@@ -943,16 +943,19 @@ export function GameTable({
                 : null),
             }}
           >
-            {hostTableArtUrl && (
-              // Sized to match the default Bimyah table art (~78% of the
-              // tabletop, centered, object-contain) so custom art "fits the
-              // table" just like the default does — keeping the wooden /
-              // metallic look of the tabletop around it.
+            {hostTableArtUrl === "__none__" ? null : hostTableArtUrl ? (
               <img
                 src={hostTableArtUrl}
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+              />
+            ) : (
+              <img
+                src="/bimyah-logo-table.png"
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain"
               />
             )}
 
