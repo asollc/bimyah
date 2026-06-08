@@ -542,6 +542,44 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
         </Select>
       </div>
 
+      {category === "victory" && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Victory Effect
+          </label>
+          <Select
+            value={effectType ?? "__image__"}
+            onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+              {VICTORY_EFFECT_KEYS.map((k) => (
+                <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {effectType && isVictoryEffectKey(effectType) && (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setPreviewKey(effectType as VictoryEffectKey);
+                window.setTimeout(() => setPreviewKey(null), 3500);
+              }}
+            >
+              Preview effect
+            </Button>
+          )}
+        </div>
+      )}
+
+      {previewKey && (() => {
+        const EffectComp = VICTORY_EFFECTS[previewKey];
+        return <EffectComp />;
+      })()}
+
       <div className="flex items-center gap-2">
         <input
           ref={fileInput}
