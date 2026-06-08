@@ -225,7 +225,7 @@ function AuthPage() {
                 setBusy(false);
               }
             }}
-            className="mt-3 block w-full text-center text-xs text-white/60 hover:text-white"
+            className="mt-3 block w-full text-center text-xs text-white/70 hover:text-white"
           >
             Forgot password?
           </button>
@@ -233,7 +233,8 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-2 block text-center text-xs text-white/50 hover:text-white"
+          className="mt-2 block text-center text-xs text-white hover:text-white"
+
         >
           Back to home
         </Link>
