@@ -974,7 +974,6 @@ export function GameTable({
               height: "min(38vw, 32vh, 280px)",
               ...(hostTabletopUrl
                 ? {
-                    backgroundColor: "#000",
                     backgroundImage: `url(${hostTabletopUrl})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
