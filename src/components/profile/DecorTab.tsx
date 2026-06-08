@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, Upload, X, Loader2 } from "lucide-react";
+import { Check, Upload, X, Loader2, Pencil, Plus, Crown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/auth/AuthProvider";
 import {
@@ -8,9 +8,15 @@ import {
   setEquipped,
   adminCreateTestDecor,
   deleteMyInventoryItem,
+  purchaseBadgeSlot,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
+import {
+  getDecorDefaults,
+  adminUpsertDefaultOverride,
+  type DecorDefaultOverride,
+} from "@/lib/rpc/decorDefaults.functions";
 import { getMyAdminStatus } from "@/lib/rpc/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,15 +25,17 @@ import {
 } from "@/game/cosmetics";
 
 
-
 type InventoryRow = DecorInventoryItem;
 type EquippedRow = Record<string, string | null> | null;
 
-/* ---------- Built-in defaults (the "NONE" / original entries) ---------- */
+/* ---------- Built-in defaults ---------- */
 
 type Shape = "rect" | "square" | "wide";
 type DefaultItem = {
   id: string;
+  /** Stable key used to look up admin overrides in `decor_defaults`. */
+  defaultKey: string;
+  kind: DecorKind;
   label: string;
   shape: Shape;
   preview: React.ReactNode;
@@ -36,6 +44,8 @@ type DefaultItem = {
 
 const NONE_RECT: DefaultItem = {
   id: "__none__",
+  defaultKey: "none",
+  kind: "title",
   label: "NONE",
   shape: "rect",
   isClear: true,
@@ -48,6 +58,8 @@ const NONE_RECT: DefaultItem = {
 
 const NONE_SQUARE: DefaultItem = {
   id: "__none__",
+  defaultKey: "none",
+  kind: "badge",
   label: "NONE",
   shape: "square",
   isClear: true,
@@ -60,6 +72,8 @@ const NONE_SQUARE: DefaultItem = {
 
 const DEFAULT_VICTORY: DefaultItem = {
   id: "victory_confetti",
+  defaultKey: "victory_confetti",
+  kind: "victory",
   label: "Confetti",
   shape: "square",
   preview: (
@@ -87,6 +101,8 @@ const DEFAULT_VICTORY: DefaultItem = {
 
 const DEFAULT_BACKGROUND: DefaultItem = {
   id: "bg_original_red",
+  defaultKey: "bg_original_red",
+  kind: "background",
   label: "Original Red",
   shape: "wide",
   preview: (
@@ -102,6 +118,8 @@ const DEFAULT_BACKGROUND: DefaultItem = {
 
 const DEFAULT_TABLETOP: DefaultItem = {
   id: "tabletop_wooden",
+  defaultKey: "tabletop_wooden",
+  kind: "tabletop",
   label: "Wooden",
   shape: "square",
   preview: (
@@ -119,6 +137,8 @@ const DEFAULT_TABLETOP: DefaultItem = {
 
 const DEFAULT_TABLE_ART: DefaultItem = {
   id: "tableart_original",
+  defaultKey: "tableart_original",
+  kind: "table_art",
   label: "Bimyah!",
   shape: "square",
   preview: (
@@ -130,6 +150,32 @@ const DEFAULT_TABLE_ART: DefaultItem = {
   ),
 };
 
+/** Merge admin overrides onto a built-in default. */
+function withOverride(
+  base: DefaultItem,
+  overrides: Map<string, DecorDefaultOverride>,
+): DefaultItem {
+  const key = `${base.kind}::${base.defaultKey}`;
+  const o = overrides.get(key);
+  if (!o) return base;
+  const nextLabel = o.name_override ?? base.label;
+  if (o.image_url_override) {
+    return {
+      ...base,
+      label: nextLabel,
+      preview: (
+        <img
+          src={o.image_url_override}
+          alt=""
+          draggable={false}
+          className="h-full w-full rounded-md object-cover"
+        />
+      ),
+    };
+  }
+  return { ...base, label: nextLabel };
+}
+
 /* ---------- Tile ---------- */
 
 function DecorTile({
@@ -137,11 +183,13 @@ function DecorTile({
   active,
   onClick,
   onDelete,
+  onEditDefault,
 }: {
   item: { id: string; label: string; shape: Shape; preview: React.ReactNode };
   active: boolean;
   onClick: () => void;
   onDelete?: () => void;
+  onEditDefault?: () => void;
 }) {
   const aspect =
     item.shape === "rect"
@@ -183,16 +231,26 @@ function DecorTile({
           <X className="h-3 w-3" strokeWidth={3} />
         </button>
       )}
+      {onEditDefault && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditDefault();
+          }}
+          aria-label="Admin: edit default"
+          title="Edit default (admin)"
+          className="absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[var(--gold)]/90 text-black hover:bg-[var(--gold)]"
+        >
+          <Pencil className="h-3 w-3" strokeWidth={2.5} />
+        </button>
+      )}
     </div>
   );
 }
 
 function HRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-4 gap-2 pb-2">
-      {children}
-    </div>
-  );
+  return <div className="grid grid-cols-4 gap-2 pb-2">{children}</div>;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -219,7 +277,6 @@ function OwnedPreview({ imageUrl }: { imageUrl: string | null }) {
   );
 }
 
-/** Render the list of purchased items for a given decor section. */
 function OwnedList({
   items,
   shape,
@@ -316,11 +373,7 @@ function AdminTestUploader({
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1 rounded-md border border-[var(--gold)]/50 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--gold)] hover:bg-[var(--gold)]/10 disabled:opacity-50"
         >
-          {busy ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Upload className="h-3 w-3" />
-          )}
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
           Upload media
         </button>
       </div>
@@ -341,6 +394,303 @@ function AdminTestUploader({
   );
 }
 
+/* ---------- Admin "Edit Default" dialog ---------- */
+
+function EditDefaultModal({
+  kind,
+  defaultKey,
+  initialLabel,
+  initialImage,
+  onSaved,
+  onClose,
+}: {
+  kind: DecorKind;
+  defaultKey: string;
+  initialLabel: string;
+  initialImage: string | null;
+  onSaved: (next: { name: string; imageUrl: string | null }) => void;
+  onClose: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(initialLabel);
+  const [imageUrl, setImageUrl] = useState<string | null>(initialImage);
+  const [busy, setBusy] = useState(false);
+
+  async function pickFile(file: File) {
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `decor-defaults/${kind}-${defaultKey}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("public-assets")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setImageUrl(pub.publicUrl);
+      toast.success("Image uploaded — click Save to apply.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      await adminUpsertDefaultOverride({
+        data: {
+          kind,
+          defaultKey,
+          name: name.trim() || initialLabel,
+          imageUrl,
+        },
+      });
+      onSaved({ name: name.trim() || initialLabel, imageUrl });
+      toast.success("Default updated for all users.");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clear() {
+    setBusy(true);
+    try {
+      await adminUpsertDefaultOverride({
+        data: { kind, defaultKey, name: null, imageUrl: null },
+      });
+      onSaved({ name: initialLabel, imageUrl: null });
+      toast.success("Reverted to built-in default.");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] grid place-items-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--gold)]/40 bg-[#0a0d0a] p-5 text-left shadow-2xl">
+        <div className="font-display text-sm uppercase tracking-widest text-[var(--gold)]">
+          Edit default · {kind.replace("_", " ")}
+        </div>
+        <p className="mt-1 text-[10px] text-white/50">Applies to every user.</p>
+
+        <label className="mt-3 block text-[10px] uppercase tracking-widest text-white/60">
+          Name
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={60}
+          className="mt-1 w-full rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-white"
+        />
+
+        <label className="mt-3 block text-[10px] uppercase tracking-widest text-white/60">
+          Image
+        </label>
+        <div className="mt-1 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-1 rounded-md border border-[var(--gold)]/50 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--gold)] hover:bg-[var(--gold)]/10 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            Upload
+          </button>
+          {imageUrl && (
+            <img src={imageUrl} alt="" className="h-10 w-10 rounded object-cover" />
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void pickFile(f);
+          }}
+        />
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="btn-3d btn-3d-dark flex-1 !rounded-lg !px-2 !py-2 text-[11px]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={clear}
+            disabled={busy}
+            className="btn-3d flex-1 !rounded-lg !bg-red-600 !px-2 !py-2 text-[11px] !text-white hover:!bg-red-500"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="btn-3d btn-3d-gold flex-1 !rounded-lg !px-2 !py-2 text-[11px]"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Active Badges section ---------- */
+
+type BadgeSlotState = {
+  count: number; // 1 or 2 unlocked
+  canPurchase: boolean; // true if user can buy slot 2 for 150 Bimbucks
+  isPlus: boolean;
+};
+
+function ActiveBadges({
+  slotState,
+  slot1Id,
+  slot2Id,
+  inventory,
+  selectedId,
+  onTapSlot,
+  onClearSlot,
+  onPurchaseSlot,
+}: {
+  slotState: BadgeSlotState;
+  slot1Id: string | null;
+  slot2Id: string | null;
+  inventory: InventoryRow[];
+  selectedId: string | null;
+  onTapSlot: (slot: 1 | 2) => void;
+  onClearSlot: (slot: 1 | 2) => void;
+  onPurchaseSlot: () => void;
+}) {
+  const urlForId = (id: string | null) =>
+    id ? inventory.find((r) => r.item_id === id)?.image_url ?? null : null;
+  const slot1Url = urlForId(slot1Id);
+  const slot2Url = urlForId(slot2Id);
+  return (
+    <section className="mb-3 rounded-lg border border-white/10 bg-black/30 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-widest text-white/60">
+          Active Badges
+        </div>
+        <div className="text-[9px] uppercase tracking-widest text-white/40">
+          {slotState.count}/2 slots
+          {slotState.isPlus && (
+            <span className="ml-1 inline-flex items-center gap-0.5 text-[var(--gold)]">
+              <Crown className="h-3 w-3" /> B+
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <BadgeSlot
+          label="Slot 1"
+          imageUrl={slot1Url}
+          selected={selectedId !== null && slotState.count >= 2}
+          onClick={() => onTapSlot(1)}
+          onClear={slot1Id ? () => onClearSlot(1) : undefined}
+        />
+        {slotState.count >= 2 ? (
+          <BadgeSlot
+            label="Slot 2"
+            imageUrl={slot2Url}
+            selected={selectedId !== null}
+            onClick={() => onTapSlot(2)}
+            onClear={slot2Id ? () => onClearSlot(2) : undefined}
+          />
+        ) : slotState.canPurchase ? (
+          <button
+            type="button"
+            onClick={onPurchaseSlot}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-dashed border-[var(--gold)]/60 bg-[var(--gold)]/10 text-[var(--gold)] hover:bg-[var(--gold)]/20"
+            title="Unlock a second badge slot · 150 Bimbucks"
+          >
+            <Plus className="h-5 w-5" />
+            <span className="sr-only">Unlock second slot</span>
+          </button>
+        ) : (
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-white/10 bg-black/40 text-[8px] uppercase tracking-widest text-white/30">
+            Locked
+          </div>
+        )}
+        <div className="ml-1 flex-1 text-[10px] text-white/40">
+          {slotState.count === 1
+            ? "Tap a badge below to equip it. Tap the slot to clear."
+            : selectedId
+              ? "Tap a slot to place the selected badge."
+              : "Tap a badge below, then tap a slot to place it. Tap an equipped badge to clear it."}
+        </div>
+      </div>
+      {slotState.canPurchase && (
+        <p className="mt-2 text-[9px] text-white/40">
+          Unlock 2 badge slots for 150 Bimbucks. B+ members get the 2nd slot free.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function BadgeSlot({
+  label,
+  imageUrl,
+  selected,
+  onClick,
+  onClear,
+}: {
+  label: string;
+  imageUrl: string | null;
+  selected: boolean;
+  onClick: () => void;
+  onClear?: () => void;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        title={label}
+        className={`relative grid h-12 w-12 place-items-center overflow-hidden rounded-lg border transition ${
+          selected
+            ? "border-[var(--gold)] ring-2 ring-[var(--gold)]/60"
+            : "border-white/15 hover:border-white/40"
+        } bg-black/40`}
+      >
+        {imageUrl ? (
+          <img src={imageUrl} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <span className="text-[8px] uppercase tracking-widest text-white/40">{label}</span>
+        )}
+      </button>
+      {onClear && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClear();
+          }}
+          aria-label={`Clear ${label}`}
+          className="absolute -right-1 -top-1 rounded-full bg-black/80 p-0.5 text-white/70 hover:text-white"
+        >
+          <X className="h-2.5 w-2.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ---------- DecorTab ---------- */
 
 export function DecorTab() {
@@ -349,6 +699,13 @@ export function DecorTab() {
   const [equipped, setEquippedState] = useState<EquippedRow>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [badgeSlotCount, setBadgeSlotCount] = useState(1);
+  const [badgeSlotsPurchased, setBadgeSlotsPurchased] = useState(0);
+  const [isPlus, setIsPlus] = useState(false);
+  const [defaultOverrides, setDefaultOverrides] = useState<
+    Map<string, DecorDefaultOverride>
+  >(new Map());
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     kind: DecorKind;
     itemId: string | null;
@@ -359,6 +716,7 @@ export function DecorTab() {
     itemId: string;
     label: string;
   } | null>(null);
+  const [editingDefault, setEditingDefault] = useState<DefaultItem | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -370,6 +728,7 @@ export function DecorTab() {
     const map: EquippedDecorUrls = {
       title: urlForId(equipped?.title_id),
       badge: urlForId(equipped?.badge_id),
+      badge2: urlForId(equipped?.badge_id_2),
       victory: urlForId(equipped?.victory_id),
       background: urlForId(equipped?.background_id),
       tabletop: urlForId(equipped?.tabletop_id),
@@ -378,17 +737,25 @@ export function DecorTab() {
     persistEquippedDecorUrls(user.id, map);
   }, [user?.id, inventory, equipped]);
 
-
   useEffect(() => {
     void (async () => {
       try {
-        const [res, admin] = await Promise.all([
+        const [res, admin, defs] = await Promise.all([
           getMyDecor(),
           getMyAdminStatus().catch(() => ({ is_admin: false })),
+          getDecorDefaults().catch(() => ({ overrides: [] })),
         ]);
         setInventory(res.inventory);
         setEquippedState(res.equipped);
+        setBadgeSlotCount(res.badgeSlotCount);
+        setBadgeSlotsPurchased(res.badgeSlotsPurchased);
+        setIsPlus(res.isPlus);
         setIsAdmin(!!admin.is_admin);
+        const m = new Map<string, DecorDefaultOverride>();
+        for (const o of defs.overrides) {
+          m.set(`${o.kind}::${o.default_key}`, o);
+        }
+        setDefaultOverrides(m);
       } catch (e) {
         toast.error((e as Error).message);
       } finally {
@@ -414,9 +781,7 @@ export function DecorTab() {
   async function confirmEquip() {
     if (!pending) return;
     try {
-      await setEquipped({
-        data: { kind: pending.kind, itemId: pending.itemId },
-      });
+      await setEquipped({ data: { kind: pending.kind, itemId: pending.itemId } });
       setEquippedState((prev) => {
         const next = { ...(prev ?? {}) } as Record<string, string | null>;
         next[`${pending.kind}_id`] = pending.itemId;
@@ -445,7 +810,13 @@ export function DecorTab() {
       if (res.wasActive) {
         setEquippedState((prev) => {
           const next = { ...(prev ?? {}) } as Record<string, string | null>;
-          next[`${kind}_id`] = null;
+          // Clear whichever badge slot held it.
+          if (kind === "badge") {
+            if (next.badge_id === itemId) next.badge_id = null;
+            if (next.badge_id_2 === itemId) next.badge_id_2 = null;
+          } else {
+            next[`${kind}_id`] = null;
+          }
           return next;
         });
       }
@@ -458,12 +829,22 @@ export function DecorTab() {
   }
 
   function isActive(kind: DecorKind, itemId: string | null): boolean {
+    if (kind === "badge") {
+      const a = equipped?.badge_id ?? null;
+      const b = equipped?.badge_id_2 ?? null;
+      return a === itemId || b === itemId;
+    }
     const col = `${kind}_id`;
     const cur = equipped?.[col] ?? null;
     return cur === itemId;
   }
 
   function ask(kind: DecorKind, label: string, itemId: string | null) {
+    // Badges use tap-to-equip, not the confirm modal.
+    if (kind === "badge") {
+      void handleBadgeTap(itemId, label);
+      return;
+    }
     setPending({ kind, label, itemId });
   }
 
@@ -473,6 +854,118 @@ export function DecorTab() {
 
   function handleTestCreated(item: InventoryRow) {
     setInventory((prev) => [...prev, item]);
+  }
+
+  /** Tap-to-equip for badges. Rules:
+   *  - If 1 slot unlocked: tap a badge to equip into slot 1, tap the same
+   *    badge to clear.
+   *  - If 2 slots unlocked: first tap selects; second tap on a slot places
+   *    it. Tap the equipped badge to clear from whichever slot holds it. */
+  async function handleBadgeTap(itemId: string | null, label: string) {
+    if (badgeSlotCount === 1) {
+      const cur = equipped?.badge_id ?? null;
+      // Tap empty "NONE" tile clears slot 1.
+      if (itemId === null) {
+        await applyBadge(1, null, "No badge");
+        return;
+      }
+      // Tapping the active badge clears it.
+      if (cur === itemId) {
+        await applyBadge(1, null, label);
+        return;
+      }
+      await applyBadge(1, itemId, label);
+      return;
+    }
+    // 2 slots
+    if (itemId === null) {
+      // Tap NONE — clear both slots.
+      await applyBadge(1, null, "Cleared");
+      await applyBadge(2, null, "Cleared");
+      setSelectedBadgeId(null);
+      return;
+    }
+    const a = equipped?.badge_id ?? null;
+    const b = equipped?.badge_id_2 ?? null;
+    // Tap an active badge to clear whichever slot holds it.
+    if (a === itemId) {
+      await applyBadge(1, null, label);
+      return;
+    }
+    if (b === itemId) {
+      await applyBadge(2, null, label);
+      return;
+    }
+    setSelectedBadgeId((prev) => (prev === itemId ? null : itemId));
+  }
+
+  async function applyBadge(slot: 1 | 2, itemId: string | null, label: string) {
+    try {
+      await setEquipped({ data: { kind: "badge", itemId, slot } });
+      setEquippedState((prev) => {
+        const next = { ...(prev ?? {}) } as Record<string, string | null>;
+        if (slot === 1) next.badge_id = itemId;
+        else next.badge_id_2 = itemId;
+        return next;
+      });
+      if (itemId) toast.success(`${label} equipped in slot ${slot}.`);
+      else toast.success(`Slot ${slot} cleared.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleSlotTap(slot: 1 | 2) {
+    if (selectedBadgeId) {
+      const label =
+        inventory.find((r) => r.item_id === selectedBadgeId)?.name ?? selectedBadgeId;
+      await applyBadge(slot, selectedBadgeId, label);
+      setSelectedBadgeId(null);
+      return;
+    }
+    // Empty tap on a slot with content clears it.
+    const cur = slot === 1 ? equipped?.badge_id : equipped?.badge_id_2;
+    if (cur) {
+      await applyBadge(slot, null, "Cleared");
+    }
+  }
+
+  async function handleClearSlot(slot: 1 | 2) {
+    await applyBadge(slot, null, "Cleared");
+  }
+
+  async function handlePurchaseSlot() {
+    try {
+      const res = await purchaseBadgeSlot();
+      setBadgeSlotsPurchased(res.badge_slots_purchased);
+      setBadgeSlotCount(
+        Math.min(2, 1 + res.badge_slots_purchased + (isPlus ? 1 : 0)),
+      );
+      toast.success("Second badge slot unlocked!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  function handleDefaultSaved(
+    base: DefaultItem,
+    next: { name: string; imageUrl: string | null },
+  ) {
+    setDefaultOverrides((prev) => {
+      const m = new Map(prev);
+      const key = `${base.kind}::${base.defaultKey}`;
+      if (next.imageUrl === null && next.name === base.label) {
+        m.delete(key);
+      } else {
+        m.set(key, {
+          kind: base.kind,
+          default_key: base.defaultKey,
+          name_override: next.name === base.label ? null : next.name,
+          image_url_override: next.imageUrl,
+        });
+      }
+      return m;
+    });
   }
 
   if (loading) {
@@ -485,6 +978,23 @@ export function DecorTab() {
 
   const deleteFn = (kind: DecorKind, label: string, id: string) =>
     askDelete(kind, label, id);
+
+  // Apply admin overrides to default items.
+  const dTitle = NONE_RECT;
+  const dBadge = NONE_SQUARE;
+  const dVictory = withOverride(DEFAULT_VICTORY, defaultOverrides);
+  const dBg = withOverride(DEFAULT_BACKGROUND, defaultOverrides);
+  const dTabletop = withOverride(DEFAULT_TABLETOP, defaultOverrides);
+  const dTableArt = withOverride(DEFAULT_TABLE_ART, defaultOverrides);
+
+  const slotState: BadgeSlotState = {
+    count: badgeSlotCount,
+    canPurchase: badgeSlotCount < 2 && !isPlus && badgeSlotsPurchased === 0,
+    isPlus,
+  };
+
+  const editAdmin = (base: DefaultItem) =>
+    isAdmin && !base.isClear ? () => setEditingDefault(base) : undefined;
 
   return (
     <>
@@ -500,11 +1010,7 @@ export function DecorTab() {
         <TabsContent value="titles" className="mt-3">
           <SectionLabel>Titles</SectionLabel>
           <HRow>
-            <DecorTile
-              item={NONE_RECT}
-              active={isActive("title", null)}
-              onClick={() => ask("title", "No title", null)}
-            />
+            <DecorTile item={dTitle} active={isActive("title", null)} onClick={() => ask("title", "No title", null)} />
             <OwnedList items={ownedByKind.title} shape="rect" kind="title" isActive={isActive} ask={ask} onDelete={deleteFn} />
           </HRow>
           {ownedByKind.title.length === 0 && (
@@ -514,14 +1020,41 @@ export function DecorTab() {
         </TabsContent>
 
         <TabsContent value="badges" className="mt-3">
+          <ActiveBadges
+            slotState={slotState}
+            slot1Id={equipped?.badge_id ?? null}
+            slot2Id={equipped?.badge_id_2 ?? null}
+            inventory={ownedByKind.badge}
+            selectedId={selectedBadgeId}
+            onTapSlot={(s) => void handleSlotTap(s)}
+            onClearSlot={(s) => void handleClearSlot(s)}
+            onPurchaseSlot={() => void handlePurchaseSlot()}
+          />
           <SectionLabel>Badges</SectionLabel>
           <HRow>
             <DecorTile
-              item={NONE_SQUARE}
-              active={isActive("badge", null)}
+              item={dBadge}
+              active={isActive("badge", null) && !(equipped?.badge_id) && !(equipped?.badge_id_2)}
               onClick={() => ask("badge", "No badge", null)}
             />
-            <OwnedList items={ownedByKind.badge} shape="square" kind="badge" isActive={isActive} ask={ask} onDelete={deleteFn} />
+            {ownedByKind.badge.map((r) => {
+              const label = r.name ?? r.item_id;
+              const selected = selectedBadgeId === r.item_id;
+              return (
+                <DecorTile
+                  key={r.item_id}
+                  item={{
+                    id: r.item_id,
+                    label,
+                    shape: "square",
+                    preview: <OwnedPreview imageUrl={r.image_url} />,
+                  }}
+                  active={isActive("badge", r.item_id) || selected}
+                  onClick={() => ask("badge", label, r.item_id)}
+                  onDelete={() => deleteFn("badge", label, r.item_id)}
+                />
+              );
+            })}
           </HRow>
           {ownedByKind.badge.length === 0 && (
             <EmptyHint label="Purchased badges will appear here." />
@@ -533,9 +1066,10 @@ export function DecorTab() {
           <SectionLabel>Victory Effects</SectionLabel>
           <HRow>
             <DecorTile
-              item={DEFAULT_VICTORY}
-              active={isActive("victory", null) || isActive("victory", DEFAULT_VICTORY.id)}
-              onClick={() => ask("victory", DEFAULT_VICTORY.label, null)}
+              item={dVictory}
+              active={isActive("victory", null) || isActive("victory", dVictory.id)}
+              onClick={() => ask("victory", dVictory.label, null)}
+              onEditDefault={editAdmin(DEFAULT_VICTORY)}
             />
             <OwnedList
               items={ownedByKind.victory}
@@ -543,7 +1077,7 @@ export function DecorTab() {
               kind="victory"
               isActive={isActive}
               ask={ask}
-              excludeId={DEFAULT_VICTORY.id}
+              excludeId={dVictory.id}
               onDelete={deleteFn}
             />
           </HRow>
@@ -554,9 +1088,10 @@ export function DecorTab() {
           <SectionLabel>Backgrounds (host-only in matches)</SectionLabel>
           <HRow>
             <DecorTile
-              item={DEFAULT_BACKGROUND}
-              active={isActive("background", null) || isActive("background", DEFAULT_BACKGROUND.id)}
-              onClick={() => ask("background", DEFAULT_BACKGROUND.label, null)}
+              item={dBg}
+              active={isActive("background", null) || isActive("background", dBg.id)}
+              onClick={() => ask("background", dBg.label, null)}
+              onEditDefault={editAdmin(DEFAULT_BACKGROUND)}
             />
             <OwnedList
               items={ownedByKind.background}
@@ -564,7 +1099,7 @@ export function DecorTab() {
               kind="background"
               isActive={isActive}
               ask={ask}
-              excludeId={DEFAULT_BACKGROUND.id}
+              excludeId={dBg.id}
               onDelete={deleteFn}
             />
           </HRow>
@@ -576,9 +1111,10 @@ export function DecorTab() {
             <SectionLabel>Table Tops (host-only in matches)</SectionLabel>
             <HRow>
               <DecorTile
-                item={DEFAULT_TABLETOP}
-                active={isActive("tabletop", null) || isActive("tabletop", DEFAULT_TABLETOP.id)}
-                onClick={() => ask("tabletop", DEFAULT_TABLETOP.label, null)}
+                item={dTabletop}
+                active={isActive("tabletop", null) || isActive("tabletop", dTabletop.id)}
+                onClick={() => ask("tabletop", dTabletop.label, null)}
+                onEditDefault={editAdmin(DEFAULT_TABLETOP)}
               />
               <OwnedList
                 items={ownedByKind.tabletop}
@@ -586,7 +1122,7 @@ export function DecorTab() {
                 kind="tabletop"
                 isActive={isActive}
                 ask={ask}
-                excludeId={DEFAULT_TABLETOP.id}
+                excludeId={dTabletop.id}
                 onDelete={deleteFn}
               />
             </HRow>
@@ -596,9 +1132,10 @@ export function DecorTab() {
             <SectionLabel>Table Art (host-only in matches)</SectionLabel>
             <HRow>
               <DecorTile
-                item={DEFAULT_TABLE_ART}
-                active={isActive("table_art", null) || isActive("table_art", DEFAULT_TABLE_ART.id)}
-                onClick={() => ask("table_art", DEFAULT_TABLE_ART.label, null)}
+                item={dTableArt}
+                active={isActive("table_art", null) || isActive("table_art", dTableArt.id)}
+                onClick={() => ask("table_art", dTableArt.label, null)}
+                onEditDefault={editAdmin(DEFAULT_TABLE_ART)}
               />
               <OwnedList
                 items={ownedByKind.table_art}
@@ -606,7 +1143,7 @@ export function DecorTab() {
                 kind="table_art"
                 isActive={isActive}
                 ask={ask}
-                excludeId={DEFAULT_TABLE_ART.id}
+                excludeId={dTableArt.id}
                 onDelete={deleteFn}
               />
             </HRow>
@@ -627,6 +1164,22 @@ export function DecorTab() {
           label={pendingDelete.label}
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => void confirmDelete()}
+        />
+      )}
+      {editingDefault && (
+        <EditDefaultModal
+          kind={editingDefault.kind}
+          defaultKey={editingDefault.defaultKey}
+          initialLabel={
+            defaultOverrides.get(`${editingDefault.kind}::${editingDefault.defaultKey}`)
+              ?.name_override ?? editingDefault.label
+          }
+          initialImage={
+            defaultOverrides.get(`${editingDefault.kind}::${editingDefault.defaultKey}`)
+              ?.image_url_override ?? null
+          }
+          onSaved={(n) => handleDefaultSaved(editingDefault, n)}
+          onClose={() => setEditingDefault(null)}
         />
       )}
     </>

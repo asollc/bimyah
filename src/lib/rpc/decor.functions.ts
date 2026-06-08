@@ -38,17 +38,29 @@ export const getMyDecor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const [{ data: inv }, { data: eq }] = await Promise.all([
-      supabase
-        .from("user_inventory")
-        .select("kind, item_id, acquired_at")
-        .eq("user_id", userId),
-      supabase
-        .from("user_equipped")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle(),
-    ]);
+    const [{ data: inv }, { data: eq }, { data: wallet }, { data: sub }] =
+      await Promise.all([
+        supabase
+          .from("user_inventory")
+          .select("kind, item_id, acquired_at")
+          .eq("user_id", userId),
+        supabase
+          .from("user_equipped")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("wallets")
+          .select("badge_slots_purchased")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .limit(1),
+      ]);
     const inventoryRows = (inv ?? []) as Array<{
       kind: DecorKind;
       item_id: string;
@@ -76,24 +88,35 @@ export const getMyDecor = createServerFn({ method: "GET" })
       name: productMap.get(r.item_id)?.name ?? null,
       image_url: productMap.get(r.item_id)?.image_url ?? null,
     }));
+    const isPlus = !!(sub && sub.length);
+    const purchased = (wallet?.badge_slots_purchased as number | undefined) ?? 0;
+    const badgeSlotCount = Math.min(2, 1 + purchased + (isPlus ? 1 : 0));
     return {
       inventory,
       equipped: (eq ?? null) as null | Record<string, string | null>,
+      badgeSlotCount,
+      badgeSlotsPurchased: purchased,
+      isPlus,
     };
   });
+
 
 const equipSchema = z.object({
   kind: z.enum(KINDS),
   itemId: z.string().nullable(),
+  /** Only meaningful when kind === 'badge'. Slot 2 writes to badge_id_2. */
+  slot: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
-/** Equip (or clear with null) the given decor kind for the signed-in user. */
+/** Equip (or clear with null) the given decor kind for the signed-in user.
+ *  For badges, an optional slot (1|2) targets the primary or secondary badge column. */
 export const setEquipped = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => equipSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const col = equippedKindToColumn[data.kind];
+    let col = equippedKindToColumn[data.kind];
+    if (data.kind === "badge" && data.slot === 2) col = "badge_id_2";
     const payload: Record<string, string | null> = { user_id: userId };
     payload[col] = data.itemId;
     const { error } = await supabase
@@ -103,6 +126,19 @@ export const setEquipped = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Spend 150 Bimbucks to unlock the second badge slot. Returns updated wallet. */
+export const purchaseBadgeSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("purchase_badge_slot", {
+      _user_id: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    return data as { bimbucks: number; badge_slots_purchased: number };
+  });
+
 
 const purchaseSchema = z.object({
   itemId: z.string(),
@@ -227,16 +263,21 @@ export const deleteMyInventoryItem = createServerFn({ method: "POST" })
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
-    const wasActive =
-      !!eq && (eq as Record<string, string | null>)[col] === data.itemId;
+    const eqRow = (eq ?? {}) as Record<string, string | null>;
+    // Badges have a second slot — clear whichever slot held the deleted item.
+    const colsToCheck =
+      data.kind === "badge" ? [col, "badge_id_2"] : [col];
+    const activeCols = colsToCheck.filter((c) => eqRow[c] === data.itemId);
+    const wasActive = activeCols.length > 0;
     if (wasActive) {
       const patch: Record<string, string | null> = { user_id: userId };
-      patch[col] = null;
+      for (const c of activeCols) patch[c] = null;
       await supabaseAdmin
         .from("user_equipped")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .upsert(patch as any, { onConflict: "user_id" });
     }
+
 
     await supabaseAdmin
       .from("user_inventory")

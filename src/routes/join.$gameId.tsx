@@ -231,6 +231,7 @@ function JoinGame() {
         cardBackUrl: null,
         titleUrl: null,
         badgeUrl: null,
+        badgeUrl2: null,
         victoryUrl: null,
         backgroundUrl: null,
         tabletopUrl: null,

@@ -45,6 +45,7 @@ export type Database = {
           name: string | null
           price: number | null
           sort_order: number
+          tabletop_style: string | null
           updated_at: string
         }
         Insert: {
@@ -59,6 +60,7 @@ export type Database = {
           name?: string | null
           price?: number | null
           sort_order?: number
+          tabletop_style?: string | null
           updated_at?: string
         }
         Update: {
@@ -73,6 +75,7 @@ export type Database = {
           name?: string | null
           price?: number | null
           sort_order?: number
+          tabletop_style?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -285,6 +288,33 @@ export type Database = {
           image_url?: string
           is_active?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      decor_defaults: {
+        Row: {
+          default_key: string
+          image_url_override: string | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_override: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_key: string
+          image_url_override?: string | null
+          kind: Database["public"]["Enums"]["inventory_kind"]
+          name_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_key?: string
+          image_url_override?: string | null
+          kind?: Database["public"]["Enums"]["inventory_kind"]
+          name_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -729,6 +759,7 @@ export type Database = {
         Row: {
           background_id: string | null
           badge_id: string | null
+          badge_id_2: string | null
           card_back_id: string | null
           table_art_id: string | null
           tabletop_id: string | null
@@ -740,6 +771,7 @@ export type Database = {
         Insert: {
           background_id?: string | null
           badge_id?: string | null
+          badge_id_2?: string | null
           card_back_id?: string | null
           table_art_id?: string | null
           tabletop_id?: string | null
@@ -751,6 +783,7 @@ export type Database = {
         Update: {
           background_id?: string | null
           badge_id?: string | null
+          badge_id_2?: string | null
           card_back_id?: string | null
           table_art_id?: string | null
           tabletop_id?: string | null
@@ -847,6 +880,7 @@ export type Database = {
       }
       wallets: {
         Row: {
+          badge_slots_purchased: number
           bimbits: number
           bimbucks: number
           created_at: string
@@ -855,6 +889,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          badge_slots_purchased?: number
           bimbits?: number
           bimbucks?: number
           created_at?: string
@@ -863,6 +898,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          badge_slots_purchased?: number
           bimbits?: number
           bimbucks?: number
           created_at?: string
@@ -911,6 +947,7 @@ export type Database = {
         }
         Returns: number
       }
+      purchase_badge_slot: { Args: { _user_id: string }; Returns: Json }
       purchase_bmart_item: {
         Args: {
           _currency: string

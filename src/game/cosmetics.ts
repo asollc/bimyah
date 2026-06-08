@@ -45,12 +45,14 @@ export function persistCardImageMap(
 export type DecorKindKey =
   | "title"
   | "badge"
+  | "badge2"
   | "victory"
   | "background"
   | "tabletop"
   | "table_art";
 
 export type EquippedDecorUrls = Partial<Record<DecorKindKey, string | null>>;
+
 
 /** Cache the URL for each equipped decor kind so the game can resolve the
  *  active item locally even when the server lookup hasn't refreshed. */
@@ -88,6 +90,7 @@ export function applyDecorOverrides<
   T extends {
     titleUrl: string | null;
     badgeUrl: string | null;
+    badgeUrl2?: string | null;
     victoryUrl: string | null;
     backgroundUrl: string | null;
     tabletopUrl: string | null;
@@ -100,6 +103,7 @@ export function applyDecorOverrides<
     ...cosmetics,
     titleUrl: overrides.title ?? cosmetics.titleUrl,
     badgeUrl: overrides.badge ?? cosmetics.badgeUrl,
+    badgeUrl2: overrides.badge2 ?? cosmetics.badgeUrl2 ?? null,
     victoryUrl: overrides.victory ?? cosmetics.victoryUrl,
     backgroundUrl: overrides.background ?? cosmetics.backgroundUrl,
     tabletopUrl: overrides.tabletop ?? cosmetics.tabletopUrl,
@@ -107,6 +111,7 @@ export function applyDecorOverrides<
     specialBadgeUrl: cosmetics.specialBadgeUrl ?? null,
   };
 }
+
 
 
 /**

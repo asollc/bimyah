@@ -733,13 +733,19 @@ export function GameTable({
       style={
         hostBackgroundUrl
           ? {
+              // Solid base so the body's default red gradient never bleeds
+              // through if the equipped background image has transparency or
+              // doesn't fully cover the viewport.
+              backgroundColor: "#000",
               backgroundImage: `url(${hostBackgroundUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
             }
           : undefined
       }
     >
+
       {/* Top-left: Settings cog (with Add Bot below in lobby; Score to its right in tournament) */}
       <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
         <div className="flex items-center gap-2">
@@ -938,13 +944,18 @@ export function GameTable({
             }}
           >
             {hostTableArtUrl && (
+              // Sized to match the default Bimyah table art (~78% of the
+              // tabletop, centered, object-contain) so custom art "fits the
+              // table" just like the default does — keeping the wooden /
+              // metallic look of the tabletop around it.
               <img
                 src={hostTableArtUrl}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute inset-0 h-full w-full rounded-full object-contain opacity-90"
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
               />
             )}
+
              {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
              <div className="relative flex flex-col items-center justify-center gap-1.5">
                {state.status !== "lobby" && (() => {
@@ -1855,6 +1866,14 @@ function PlayerSeat({
             className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
+        {player.badgeUrl2 && (
+          <img
+            src={player.badgeUrl2}
+            alt=""
+            aria-hidden
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+          />
+        )}
         {player.specialBadgeUrl && (
           <img
             src={player.specialBadgeUrl}
@@ -1863,6 +1882,7 @@ function PlayerSeat({
             className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
+
       </div>
 
       {/* Inactivity phase warning — shown next to the seat label / sort row.
@@ -2149,6 +2169,14 @@ function ViewAllCardsModal({
                       className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
                   )}
+                  {player.badgeUrl2 && (
+                    <img
+                      src={player.badgeUrl2}
+                      alt=""
+                      aria-hidden
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+                    />
+                  )}
                   {player.specialBadgeUrl && (
                     <img
                       src={player.specialBadgeUrl}
@@ -2157,6 +2185,7 @@ function ViewAllCardsModal({
                       className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
                   )}
+
                 </div>
 
                 {/* Hand row — reserved space so piles don't shift */}
