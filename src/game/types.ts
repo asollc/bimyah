@@ -152,4 +152,6 @@ export type GameState = {
   /** Host toggle: when true, idle/inactivity timers do not promote players
    *  to disconnected or free-cards. Defaults to false (timers enabled). */
   inactivityDisabled?: boolean;
+  /** Host has ended the match. All clients should cleanup and exit. */
+  roomClosed?: boolean;
 };
