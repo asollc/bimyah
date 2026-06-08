@@ -148,8 +148,8 @@ function AuthPage() {
             onClick={() => setMode("signup")}
             className={`px-3 py-2 font-display text-base font-black uppercase tracking-widest transition-colors ${
               mode === "signup"
-                ? "bg-[var(--mint)]/15 text-[var(--mint)]"
-                : "bg-transparent text-[var(--mint)]/40 hover:text-[var(--mint)]/70"
+                ? "bg-[#00ff66]/15 text-[#00ff66]"
+                : "bg-transparent text-[#00ff66] hover:text-[#00ff66]/80"
             }`}
           >
             Create Account
