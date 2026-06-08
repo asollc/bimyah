@@ -18,6 +18,7 @@ export function PlayingCard({
   const isRed = card.suit === "♥" || card.suit === "♦";
   const height = Math.round(width * 1.4);
   const color = isRed ? "#dc2626" : "#0a0a0a";
+  const cornerSize = width * 0.28;
   const centerSize = width * 0.5;
   return (
     <button
@@ -32,12 +33,26 @@ export function PlayingCard({
       )}
       aria-label={`${card.rank}${card.suit}`}
     >
+      {/* Top-left rank */}
+      <div
+        className="absolute font-display font-bold leading-none"
+        style={{ color, fontSize: cornerSize, top: width * 0.08, left: width * 0.1 }}
+      >
+        {card.rank}
+      </div>
       {/* Center suit */}
       <div
         className="absolute inset-0 grid place-items-center font-display font-black leading-none"
         style={{ color, fontSize: centerSize }}
       >
         {card.suit}
+      </div>
+      {/* Bottom-right rank (rotated) */}
+      <div
+        className="absolute font-display font-bold leading-none rotate-180"
+        style={{ color, fontSize: cornerSize, bottom: width * 0.08, right: width * 0.1 }}
+      >
+        {card.rank}
       </div>
     </button>
   );
