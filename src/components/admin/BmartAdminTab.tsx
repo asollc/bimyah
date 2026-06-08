@@ -578,7 +578,27 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
 
       {previewKey && (() => {
         const EffectComp = VICTORY_EFFECTS[previewKey];
-        return <EffectComp />;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            onClick={() => setPreviewKey(null)}
+          >
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Victory preview"
+                  className="max-h-[70vh] max-w-[80vw] rounded-lg shadow-2xl"
+                />
+              ) : (
+                <div className="flex h-[50vh] w-[60vw] items-center justify-center rounded-lg border border-white/10 bg-black/40 text-sm text-white/70">
+                  {VICTORY_EFFECT_LABELS[previewKey]}
+                </div>
+              )}
+            </div>
+            <EffectComp />
+          </div>
+        );
       })()}
 
       <div className="flex items-center gap-2">
