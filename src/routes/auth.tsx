@@ -233,7 +233,7 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-2 block text-center text-xs text-white/50 hover:text-white"
+          className="mt-2 block text-center text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)] hover:text-white"
         >
           Back to home
         </Link>
