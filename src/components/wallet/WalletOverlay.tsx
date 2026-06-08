@@ -168,7 +168,7 @@ export function WalletOverlay({
 
             <div className="mt-4">
               <div className="mb-2 text-[10px] uppercase tracking-widest text-white/50">
-                Purchase History
+                ACTIVITY
               </div>
               {ledger.length === 0 ? (
                 <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-4 text-center text-[11px] text-white/40">
