@@ -45,12 +45,14 @@ export function persistCardImageMap(
 export type DecorKindKey =
   | "title"
   | "badge"
+  | "badge2"
   | "victory"
   | "background"
   | "tabletop"
   | "table_art";
 
 export type EquippedDecorUrls = Partial<Record<DecorKindKey, string | null>>;
+
 
 /** Cache the URL for each equipped decor kind so the game can resolve the
  *  active item locally even when the server lookup hasn't refreshed. */
