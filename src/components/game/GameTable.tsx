@@ -1866,6 +1866,14 @@ function PlayerSeat({
             className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
+        {player.badgeUrl2 && (
+          <img
+            src={player.badgeUrl2}
+            alt=""
+            aria-hidden
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+          />
+        )}
         {player.specialBadgeUrl && (
           <img
             src={player.specialBadgeUrl}
@@ -1874,6 +1882,7 @@ function PlayerSeat({
             className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
+
       </div>
 
       {/* Inactivity phase warning — shown next to the seat label / sort row.
