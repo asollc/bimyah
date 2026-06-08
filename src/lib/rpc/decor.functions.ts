@@ -224,7 +224,7 @@ export const deleteMyInventoryItem = createServerFn({ method: "POST" })
 
     const { data: eq } = await supabaseAdmin
       .from("user_equipped")
-      .select(col)
+      .select("*")
       .eq("user_id", userId)
       .maybeSingle();
     const wasActive =
