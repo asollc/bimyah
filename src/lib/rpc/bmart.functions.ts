@@ -27,6 +27,7 @@ const upsertSchema = z.object({
   image_url: z.string().url().max(500).nullable().optional(),
   is_custom: z.boolean().optional(),
   sort_order: z.number().int().min(0).max(10000).optional(),
+  effect_type: z.string().min(1).max(50).regex(/^[a-z0-9_]+$/).nullable().optional(),
 });
 
 export const listBmartProducts = createServerFn({ method: "GET" }).handler(async () => {
