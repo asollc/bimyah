@@ -166,7 +166,7 @@ function AuthPage() {
                 placeholder="Display name (permanent)"
                 className="rounded-lg border border-white/20 bg-black/40 px-4 py-2 font-display text-white placeholder:text-white/30"
               />
-              <div className="-mt-1 text-[10px] text-white/40">
+              <div className="-mt-1 text-[10px] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)]">
                 Your display name is permanent and cannot be changed later.
               </div>
             </>
@@ -225,7 +225,7 @@ function AuthPage() {
                 setBusy(false);
               }
             }}
-            className="mt-3 block w-full text-center text-xs text-white/60 hover:text-white"
+            className="mt-3 block w-full text-center text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)] hover:text-white"
           >
             Forgot password?
           </button>
@@ -233,7 +233,7 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-2 block text-center text-xs text-white/50 hover:text-white"
+          className="mt-2 block text-center text-xs text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.9)] hover:text-white"
         >
           Back to home
         </Link>
