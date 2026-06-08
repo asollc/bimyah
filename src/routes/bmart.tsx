@@ -147,28 +147,25 @@ function VictoryImageBigPreview({ src, alt }: { src: string; alt: string }) {
 
 function VictoryEffectBigPreview({
   effectKey,
-  imageUrl,
-  name,
 }: {
   effectKey: VictoryEffectKey;
-  imageUrl: string | null;
-  name: string;
+  imageUrl?: string | null;
+  name?: string;
 }) {
   const EffectComp = VICTORY_EFFECTS[effectKey];
+  // Always render the generic victory popup as the backdrop so the effect
+  // demos over an in-game-like scene, regardless of the admin-uploaded
+  // thumbnail (which is shown only in the product listing).
   return (
     <>
       <div className="relative grid h-72 place-items-center overflow-hidden rounded-xl border border-white/15 bg-gradient-to-b from-[#1a0608] to-black">
-        {imageUrl ? (
-          <img src={imageUrl} alt={name} className="max-h-full max-w-full object-contain" />
-        ) : (
-          <div className="win-popup relative !w-[80%]">
-            <div className="win-popup-inner">
-              <div className="win-popup-title">BIMYAH!</div>
-              <div className="win-popup-sub">Player1 Wins</div>
-              <div className="win-popup-tag text-[var(--gold)]">Champion of the Round</div>
-            </div>
+        <div className="win-popup relative !w-[80%]">
+          <div className="win-popup-inner">
+            <div className="win-popup-title">BIMYAH!</div>
+            <div className="win-popup-sub">Player1 Wins</div>
+            <div className="win-popup-tag text-[var(--gold)]">Champion of the Round</div>
           </div>
-        )}
+        </div>
       </div>
       {/* Effect overlays the whole viewport so it visually plays "over" the preview popup */}
       <EffectComp key={effectKey} />
