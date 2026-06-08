@@ -104,6 +104,7 @@ function HomePage() {
         cardBackUrl: null,
         titleUrl: null,
         badgeUrl: null,
+        badgeUrl2: null,
         specialBadgeUrl: null,
         victoryUrl: null,
         backgroundUrl: null,
