@@ -112,18 +112,22 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
     ].filter((v): v is string => !!v);
 
     const urlById = new Map<string, string>();
+    const effectById = new Map<string, string>();
     if (ids.length) {
       const { data: prods } = await supabaseAdmin
         .from("bmart_products")
-        .select("id, image_url")
+        .select("id, image_url, effect_type")
         .in("id", ids);
       for (const p of prods ?? []) {
         if (p.image_url) urlById.set(p.id as string, p.image_url as string);
+        if (p.effect_type) effectById.set(p.id as string, p.effect_type as string);
       }
     }
 
     const lookup = (id: string | null | undefined) =>
       id ? urlById.get(id) ?? null : null;
+    const lookupEffect = (id: string | null | undefined) =>
+      id ? effectById.get(id) ?? null : null;
 
     // Special founding-member badge for a specific user.
     const SPECIAL_BADGE_USER_ID = "fa49ad9d-14a2-4743-bde3-95261e814c4f";
@@ -140,6 +144,7 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
       badgeUrl: lookup(equipped?.badge_id),
       badgeUrl2: lookup(equipped?.badge_id_2),
       victoryUrl: lookup(equipped?.victory_id),
+      victoryEffectType: lookupEffect(equipped?.victory_id),
       backgroundUrl: lookup(equipped?.background_id),
       tabletopUrl: lookup(equipped?.tabletop_id),
       tableArtUrl: lookup(equipped?.table_art_id),
