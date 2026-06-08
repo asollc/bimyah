@@ -1138,6 +1138,20 @@ export function DecorTab() {
                 onClick={() => ask("table_art", dTableArt.label, null)}
                 onEditDefault={editAdmin(DEFAULT_TABLE_ART)}
               />
+              <DecorTile
+                item={{
+                  id: "__none__",
+                  label: "None",
+                  shape: "square",
+                  preview: (
+                    <div className="grid h-full w-full place-items-center rounded-md bg-black/60 text-[10px] uppercase tracking-widest text-white/60">
+                      None
+                    </div>
+                  ),
+                }}
+                active={isActive("table_art", "__none__")}
+                onClick={() => ask("table_art", "None (hide art)", "__none__")}
+              />
               <OwnedList
                 items={ownedByKind.table_art}
                 shape="square"
