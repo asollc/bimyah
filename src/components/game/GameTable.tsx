@@ -287,9 +287,11 @@ export function GameTable({
     });
   };
 
-  // ===== Center zoom (pinch to enlarge/shrink table + center cards + Bimyah) =====
+  // ===== Center zoom + drag offset (pinch to enlarge/shrink, drag to reposition table + center cards + Bimyah) =====
   const zoomKey = `bimyah_center_zoom_${state.mode}_${seatOrder.length}`;
+  const offsetKey = `bimyah_center_offset_${state.mode}_${seatOrder.length}`;
   const [centerZoom, setCenterZoom] = useState<number>(1);
+  const [centerOffset, setCenterOffset] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   useEffect(() => {
     try {
       const raw = localStorage.getItem(zoomKey);
@@ -298,9 +300,22 @@ export function GameTable({
     } catch {
       setCenterZoom(1);
     }
-  }, [zoomKey]);
+    try {
+      const raw = localStorage.getItem(offsetKey);
+      const parsed = raw ? (JSON.parse(raw) as { dx: number; dy: number }) : { dx: 0, dy: 0 };
+      setCenterOffset({
+        dx: Number.isFinite(parsed.dx) ? parsed.dx : 0,
+        dy: Number.isFinite(parsed.dy) ? parsed.dy : 0,
+      });
+    } catch {
+      setCenterOffset({ dx: 0, dy: 0 });
+    }
+  }, [zoomKey, offsetKey]);
   const persistZoom = (z: number) => {
     try { localStorage.setItem(zoomKey, String(z)); } catch {}
+  };
+  const persistOffset = (o: { dx: number; dy: number }) => {
+    try { localStorage.setItem(offsetKey, JSON.stringify(o)); } catch {}
   };
 
   // ===== Player zoom (hand + piles + SET/SORT, local player only) =====
@@ -335,44 +350,67 @@ export function GameTable({
 
   // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
   const movables = useMovableLayouts(state.mode, seatOrder.length);
-  // Pinch handling: track 2 active pointers on the center container.
+  // Center pinch + drag: 1 pointer = drag, 2 pointers = pinch-zoom.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
     b?: { id: number; x: number; y: number };
     startDist: number;
     startZoom: number;
-  }>({ startDist: 0, startZoom: 1 });
+    startDx: number;
+    startDy: number;
+    dragging: boolean;
+    moved: boolean;
+  }>({ startDist: 0, startZoom: 1, startDx: 0, startDy: 0, dragging: false, moved: false });
   const centerPointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType !== "touch") return;
     const p = pinchRef.current;
     if (!p.a) {
       p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      p.startDx = centerOffset.dx;
+      p.startDy = centerOffset.dy;
+      p.dragging = true;
+      p.moved = false;
     } else if (!p.b && e.pointerId !== p.a.id) {
       p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
       const dx = p.b.x - p.a.x;
       const dy = p.b.y - p.a.y;
       p.startDist = Math.hypot(dx, dy) || 1;
       p.startZoom = centerZoom;
+      p.dragging = false; // pinch takes over
     }
   };
   const centerPointerMove = (e: React.PointerEvent) => {
     const p = pinchRef.current;
-    if (!p.a || !p.b) return;
-    if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
-    else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
-    else return;
-    const dx = p.b.x - p.a.x;
-    const dy = p.b.y - p.a.y;
-    const dist = Math.hypot(dx, dy) || 1;
-    const next = Math.min(2, Math.max(0.6, p.startZoom * (dist / p.startDist)));
-    setCenterZoom(next);
+    if (p.b && p.a) {
+      if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+      else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+      else return;
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const next = Math.min(2, Math.max(0.6, p.startZoom * (dist / p.startDist)));
+      setCenterZoom(next);
+      return;
+    }
+    if (p.dragging && p.a && e.pointerId === p.a.id) {
+      const ddx = e.clientX - p.a.x;
+      const ddy = e.clientY - p.a.y;
+      if (!p.moved && Math.hypot(ddx, ddy) < 4) return;
+      p.moved = true;
+      setCenterOffset({ dx: p.startDx + ddx, dy: p.startDy + ddy });
+    }
   };
   const centerPointerUp = (e: React.PointerEvent) => {
     const p = pinchRef.current;
     if (p.a?.id === e.pointerId) p.a = undefined;
     if (p.b?.id === e.pointerId) p.b = undefined;
-    if (!p.a || !p.b) {
+    if (!p.a && !p.b) {
       persistZoom(centerZoom);
+      persistOffset(centerOffset);
+      p.dragging = false;
+      p.moved = false;
+    } else if (!p.b && p.a) {
+      // Pinch ended but one finger still down — don't resume drag with stale origin.
+      p.dragging = false;
     }
   };
 
@@ -928,9 +966,9 @@ export function GameTable({
         onPointerCancel={centerPointerUp}
         style={{ touchAction: "none" }}
       >
-        <div style={{ transform: `scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : "transform 140ms ease-out" }}>
+        <div style={{ transform: `translate(${centerOffset.dx}px, ${centerOffset.dy}px) scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : pinchRef.current.dragging ? "none" : "transform 140ms ease-out" }}>
           <div
-            className={`${hostTabletopUrl ? "" : "wood-table"} grid place-items-center rounded-full relative overflow-hidden`}
+            className={`${hostTabletopUrl ? "" : "wood-table"} grid place-items-center rounded-full relative`}
             style={{
               width: "min(38vw, 32vh, 280px)",
               height: "min(38vw, 32vh, 280px)",
@@ -1376,7 +1414,20 @@ export function GameTable({
             </div>
 
             <div className="flex items-center justify-center gap-3">
-              <HomeButton />
+              <HomeButton
+                isHost={isHost}
+                onEndMatch={
+                  isHost
+                    ? () => {
+                        try {
+                          setState((s) => ({ ...s, roomClosed: true }));
+                        } catch {
+                          /* ignore */
+                        }
+                      }
+                    : undefined
+                }
+              />
               <button
                 onClick={() => {
                   const next = !muted;

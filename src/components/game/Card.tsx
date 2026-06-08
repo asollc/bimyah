@@ -18,7 +18,7 @@ export function PlayingCard({
   const isRed = card.suit === "♥" || card.suit === "♦";
   const height = Math.round(width * 1.4);
   const color = isRed ? "#dc2626" : "#0a0a0a";
-  const cornerSize = width * 0.26;
+  const cornerSize = width * 0.28;
   const centerSize = width * 0.5;
   return (
     <button
@@ -33,13 +33,12 @@ export function PlayingCard({
       )}
       aria-label={`${card.rank}${card.suit}`}
     >
-      {/* Top-left corner */}
+      {/* Top-left rank */}
       <div
-        className="absolute font-display font-bold leading-none flex flex-col items-center"
-        style={{ color, fontSize: cornerSize, top: width * 0.08, left: width * 0.08 }}
+        className="absolute font-display font-bold leading-none"
+        style={{ color, fontSize: cornerSize, top: width * 0.08, left: width * 0.1 }}
       >
-        <span>{card.rank}</span>
-        <span style={{ fontSize: cornerSize * 0.9, marginTop: width * 0.02 }}>{card.suit}</span>
+        {card.rank}
       </div>
       {/* Center suit */}
       <div
@@ -48,13 +47,12 @@ export function PlayingCard({
       >
         {card.suit}
       </div>
-      {/* Bottom-right corner (rotated) */}
+      {/* Bottom-right rank (rotated) */}
       <div
-        className="absolute font-display font-bold leading-none flex flex-col items-center rotate-180"
-        style={{ color, fontSize: cornerSize, bottom: width * 0.08, right: width * 0.08 }}
+        className="absolute font-display font-bold leading-none rotate-180"
+        style={{ color, fontSize: cornerSize, bottom: width * 0.08, right: width * 0.1 }}
       >
-        <span>{card.rank}</span>
-        <span style={{ fontSize: cornerSize * 0.9, marginTop: width * 0.02 }}>{card.suit}</span>
+        {card.rank}
       </div>
     </button>
   );
