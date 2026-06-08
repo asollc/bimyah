@@ -54,7 +54,7 @@ export const sendBimbucks = createServerFn({ method: "POST" })
       _sender_id: context.userId,
       _recipient_id: recipient.id,
       _amount: data.amount,
-      _note: data.note ?? null,
+      _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
 
