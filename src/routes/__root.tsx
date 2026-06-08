@@ -1,7 +1,7 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
-import adBanner from "../assets/ad-banner.jpeg";
+
 import { AuthProvider } from "@/auth/AuthProvider";
 import { WhitelistAckGuard } from "@/auth/WhitelistAckGuard";
 import { Toaster } from "@/components/ui/sonner";
