@@ -90,6 +90,7 @@ export function applyDecorOverrides<
   T extends {
     titleUrl: string | null;
     badgeUrl: string | null;
+    badgeUrl2?: string | null;
     victoryUrl: string | null;
     backgroundUrl: string | null;
     tabletopUrl: string | null;
@@ -102,6 +103,7 @@ export function applyDecorOverrides<
     ...cosmetics,
     titleUrl: overrides.title ?? cosmetics.titleUrl,
     badgeUrl: overrides.badge ?? cosmetics.badgeUrl,
+    badgeUrl2: overrides.badge2 ?? cosmetics.badgeUrl2 ?? null,
     victoryUrl: overrides.victory ?? cosmetics.victoryUrl,
     backgroundUrl: overrides.background ?? cosmetics.backgroundUrl,
     tabletopUrl: overrides.tabletop ?? cosmetics.tabletopUrl,
@@ -109,6 +111,7 @@ export function applyDecorOverrides<
     specialBadgeUrl: cosmetics.specialBadgeUrl ?? null,
   };
 }
+
 
 
 /**
