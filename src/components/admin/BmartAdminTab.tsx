@@ -150,6 +150,15 @@ function ProductsTab() {
   const [filter, setFilter] = useState<Category | "all">("all");
   const [adding, setAdding] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+  const saversRef = useRef<Map<string, () => Promise<void>>>(new Map());
+
+  const registerSaver = useCallback((id: string, fn: () => Promise<void>) => {
+    saversRef.current.set(id, fn);
+  }, []);
+  const unregisterSaver = useCallback((id: string) => {
+    saversRef.current.delete(id);
+  }, []);
 
   async function refresh() {
     setLoading(true);
@@ -179,9 +188,29 @@ function ProductsTab() {
     [allRows, filter, showDeleted],
   );
 
+  async function handleSaveAll() {
+    setSavingAll(true);
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const entries = Array.from(saversRef.current.entries()).filter(([id]) => visibleIds.has(id));
+    let ok = 0;
+    let fail = 0;
+    for (const [, fn] of entries) {
+      try {
+        await fn();
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSavingAll(false);
+    if (fail) toast.error(`Saved ${ok}, ${fail} failed`);
+    else toast.success(`Saved ${ok} item${ok === 1 ? "" : "s"}`);
+    await refresh();
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="sticky top-[105px] z-20 -mx-1 flex flex-wrap items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <SelectTrigger className="w-44">
             <SelectValue />
@@ -195,7 +224,7 @@ function ProductsTab() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
+        <Button variant="outline" onClick={() => void refresh()} disabled={loading || savingAll}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
         {deletedCount > 0 && (
@@ -203,6 +232,14 @@ function ProductsTab() {
             {showDeleted ? "Hide deleted" : `Show deleted (${deletedCount})`}
           </Button>
         )}
+        <Button
+          variant="default"
+          disabled={savingAll || loading || rows.length === 0}
+          onClick={() => void handleSaveAll()}
+        >
+          {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save all changes
+        </Button>
         <div className="flex-1" />
         <Button onClick={() => setAdding(true)}>
           <Plus className="mr-1 h-4 w-4" /> New custom product
@@ -225,7 +262,13 @@ function ProductsTab() {
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 text-xs [&_input]:h-7 [&_input]:text-xs [&_button]:text-xs [&_[role=combobox]]:h-7 [&_[role=combobox]]:text-xs">
           {rows.map((r) => (
-            <ProductEditor key={r.id} row={r} onChanged={refresh} />
+            <ProductEditor
+              key={r.id}
+              row={r}
+              onChanged={refresh}
+              registerSaver={registerSaver}
+              unregisterSaver={unregisterSaver}
+            />
           ))}
           {!rows.length && (
             <div className="col-span-full p-6 text-center text-sm text-muted-foreground">
