@@ -62,6 +62,7 @@ type Override = {
   id: string;
   name: string | null;
   price: number | null;
+  alt_price: number | null;
   currency: Currency | null;
   category: Category | null;
   hidden: boolean;
@@ -76,6 +77,7 @@ type Row = {
   name: string;
   category: Category;
   price: number;
+  altPrice: number | null;
   currency: Currency;
   hidden: boolean;
   image_url: string | null;
@@ -95,6 +97,7 @@ function mergeRows(overrides: Override[]): Row[] {
       name: o?.name ?? b.name,
       category: (o?.category as Category) ?? b.category,
       price: o?.price ?? b.price,
+      altPrice: o?.alt_price ?? null,
       currency: (o?.currency as Currency) ?? b.currency,
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
@@ -111,6 +114,7 @@ function mergeRows(overrides: Override[]): Row[] {
       name: o.name ?? o.id,
       category: (o.category as Category) ?? "cards",
       price: o.price ?? 0,
+      altPrice: o.alt_price ?? null,
       currency: (o.currency as Currency) ?? "bimbucks",
       hidden: o.hidden,
       image_url: o.image_url,
