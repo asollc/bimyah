@@ -808,6 +808,20 @@ function NewProductForm({
           </Select>
         </div>
         <div className="space-y-1 sm:col-span-2">
+          <label className="text-[10px] uppercase text-muted-foreground">
+            Alt price (in {currency === "bimbucks" ? "bimbits" : "bimbucks"}) — optional, lets players choose currency
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
+        <div className="space-y-1 sm:col-span-2">
           <label className="text-[10px] uppercase text-muted-foreground">Category</label>
           <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
