@@ -64,7 +64,7 @@ type Product = {
   bigPreview?: React.ReactNode;
 };
 
-type CartItem = { product: Product; qty: number };
+type CartItem = { product: Product; currency: Currency; price: number };
 
 type BmartOverrideRow = {
   id: string;
