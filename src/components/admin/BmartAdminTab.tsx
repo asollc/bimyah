@@ -358,7 +358,7 @@ function StoreElementsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="sticky top-[137px] z-10 -mx-1 flex items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
         <p className="flex-1 text-sm text-muted-foreground">
           Edit the text and category images shown in Bmart. Changes apply to the live store after saving.
         </p>
