@@ -575,24 +575,15 @@ function BmartPage() {
           wallet={wallet}
           onClose={() => setCartOpen(false)}
           onClear={() => setCart([])}
-          onInc={(id) =>
-            setCart((prev) => prev.map((i) => (i.product.id === id ? { ...i, qty: i.qty + 1 } : i)))
-          }
-          onDec={(id) =>
-            setCart((prev) =>
-              prev
-                .map((i) => (i.product.id === id ? { ...i, qty: i.qty - 1 } : i))
-                .filter((i) => i.qty > 0),
-            )
-          }
+          onSetCurrency={setCartCurrency}
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
           onCheckout={async () => {
             const needBimbucks = cart
-              .filter((i) => i.product.currency === "bimbucks")
-              .reduce((n, i) => n + i.product.price * i.qty, 0);
+              .filter((i) => i.currency === "bimbucks")
+              .reduce((n, i) => n + i.price, 0);
             const needBimbits = cart
-              .filter((i) => i.product.currency === "bimbits")
-              .reduce((n, i) => n + i.product.price * i.qty, 0);
+              .filter((i) => i.currency === "bimbits")
+              .reduce((n, i) => n + i.price, 0);
             if (needBimbucks > wallet.bimbucks) {
               toast.error("Not enough Bimbucks for this cart.");
               setCartOpen(false);
@@ -606,17 +597,15 @@ function BmartPage() {
             try {
               let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
               for (const i of cart) {
-                for (let q = 0; q < i.qty; q++) {
-                  latest = await purchaseItem({
-                    data: {
-                      itemId: i.product.id,
-                      itemName: i.product.name,
-                      currency: i.product.currency,
-                      price: i.product.price,
-                      kind: KIND_BY_CATEGORY[i.product.category],
-                    },
-                  });
-                }
+                latest = await purchaseItem({
+                  data: {
+                    itemId: i.product.id,
+                    itemName: i.product.name,
+                    currency: i.currency,
+                    price: i.price,
+                    kind: KIND_BY_CATEGORY[i.product.category],
+                  },
+                });
               }
               setWallet(latest);
               toast.success("Purchases added to your profile.");
