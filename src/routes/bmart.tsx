@@ -806,15 +806,22 @@ function ProductCard({
           <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white drop-shadow">
             {product.name}
           </div>
-          <div className="mt-0.5 flex items-center gap-1">
-            {product.currency === "bimbucks" ? (
-              <BimbucksIcon size={13} />
-            ) : (
-              <BimbitsIcon size={13} />
-            )}
-            <span className="font-display text-[12px] font-black text-[var(--gold)] drop-shadow-[0_0_6px_rgba(251,191,36,0.55)]">
-              {product.price.toLocaleString()}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="inline-flex items-center gap-1">
+              {product.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+              <span className="font-display text-[12px] font-black text-[var(--gold)] drop-shadow-[0_0_6px_rgba(251,191,36,0.55)]">
+                {product.price.toLocaleString()}
+              </span>
             </span>
+            {product.altPrice != null && (
+              <span className="inline-flex items-center gap-1 text-white/60">
+                <span className="text-[10px] uppercase tracking-widest">or</span>
+                {product.currency === "bimbucks" ? <BimbitsIcon size={12} /> : <BimbucksIcon size={12} />}
+                <span className="font-display text-[11px] font-black text-[var(--gold)]/80">
+                  {product.altPrice.toLocaleString()}
+                </span>
+              </span>
+            )}
           </div>
         </div>
         <button
