@@ -62,6 +62,7 @@ type Override = {
   id: string;
   name: string | null;
   price: number | null;
+  alt_price: number | null;
   currency: Currency | null;
   category: Category | null;
   hidden: boolean;
@@ -76,6 +77,7 @@ type Row = {
   name: string;
   category: Category;
   price: number;
+  altPrice: number | null;
   currency: Currency;
   hidden: boolean;
   image_url: string | null;
@@ -95,6 +97,7 @@ function mergeRows(overrides: Override[]): Row[] {
       name: o?.name ?? b.name,
       category: (o?.category as Category) ?? b.category,
       price: o?.price ?? b.price,
+      altPrice: o?.alt_price ?? null,
       currency: (o?.currency as Currency) ?? b.currency,
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
@@ -111,6 +114,7 @@ function mergeRows(overrides: Override[]): Row[] {
       name: o.name ?? o.id,
       category: (o.category as Category) ?? "cards",
       price: o.price ?? 0,
+      altPrice: o.alt_price ?? null,
       currency: (o.currency as Currency) ?? "bimbucks",
       hidden: o.hidden,
       image_url: o.image_url,
@@ -365,6 +369,7 @@ function StoreElementsTab() {
 function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | Promise<void> }) {
   const [name, setName] = useState(row.name);
   const [price, setPrice] = useState(row.price);
+  const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
   const [currency, setCurrency] = useState<Currency>(row.currency);
   const [category, setCategory] = useState<Category>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
@@ -378,12 +383,15 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   useEffect(() => {
     setName(row.name);
     setPrice(row.price);
+    setAltPrice(row.altPrice);
     setCurrency(row.currency);
     setCategory(row.category);
     setHidden(row.hidden);
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
   }, [row]);
+
+  const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
 
   async function handleSave() {
     setBusy(true);
@@ -393,6 +401,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           id: row.id,
           name,
           price,
+          alt_price: altPrice,
           currency,
           category,
           hidden,
@@ -426,6 +435,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
             id: row.id,
             name,
             price,
+            alt_price: altPrice,
             currency,
             category,
             hidden: true,
@@ -530,6 +540,31 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           </Select>
         </div>
       </div>
+
+      <div className="space-y-1.5">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Alt price ({otherCurrency}) — optional, lets players choose currency
+        </label>
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
+          {altPrice != null && (
+            <Button size="sm" variant="ghost" onClick={() => setAltPrice(null)} title="Remove alt price">
+              ×
+            </Button>
+          )}
+        </div>
+      </div>
+
+
 
       <div className="space-y-1.5">
         <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
@@ -672,6 +707,7 @@ function NewProductForm({
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState(100);
+  const [altPrice, setAltPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState<Currency>("bimbucks");
   const [category, setCategory] = useState<Category>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -720,6 +756,7 @@ function NewProductForm({
           id,
           name,
           price,
+          alt_price: altPrice,
           currency,
           category,
           image_url: imageUrl,
@@ -769,6 +806,21 @@ function NewProductForm({
               {CURRENCIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-[10px] uppercase text-muted-foreground">
+            Alt price (in {currency === "bimbucks" ? "bimbits" : "bimbucks"}) — optional, lets players choose currency
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
         </div>
         <div className="space-y-1 sm:col-span-2">
           <label className="text-[10px] uppercase text-muted-foreground">Category</label>

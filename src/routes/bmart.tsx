@@ -56,6 +56,8 @@ type Product = {
   category: CategoryId;
   price: number;
   currency: Currency;
+  /** Optional secondary price in the OTHER currency (set by admin). */
+  altPrice?: number | null;
   /** Render the product preview thumbnail */
   preview: React.ReactNode;
   /** Optional larger preview (e.g. victory effect demo) */
@@ -68,6 +70,7 @@ type BmartOverrideRow = {
   id: string;
   name: string | null;
   price: number | null;
+  alt_price: number | null;
   currency: Currency | null;
   category: CategoryId | null;
   hidden: boolean;
@@ -103,6 +106,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       ...p,
       name: o.name ?? p.name,
       price: o.price ?? p.price,
+      altPrice: o.alt_price,
       currency: o.currency ?? p.currency,
       category: o.category ?? p.category,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? p.name} /> : p.preview,
@@ -128,6 +132,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       category: o.category,
       currency: o.currency,
       price: o.price,
+      altPrice: o.alt_price,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? o.id} /> : fallback,
       bigPreview: isVictory
         ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? o.id, fallback)
@@ -398,10 +403,10 @@ function BmartPage() {
     toast.success(`Added to cart: ${p.name}`);
   }
 
-  async function buyNow(p: Product) {
-    const have = p.currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
-    if (have < p.price) {
-      if (p.currency === "bimbucks") {
+  async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
+    const have = currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
+    if (have < price) {
+      if (currency === "bimbucks") {
         toast.error("Not enough Bimbucks. Buy more to continue.");
         setWalletOpen(true);
       } else {
@@ -414,8 +419,8 @@ function BmartPage() {
         data: {
           itemId: p.id,
           itemName: p.name,
-          currency: p.currency,
-          price: p.price,
+          currency,
+          price,
           kind: KIND_BY_CATEGORY[p.category],
         },
       });
@@ -635,30 +640,71 @@ function BmartPage() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-white/80">
               {confirmProduct && (
-                <>
-                  Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
-                  <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
-                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
-                    {confirmProduct.price.toLocaleString()}
-                  </span>?
-                </>
+                confirmProduct.altPrice != null ? (
+                  <>
+                    Choose how to pay for{" "}
+                    <span className="font-bold text-white">{confirmProduct.name}</span>.
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
+                      {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                      {confirmProduct.price.toLocaleString()}
+                    </span>?
+                  </>
+                )
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
               {t("ui.confirmCancel")}
             </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
-              onClick={async () => {
-                const p = confirmProduct;
-                setConfirmProduct(null);
-                if (p) await buyNow(p);
-              }}
-            >
-              {t("ui.confirmBuy")}
-            </AlertDialogAction>
+            {confirmProduct?.altPrice != null ? (
+              <>
+                <AlertDialogAction
+                  className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                  onClick={async () => {
+                    const p = confirmProduct;
+                    setConfirmProduct(null);
+                    if (p) await buyNow(p, p.currency, p.price);
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                    Pay {confirmProduct.price.toLocaleString()}
+                  </span>
+                </AlertDialogAction>
+                <AlertDialogAction
+                  className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                  onClick={async () => {
+                    const p = confirmProduct;
+                    setConfirmProduct(null);
+                    if (p && p.altPrice != null) {
+                      const alt: Currency = p.currency === "bimbucks" ? "bimbits" : "bimbucks";
+                      await buyNow(p, alt, p.altPrice);
+                    }
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {confirmProduct.currency === "bimbucks" ? <BimbitsIcon size={13} /> : <BimbucksIcon size={13} />}
+                    Pay {confirmProduct.altPrice.toLocaleString()}
+                  </span>
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction
+                className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                onClick={async () => {
+                  const p = confirmProduct;
+                  setConfirmProduct(null);
+                  if (p) await buyNow(p);
+                }}
+              >
+                {t("ui.confirmBuy")}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -760,15 +806,22 @@ function ProductCard({
           <div className="truncate font-display text-[13px] font-black uppercase tracking-wide text-white drop-shadow">
             {product.name}
           </div>
-          <div className="mt-0.5 flex items-center gap-1">
-            {product.currency === "bimbucks" ? (
-              <BimbucksIcon size={13} />
-            ) : (
-              <BimbitsIcon size={13} />
-            )}
-            <span className="font-display text-[12px] font-black text-[var(--gold)] drop-shadow-[0_0_6px_rgba(251,191,36,0.55)]">
-              {product.price.toLocaleString()}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="inline-flex items-center gap-1">
+              {product.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+              <span className="font-display text-[12px] font-black text-[var(--gold)] drop-shadow-[0_0_6px_rgba(251,191,36,0.55)]">
+                {product.price.toLocaleString()}
+              </span>
             </span>
+            {product.altPrice != null && (
+              <span className="inline-flex items-center gap-1 text-white/60">
+                <span className="text-[10px] uppercase tracking-widest">or</span>
+                {product.currency === "bimbucks" ? <BimbitsIcon size={12} /> : <BimbucksIcon size={12} />}
+                <span className="font-display text-[11px] font-black text-[var(--gold)]/80">
+                  {product.altPrice.toLocaleString()}
+                </span>
+              </span>
+            )}
           </div>
         </div>
         <button

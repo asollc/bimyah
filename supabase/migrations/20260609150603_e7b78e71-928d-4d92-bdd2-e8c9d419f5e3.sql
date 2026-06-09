@@ -1,0 +1,1 @@
+ALTER TABLE public.bmart_products ADD COLUMN IF NOT EXISTS alt_price integer;
