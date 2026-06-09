@@ -369,6 +369,7 @@ function StoreElementsTab() {
 function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | Promise<void> }) {
   const [name, setName] = useState(row.name);
   const [price, setPrice] = useState(row.price);
+  const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
   const [currency, setCurrency] = useState<Currency>(row.currency);
   const [category, setCategory] = useState<Category>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
@@ -382,12 +383,15 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   useEffect(() => {
     setName(row.name);
     setPrice(row.price);
+    setAltPrice(row.altPrice);
     setCurrency(row.currency);
     setCategory(row.category);
     setHidden(row.hidden);
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
   }, [row]);
+
+  const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
 
   async function handleSave() {
     setBusy(true);
@@ -397,6 +401,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           id: row.id,
           name,
           price,
+          alt_price: altPrice,
           currency,
           category,
           hidden,
@@ -430,6 +435,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
             id: row.id,
             name,
             price,
+            alt_price: altPrice,
             currency,
             category,
             hidden: true,
