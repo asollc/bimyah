@@ -110,7 +110,7 @@ function AdminPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1">
+          <TabsList className="sticky top-[57px] z-30 flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1 shadow-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="subs">Subscriptions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>

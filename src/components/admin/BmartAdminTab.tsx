@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Trash2, Upload, Plus, Eye, EyeOff, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Trash2, Upload, Plus, Eye, EyeOff, Save, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +130,7 @@ function mergeRows(overrides: Override[]): Row[] {
 export function BmartAdminTab() {
   return (
     <Tabs defaultValue="products" className="w-full">
-      <TabsList>
+      <TabsList className="sticky top-[97px] z-20 bg-muted">
         <TabsTrigger value="products">Products</TabsTrigger>
         <TabsTrigger value="elements">Store Elements</TabsTrigger>
       </TabsList>
@@ -150,6 +150,15 @@ function ProductsTab() {
   const [filter, setFilter] = useState<Category | "all">("all");
   const [adding, setAdding] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+  const saversRef = useRef<Map<string, () => Promise<void>>>(new Map());
+
+  const registerSaver = useCallback((id: string, fn: () => Promise<void>) => {
+    saversRef.current.set(id, fn);
+  }, []);
+  const unregisterSaver = useCallback((id: string) => {
+    saversRef.current.delete(id);
+  }, []);
 
   async function refresh() {
     setLoading(true);
@@ -179,9 +188,29 @@ function ProductsTab() {
     [allRows, filter, showDeleted],
   );
 
+  async function handleSaveAll() {
+    setSavingAll(true);
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const entries = Array.from(saversRef.current.entries()).filter(([id]) => visibleIds.has(id));
+    let ok = 0;
+    let fail = 0;
+    for (const [, fn] of entries) {
+      try {
+        await fn();
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSavingAll(false);
+    if (fail) toast.error(`Saved ${ok}, ${fail} failed`);
+    else toast.success(`Saved ${ok} item${ok === 1 ? "" : "s"}`);
+    await refresh();
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="sticky top-[105px] z-20 -mx-1 flex flex-wrap items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <SelectTrigger className="w-44">
             <SelectValue />
@@ -195,7 +224,7 @@ function ProductsTab() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
+        <Button variant="outline" onClick={() => void refresh()} disabled={loading || savingAll}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
         {deletedCount > 0 && (
@@ -203,6 +232,14 @@ function ProductsTab() {
             {showDeleted ? "Hide deleted" : `Show deleted (${deletedCount})`}
           </Button>
         )}
+        <Button
+          variant="default"
+          disabled={savingAll || loading || rows.length === 0}
+          onClick={() => void handleSaveAll()}
+        >
+          {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save all changes
+        </Button>
         <div className="flex-1" />
         <Button onClick={() => setAdding(true)}>
           <Plus className="mr-1 h-4 w-4" /> New custom product
@@ -225,7 +262,13 @@ function ProductsTab() {
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 text-xs [&_input]:h-7 [&_input]:text-xs [&_button]:text-xs [&_[role=combobox]]:h-7 [&_[role=combobox]]:text-xs">
           {rows.map((r) => (
-            <ProductEditor key={r.id} row={r} onChanged={refresh} />
+            <ProductEditor
+              key={r.id}
+              row={r}
+              onChanged={refresh}
+              registerSaver={registerSaver}
+              unregisterSaver={unregisterSaver}
+            />
           ))}
           {!rows.length && (
             <div className="col-span-full p-6 text-center text-sm text-muted-foreground">
@@ -315,7 +358,7 @@ function StoreElementsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="sticky top-[137px] z-10 -mx-1 flex items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
         <p className="flex-1 text-sm text-muted-foreground">
           Edit the text and category images shown in Bmart. Changes apply to the live store after saving.
         </p>
@@ -366,7 +409,17 @@ function StoreElementsTab() {
 }
 
 
-function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | Promise<void> }) {
+function ProductEditor({
+  row,
+  onChanged,
+  registerSaver,
+  unregisterSaver,
+}: {
+  row: Row;
+  onChanged: () => void | Promise<void>;
+  registerSaver?: (id: string, fn: () => Promise<void>) => void;
+  unregisterSaver?: (id: string) => void;
+}) {
   const [name, setName] = useState(row.name);
   const [price, setPrice] = useState(row.price);
   const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
@@ -378,7 +431,10 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const isTestItem = /test/i.test(row.id) || /test/i.test(name);
 
   useEffect(() => {
     setName(row.name);
@@ -390,6 +446,42 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
   }, [row]);
+
+  // Register a silent saver so the parent's "Save all" can persist this card.
+  useEffect(() => {
+    if (!registerSaver || !unregisterSaver) return;
+    const id = row.id;
+    registerSaver(id, async () => {
+      await upsertBmartProduct({
+        data: {
+          id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: imageUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+        },
+      });
+    });
+    return () => unregisterSaver(id);
+  }, [
+    registerSaver,
+    unregisterSaver,
+    row.id,
+    row.is_custom,
+    name,
+    price,
+    altPrice,
+    currency,
+    category,
+    hidden,
+    imageUrl,
+    effectType,
+  ]);
 
   const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
 
@@ -455,19 +547,60 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
     }
   }
 
-  async function handleReset() {
-    if (!confirm("Reset overrides to defaults?")) return;
-    setBusy(true);
+  function slugifyName(s: string) {
+    return s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 60) || "item";
+  }
+
+  async function handleImport() {
+    if (!imageUrl) {
+      toast.error("Upload an image first");
+      return;
+    }
+    setImporting(true);
     try {
-      await deleteBmartProduct({ data: { id: row.id } });
-      toast.success("Reset");
+      const res = await fetch(imageUrl);
+      if (!res.ok) throw new Error("Failed to fetch current image");
+      const blob = await res.blob();
+      const urlExt = imageUrl.split("?")[0].split(".").pop()?.toLowerCase();
+      const ext = (urlExt && /^[a-z0-9]{2,5}$/.test(urlExt) ? urlExt : (blob.type.split("/")[1] || "png"));
+      const filename = `${category}_${slugifyName(name)}.${ext}`;
+      const path = `bmart/${filename}`;
+      const { error: upErr } = await supabase.storage.from("public-assets").upload(path, blob, {
+        upsert: true,
+        contentType: blob.type || `image/${ext}`,
+      });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      const newUrl = data.publicUrl;
+      setImageUrl(newUrl);
+      await upsertBmartProduct({
+        data: {
+          id: row.id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: newUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+        },
+      });
+      toast.success(`Imported as ${filename}`);
       await onChanged();
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     } finally {
-      setBusy(false);
+      setImporting(false);
     }
   }
+
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -677,7 +810,7 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
         </Button>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
         <Button size="sm" disabled={busy} onClick={() => void handleSave()}>
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
         </Button>
@@ -685,9 +818,16 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
           <Trash2 className="h-3 w-3 mr-1" />
           Delete
         </Button>
-        {!row.is_custom && row.hasOverride && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => void handleReset()}>
-            Reset
+        {isTestItem && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={importing || busy || !imageUrl}
+            onClick={() => void handleImport()}
+            title="Import: rename image to {category}_{name} and persist"
+          >
+            {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3 mr-1" />}
+            Import
           </Button>
         )}
       </div>
