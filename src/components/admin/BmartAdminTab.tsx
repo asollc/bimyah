@@ -756,6 +756,7 @@ function NewProductForm({
           id,
           name,
           price,
+          alt_price: altPrice,
           currency,
           category,
           image_url: imageUrl,
