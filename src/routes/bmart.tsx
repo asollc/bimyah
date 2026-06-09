@@ -64,7 +64,7 @@ type Product = {
   bigPreview?: React.ReactNode;
 };
 
-type CartItem = { product: Product; qty: number };
+type CartItem = { product: Product; currency: Currency; price: number };
 
 type BmartOverrideRow = {
   id: string;
@@ -392,15 +392,27 @@ function BmartPage() {
     })();
   }, [user, walletOpen]);
 
-  const cartCount = cart.reduce((n, i) => n + i.qty, 0);
+  const cartCount = cart.length;
 
   function addToCart(p: Product) {
     setCart((prev) => {
-      const found = prev.find((i) => i.product.id === p.id);
-      if (found) return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { product: p, qty: 1 }];
+      if (prev.find((i) => i.product.id === p.id)) {
+        toast.info("Already in cart");
+        return prev;
+      }
+      toast.success(`Added to cart: ${p.name}`);
+      return [...prev, { product: p, currency: p.currency, price: p.price }];
     });
-    toast.success(`Added to cart: ${p.name}`);
+  }
+
+  function setCartCurrency(id: string, currency: Currency) {
+    setCart((prev) =>
+      prev.map((i) => {
+        if (i.product.id !== id) return i;
+        const price = currency === i.product.currency ? i.product.price : (i.product.altPrice ?? i.product.price);
+        return { ...i, currency, price };
+      }),
+    );
   }
 
   async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
@@ -563,24 +575,15 @@ function BmartPage() {
           wallet={wallet}
           onClose={() => setCartOpen(false)}
           onClear={() => setCart([])}
-          onInc={(id) =>
-            setCart((prev) => prev.map((i) => (i.product.id === id ? { ...i, qty: i.qty + 1 } : i)))
-          }
-          onDec={(id) =>
-            setCart((prev) =>
-              prev
-                .map((i) => (i.product.id === id ? { ...i, qty: i.qty - 1 } : i))
-                .filter((i) => i.qty > 0),
-            )
-          }
+          onSetCurrency={setCartCurrency}
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
           onCheckout={async () => {
             const needBimbucks = cart
-              .filter((i) => i.product.currency === "bimbucks")
-              .reduce((n, i) => n + i.product.price * i.qty, 0);
+              .filter((i) => i.currency === "bimbucks")
+              .reduce((n, i) => n + i.price, 0);
             const needBimbits = cart
-              .filter((i) => i.product.currency === "bimbits")
-              .reduce((n, i) => n + i.product.price * i.qty, 0);
+              .filter((i) => i.currency === "bimbits")
+              .reduce((n, i) => n + i.price, 0);
             if (needBimbucks > wallet.bimbucks) {
               toast.error("Not enough Bimbucks for this cart.");
               setCartOpen(false);
@@ -594,17 +597,15 @@ function BmartPage() {
             try {
               let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
               for (const i of cart) {
-                for (let q = 0; q < i.qty; q++) {
-                  latest = await purchaseItem({
-                    data: {
-                      itemId: i.product.id,
-                      itemName: i.product.name,
-                      currency: i.product.currency,
-                      price: i.product.price,
-                      kind: KIND_BY_CATEGORY[i.product.category],
-                    },
-                  });
-                }
+                latest = await purchaseItem({
+                  data: {
+                    itemId: i.product.id,
+                    itemName: i.product.name,
+                    currency: i.currency,
+                    price: i.price,
+                    kind: KIND_BY_CATEGORY[i.product.category],
+                  },
+                });
               }
               setWallet(latest);
               toast.success("Purchases added to your profile.");
@@ -845,8 +846,7 @@ function CartOverlay({
   wallet,
   onClose,
   onClear,
-  onInc,
-  onDec,
+  onSetCurrency,
   onRemove,
   onCheckout,
   onBuyBimbucks,
@@ -855,18 +855,17 @@ function CartOverlay({
   wallet: { bimbucks: number; bimbits: number };
   onClose: () => void;
   onClear: () => void;
-  onInc: (id: string) => void;
-  onDec: (id: string) => void;
+  onSetCurrency: (id: string, currency: Currency) => void;
   onRemove: (id: string) => void;
   onCheckout: () => void;
   onBuyBimbucks: () => void;
 }) {
   const totalBimbucks = items
-    .filter((i) => i.product.currency === "bimbucks")
-    .reduce((n, i) => n + i.product.price * i.qty, 0);
+    .filter((i) => i.currency === "bimbucks")
+    .reduce((n, i) => n + i.price, 0);
   const totalBimbits = items
-    .filter((i) => i.product.currency === "bimbits")
-    .reduce((n, i) => n + i.product.price * i.qty, 0);
+    .filter((i) => i.currency === "bimbits")
+    .reduce((n, i) => n + i.price, 0);
   const shortBimbucks = Math.max(0, totalBimbucks - wallet.bimbucks);
 
   return (
@@ -888,55 +887,81 @@ function CartOverlay({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {items.map((i) => (
-                <div
-                  key={i.product.id}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-2"
-                >
-                  <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-black/40">
-                    <div className="scale-[0.55]">{i.product.preview}</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate font-display text-xs uppercase tracking-wide text-white">
-                      {i.product.name}
+              {items.map((i) => {
+                const hasAlt = i.product.altPrice != null;
+                const altCurrency: Currency =
+                  i.product.currency === "bimbucks" ? "bimbits" : "bimbucks";
+                return (
+                  <div
+                    key={i.product.id}
+                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-2"
+                  >
+                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-black/40">
+                      <div className="scale-[0.55]">{i.product.preview}</div>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1 text-xs">
-                      {i.product.currency === "bimbucks" ? (
-                        <BimbucksIcon size={12} />
-                      ) : (
-                        <BimbitsIcon size={12} />
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate font-display text-xs uppercase tracking-wide text-white">
+                        {i.product.name}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs">
+                        {i.currency === "bimbucks" ? (
+                          <BimbucksIcon size={12} />
+                        ) : (
+                          <BimbitsIcon size={12} />
+                        )}
+                        <span className="text-[var(--gold)]">
+                          {i.price.toLocaleString()}
+                        </span>
+                      </div>
+                      {hasAlt && (
+                        <div className="mt-1 inline-flex overflow-hidden rounded-md border border-white/15">
+                          <button
+                            type="button"
+                            onClick={() => onSetCurrency(i.product.id, i.product.currency)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              i.currency === i.product.currency
+                                ? "bg-[var(--gold)]/20 text-[var(--gold)]"
+                                : "bg-black/40 text-white/60 hover:text-white"
+                            }`}
+                            aria-label="Pay with primary currency"
+                          >
+                            {i.product.currency === "bimbucks" ? (
+                              <BimbucksIcon size={10} />
+                            ) : (
+                              <BimbitsIcon size={10} />
+                            )}
+                            {i.product.price.toLocaleString()}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onSetCurrency(i.product.id, altCurrency)}
+                            className={`inline-flex items-center gap-1 border-l border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              i.currency === altCurrency
+                                ? "bg-[var(--gold)]/20 text-[var(--gold)]"
+                                : "bg-black/40 text-white/60 hover:text-white"
+                            }`}
+                            aria-label="Pay with alternate currency"
+                          >
+                            {altCurrency === "bimbucks" ? (
+                              <BimbucksIcon size={10} />
+                            ) : (
+                              <BimbitsIcon size={10} />
+                            )}
+                            {(i.product.altPrice ?? 0).toLocaleString()}
+                          </button>
+                        </div>
                       )}
-                      <span className="text-[var(--gold)]">
-                        {(i.product.price * i.qty).toLocaleString()}
-                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => onDec(i.product.id)}
-                      className="grid h-7 w-7 place-items-center rounded-md border border-white/15 bg-black/50 hover:border-[var(--gold)]"
-                      aria-label="Decrease"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-5 text-center text-xs">{i.qty}</span>
-                    <button
-                      onClick={() => onInc(i.product.id)}
-                      className="grid h-7 w-7 place-items-center rounded-md border border-white/15 bg-black/50 hover:border-[var(--gold)]"
-                      aria-label="Increase"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
                     <button
                       onClick={() => onRemove(i.product.id)}
-                      className="ml-1 grid h-7 w-7 place-items-center rounded-md border border-white/10 text-white/50 hover:border-red-400/60 hover:text-red-300"
+                      className="grid h-7 w-7 place-items-center rounded-md border border-white/10 text-white/50 hover:border-red-400/60 hover:text-red-300"
                       aria-label="Remove"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
