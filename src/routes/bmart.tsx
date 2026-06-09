@@ -403,10 +403,10 @@ function BmartPage() {
     toast.success(`Added to cart: ${p.name}`);
   }
 
-  async function buyNow(p: Product) {
-    const have = p.currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
-    if (have < p.price) {
-      if (p.currency === "bimbucks") {
+  async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
+    const have = currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
+    if (have < price) {
+      if (currency === "bimbucks") {
         toast.error("Not enough Bimbucks. Buy more to continue.");
         setWalletOpen(true);
       } else {
@@ -419,8 +419,8 @@ function BmartPage() {
         data: {
           itemId: p.id,
           itemName: p.name,
-          currency: p.currency,
-          price: p.price,
+          currency,
+          price,
           kind: KIND_BY_CATEGORY[p.category],
         },
       });
