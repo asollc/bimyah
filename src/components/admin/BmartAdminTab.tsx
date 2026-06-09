@@ -562,6 +562,9 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
             </Button>
           )}
         </div>
+      </div>
+
+
 
       <div className="space-y-1.5">
         <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
