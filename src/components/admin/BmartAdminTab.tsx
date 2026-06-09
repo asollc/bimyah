@@ -542,6 +542,28 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
       </div>
 
       <div className="space-y-1.5">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Alt price ({otherCurrency}) — optional, lets players choose currency
+        </label>
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
+          {altPrice != null && (
+            <Button size="sm" variant="ghost" onClick={() => setAltPrice(null)} title="Remove alt price">
+              ×
+            </Button>
+          )}
+        </div>
+
+      <div className="space-y-1.5">
         <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
         <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
