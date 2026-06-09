@@ -409,7 +409,17 @@ function StoreElementsTab() {
 }
 
 
-function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | Promise<void> }) {
+function ProductEditor({
+  row,
+  onChanged,
+  registerSaver,
+  unregisterSaver,
+}: {
+  row: Row;
+  onChanged: () => void | Promise<void>;
+  registerSaver?: (id: string, fn: () => Promise<void>) => void;
+  unregisterSaver?: (id: string) => void;
+}) {
   const [name, setName] = useState(row.name);
   const [price, setPrice] = useState(row.price);
   const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
@@ -421,7 +431,10 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
   const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const isTestItem = /test/i.test(row.id) || /test/i.test(name);
 
   useEffect(() => {
     setName(row.name);
@@ -433,6 +446,42 @@ function ProductEditor({ row, onChanged }: { row: Row; onChanged: () => void | P
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
   }, [row]);
+
+  // Register a silent saver so the parent's "Save all" can persist this card.
+  useEffect(() => {
+    if (!registerSaver || !unregisterSaver) return;
+    const id = row.id;
+    registerSaver(id, async () => {
+      await upsertBmartProduct({
+        data: {
+          id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: imageUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+        },
+      });
+    });
+    return () => unregisterSaver(id);
+  }, [
+    registerSaver,
+    unregisterSaver,
+    row.id,
+    row.is_custom,
+    name,
+    price,
+    altPrice,
+    currency,
+    category,
+    hidden,
+    imageUrl,
+    effectType,
+  ]);
 
   const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
 
