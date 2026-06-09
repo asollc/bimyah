@@ -821,6 +821,7 @@ function NewProductForm({
               setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
             }}
           />
+        </div>
         <div className="space-y-1 sm:col-span-2">
           <label className="text-[10px] uppercase text-muted-foreground">Category</label>
           <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
