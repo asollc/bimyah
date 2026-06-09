@@ -640,30 +640,71 @@ function BmartPage() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-white/80">
               {confirmProduct && (
-                <>
-                  Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
-                  <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
-                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
-                    {confirmProduct.price.toLocaleString()}
-                  </span>?
-                </>
+                confirmProduct.altPrice != null ? (
+                  <>
+                    Choose how to pay for{" "}
+                    <span className="font-bold text-white">{confirmProduct.name}</span>.
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to buy <span className="font-bold text-white">{confirmProduct.name}</span> for{" "}
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--gold)]">
+                      {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                      {confirmProduct.price.toLocaleString()}
+                    </span>?
+                  </>
+                )
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
               {t("ui.confirmCancel")}
             </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
-              onClick={async () => {
-                const p = confirmProduct;
-                setConfirmProduct(null);
-                if (p) await buyNow(p);
-              }}
-            >
-              {t("ui.confirmBuy")}
-            </AlertDialogAction>
+            {confirmProduct?.altPrice != null ? (
+              <>
+                <AlertDialogAction
+                  className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                  onClick={async () => {
+                    const p = confirmProduct;
+                    setConfirmProduct(null);
+                    if (p) await buyNow(p, p.currency, p.price);
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {confirmProduct.currency === "bimbucks" ? <BimbucksIcon size={13} /> : <BimbitsIcon size={13} />}
+                    Pay {confirmProduct.price.toLocaleString()}
+                  </span>
+                </AlertDialogAction>
+                <AlertDialogAction
+                  className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                  onClick={async () => {
+                    const p = confirmProduct;
+                    setConfirmProduct(null);
+                    if (p && p.altPrice != null) {
+                      const alt: Currency = p.currency === "bimbucks" ? "bimbits" : "bimbucks";
+                      await buyNow(p, alt, p.altPrice);
+                    }
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {confirmProduct.currency === "bimbucks" ? <BimbitsIcon size={13} /> : <BimbucksIcon size={13} />}
+                    Pay {confirmProduct.altPrice.toLocaleString()}
+                  </span>
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction
+                className="bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] hover:opacity-90"
+                onClick={async () => {
+                  const p = confirmProduct;
+                  setConfirmProduct(null);
+                  if (p) await buyNow(p);
+                }}
+              >
+                {t("ui.confirmBuy")}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
