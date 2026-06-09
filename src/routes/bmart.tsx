@@ -886,83 +886,92 @@ function CartOverlay({
               Your cart is empty.
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              {items.map((i) => {
-                const hasAlt = i.product.altPrice != null;
-                const altCurrency: Currency =
-                  i.product.currency === "bimbucks" ? "bimbits" : "bimbucks";
-                return (
-                  <div
-                    key={i.product.id}
-                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-2"
-                  >
-                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-black/40">
-                      <div className="scale-[0.55]">{i.product.preview}</div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate font-display text-xs uppercase tracking-wide text-white">
-                        {i.product.name}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs">
-                        {i.currency === "bimbucks" ? (
-                          <BimbucksIcon size={12} />
-                        ) : (
-                          <BimbitsIcon size={12} />
-                        )}
-                        <span className="text-[var(--gold)]">
-                          {i.price.toLocaleString()}
-                        </span>
-                      </div>
-                      {hasAlt && (
-                        <div className="mt-1 inline-flex overflow-hidden rounded-md border border-white/15">
-                          <button
-                            type="button"
-                            onClick={() => onSetCurrency(i.product.id, i.product.currency)}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              i.currency === i.product.currency
-                                ? "bg-[var(--gold)]/20 text-[var(--gold)]"
-                                : "bg-black/40 text-white/60 hover:text-white"
-                            }`}
-                            aria-label="Pay with primary currency"
-                          >
-                            {i.product.currency === "bimbucks" ? (
-                              <BimbucksIcon size={10} />
-                            ) : (
-                              <BimbitsIcon size={10} />
-                            )}
-                            {i.product.price.toLocaleString()}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onSetCurrency(i.product.id, altCurrency)}
-                            className={`inline-flex items-center gap-1 border-l border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              i.currency === altCurrency
-                                ? "bg-[var(--gold)]/20 text-[var(--gold)]"
-                                : "bg-black/40 text-white/60 hover:text-white"
-                            }`}
-                            aria-label="Pay with alternate currency"
-                          >
-                            {altCurrency === "bimbucks" ? (
-                              <BimbucksIcon size={10} />
-                            ) : (
-                              <BimbitsIcon size={10} />
-                            )}
-                            {(i.product.altPrice ?? 0).toLocaleString()}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => onRemove(i.product.id)}
-                      className="grid h-7 w-7 place-items-center rounded-md border border-white/10 text-white/50 hover:border-red-400/60 hover:text-red-300"
-                      aria-label="Remove"
+            <>
+              <div className="mb-3 whitespace-nowrap text-center font-display text-[11px] font-bold uppercase tracking-wider text-[#39ff7a] drop-shadow-[0_0_6px_rgba(57,255,122,0.45)]">
+                Be sure to select your desired currency for each item
+              </div>
+              <div className="flex flex-col gap-2">
+                {items.map((i) => {
+                  const hasAlt = i.product.altPrice != null;
+                  const altCurrency: Currency =
+                    i.product.currency === "bimbucks" ? "bimbits" : "bimbucks";
+                  return (
+                    <div
+                      key={i.product.id}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-2"
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-md border border-[var(--gold)]/20 bg-gradient-to-b from-black/60 to-black/30">
+                        <div className="scale-[0.42] drop-shadow-[0_6px_10px_rgba(0,0,0,0.55)]">
+                          {i.product.preview}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-display text-xs uppercase tracking-wide text-white">
+                          {i.product.name}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1 text-xs">
+                          {i.currency === "bimbucks" ? (
+                            <BimbucksIcon size={12} />
+                          ) : (
+                            <BimbitsIcon size={12} />
+                          )}
+                          <span className="text-[var(--gold)]">
+                            {i.price.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <button
+                          onClick={() => onRemove(i.product.id)}
+                          className="grid h-7 w-7 place-items-center rounded-md border border-white/10 text-white/50 hover:border-red-400/60 hover:text-red-300"
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        {hasAlt && (
+                          <div className="inline-flex overflow-hidden rounded-md border border-white/15">
+                            <button
+                              type="button"
+                              onClick={() => onSetCurrency(i.product.id, i.product.currency)}
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                i.currency === i.product.currency
+                                  ? "bg-[var(--gold)]/20 text-[var(--gold)]"
+                                  : "bg-black/40 text-white/60 hover:text-white"
+                              }`}
+                              aria-label="Pay with primary currency"
+                            >
+                              {i.product.currency === "bimbucks" ? (
+                                <BimbucksIcon size={10} />
+                              ) : (
+                                <BimbitsIcon size={10} />
+                              )}
+                              {i.product.price.toLocaleString()}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onSetCurrency(i.product.id, altCurrency)}
+                              className={`inline-flex items-center gap-1 border-l border-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                i.currency === altCurrency
+                                  ? "bg-[var(--gold)]/20 text-[var(--gold)]"
+                                  : "bg-black/40 text-white/60 hover:text-white"
+                              }`}
+                              aria-label="Pay with alternate currency"
+                            >
+                              {altCurrency === "bimbucks" ? (
+                                <BimbucksIcon size={10} />
+                              ) : (
+                                <BimbitsIcon size={10} />
+                              )}
+                              {(i.product.altPrice ?? 0).toLocaleString()}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
