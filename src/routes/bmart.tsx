@@ -56,6 +56,8 @@ type Product = {
   category: CategoryId;
   price: number;
   currency: Currency;
+  /** Optional secondary price in the OTHER currency (set by admin). */
+  altPrice?: number | null;
   /** Render the product preview thumbnail */
   preview: React.ReactNode;
   /** Optional larger preview (e.g. victory effect demo) */
@@ -68,6 +70,7 @@ type BmartOverrideRow = {
   id: string;
   name: string | null;
   price: number | null;
+  alt_price: number | null;
   currency: Currency | null;
   category: CategoryId | null;
   hidden: boolean;
