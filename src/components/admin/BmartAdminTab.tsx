@@ -707,6 +707,7 @@ function NewProductForm({
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState(100);
+  const [altPrice, setAltPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState<Currency>("bimbucks");
   const [category, setCategory] = useState<Category>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
