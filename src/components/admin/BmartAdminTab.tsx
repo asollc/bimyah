@@ -547,19 +547,60 @@ function ProductEditor({
     }
   }
 
-  async function handleReset() {
-    if (!confirm("Reset overrides to defaults?")) return;
-    setBusy(true);
+  function slugifyName(s: string) {
+    return s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 60) || "item";
+  }
+
+  async function handleImport() {
+    if (!imageUrl) {
+      toast.error("Upload an image first");
+      return;
+    }
+    setImporting(true);
     try {
-      await deleteBmartProduct({ data: { id: row.id } });
-      toast.success("Reset");
+      const res = await fetch(imageUrl);
+      if (!res.ok) throw new Error("Failed to fetch current image");
+      const blob = await res.blob();
+      const urlExt = imageUrl.split("?")[0].split(".").pop()?.toLowerCase();
+      const ext = (urlExt && /^[a-z0-9]{2,5}$/.test(urlExt) ? urlExt : (blob.type.split("/")[1] || "png"));
+      const filename = `${category}_${slugifyName(name)}.${ext}`;
+      const path = `bmart/${filename}`;
+      const { error: upErr } = await supabase.storage.from("public-assets").upload(path, blob, {
+        upsert: true,
+        contentType: blob.type || `image/${ext}`,
+      });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      const newUrl = data.publicUrl;
+      setImageUrl(newUrl);
+      await upsertBmartProduct({
+        data: {
+          id: row.id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: newUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+        },
+      });
+      toast.success(`Imported as ${filename}`);
       await onChanged();
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     } finally {
-      setBusy(false);
+      setImporting(false);
     }
   }
+
 
   async function handleUpload(file: File) {
     setUploading(true);
