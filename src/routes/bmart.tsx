@@ -392,15 +392,27 @@ function BmartPage() {
     })();
   }, [user, walletOpen]);
 
-  const cartCount = cart.reduce((n, i) => n + i.qty, 0);
+  const cartCount = cart.length;
 
   function addToCart(p: Product) {
     setCart((prev) => {
-      const found = prev.find((i) => i.product.id === p.id);
-      if (found) return prev.map((i) => (i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { product: p, qty: 1 }];
+      if (prev.find((i) => i.product.id === p.id)) {
+        toast.info("Already in cart");
+        return prev;
+      }
+      toast.success(`Added to cart: ${p.name}`);
+      return [...prev, { product: p, currency: p.currency, price: p.price }];
     });
-    toast.success(`Added to cart: ${p.name}`);
+  }
+
+  function setCartCurrency(id: string, currency: Currency) {
+    setCart((prev) =>
+      prev.map((i) => {
+        if (i.product.id !== id) return i;
+        const price = currency === i.product.currency ? i.product.price : (i.product.altPrice ?? i.product.price);
+        return { ...i, currency, price };
+      }),
+    );
   }
 
   async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
