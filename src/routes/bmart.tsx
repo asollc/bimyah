@@ -106,6 +106,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       ...p,
       name: o.name ?? p.name,
       price: o.price ?? p.price,
+      altPrice: o.alt_price,
       currency: o.currency ?? p.currency,
       category: o.category ?? p.category,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? p.name} /> : p.preview,
@@ -131,6 +132,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       category: o.category,
       currency: o.currency,
       price: o.price,
+      altPrice: o.alt_price,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? o.id} /> : fallback,
       bigPreview: isVictory
         ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? o.id, fallback)
