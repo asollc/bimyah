@@ -810,7 +810,7 @@ function ProductEditor({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
         <Button size="sm" disabled={busy} onClick={() => void handleSave()}>
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
         </Button>
@@ -818,9 +818,16 @@ function ProductEditor({
           <Trash2 className="h-3 w-3 mr-1" />
           Delete
         </Button>
-        {!row.is_custom && row.hasOverride && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => void handleReset()}>
-            Reset
+        {isTestItem && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={importing || busy || !imageUrl}
+            onClick={() => void handleImport()}
+            title="Import: rename image to {category}_{name} and persist"
+          >
+            {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3 mr-1" />}
+            Import
           </Button>
         )}
       </div>
