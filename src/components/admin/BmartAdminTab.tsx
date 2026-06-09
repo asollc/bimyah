@@ -130,7 +130,7 @@ function mergeRows(overrides: Override[]): Row[] {
 export function BmartAdminTab() {
   return (
     <Tabs defaultValue="products" className="w-full">
-      <TabsList>
+      <TabsList className="sticky top-[97px] z-20 bg-muted">
         <TabsTrigger value="products">Products</TabsTrigger>
         <TabsTrigger value="elements">Store Elements</TabsTrigger>
       </TabsList>
