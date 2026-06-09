@@ -900,16 +900,8 @@ function CartOverlay({
                       key={i.product.id}
                       className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-2"
                     >
-                      <div className="relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md border border-[var(--gold)]/20 bg-gradient-to-b from-black/60 to-black/30">
-                        <div
-                          className="grid place-items-center drop-shadow-[0_6px_10px_rgba(0,0,0,0.55)]"
-                          style={{
-                            width: 160,
-                            height: 160,
-                            transform: "scale(0.5)",
-                            transformOrigin: "center center",
-                          }}
-                        >
+                      <div className="relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md border border-[var(--gold)]/20 bg-gradient-to-b from-black/60 to-black/30 p-1.5">
+                        <div className="flex h-full w-full items-center justify-center drop-shadow-[0_6px_10px_rgba(0,0,0,0.55)] [&>*]:max-h-full [&>*]:max-w-full [&_img]:max-h-full [&_img]:max-w-full [&_img]:object-contain">
                           {i.product.preview}
                         </div>
                       </div>
