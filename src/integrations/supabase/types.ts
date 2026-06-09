@@ -64,6 +64,7 @@ export type Database = {
       }
       bmart_products: {
         Row: {
+          alt_price: number | null
           category: string | null
           created_at: string
           currency: string | null
@@ -80,6 +81,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alt_price?: number | null
           category?: string | null
           created_at?: string
           currency?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alt_price?: number | null
           category?: string | null
           created_at?: string
           currency?: string | null
