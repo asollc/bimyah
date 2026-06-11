@@ -509,15 +509,18 @@ function BmartPage() {
                     <img
                       src={categoryImages[c.id] as string}
                       alt={t(`cat.${c.id}.name`, c.name)}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
-                  ) : (
+                  ) : categoryImagesLoaded ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
                       <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
                         <CategoryIcon id={c.id} />
                       </div>
                     </div>
-                  )}
+                  ) : null}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
