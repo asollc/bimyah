@@ -26,10 +26,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
+const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "badge" | "background" | "tabletop" | "table_art"> = {
   cards: "card_back",
   victory: "victory",
-  titles: "title",
   backgrounds: "background",
   tabletops: "tabletop",
 };
