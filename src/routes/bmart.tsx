@@ -47,7 +47,7 @@ export const Route = createFileRoute("/bmart")({
 /* ---------------- Types ---------------- */
 
 type Currency = "bimbucks" | "bimbits";
-type CategoryId = "cards" | "victory" | "titles" | "backgrounds" | "tabletops";
+type CategoryId = "cards" | "victory" | "backgrounds" | "tabletops";
 
 type Product = {
   id: string;
