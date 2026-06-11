@@ -184,7 +184,8 @@ function HomePage() {
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center gap-1.5">
           {authLoading ? (
             <div className="h-9 w-9" />
           ) : isAuthed ? (
@@ -213,10 +214,20 @@ function HomePage() {
               <LogIn className="h-3 w-3" /> Sign In
             </Link>
           )}
+          <Link
+            to="/bmart"
+            aria-label="Shop Bmart"
+            className="btn-3d btn-3d-gold whitespace-nowrap px-2.5 py-1 text-[9px] font-black uppercase tracking-widest"
+            style={{ color: "var(--player-red)" }}
+          >
+            Shop Bmart
+          </Link>
+          </div>
           <SharePopover userId={user?.id ?? null} />
           <BulletinBell userId={user?.id ?? null} />
 
         </div>
+
         <div className="flex items-center gap-2">
           {isAdmin && (
             <Link
