@@ -1118,14 +1118,21 @@ function CategoryImageEditor({
   async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
       const path = `bmart/category-${category}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
         upsert: true,
-        contentType: file.type,
+        contentType: compressed.type,
+        cacheControl: "31536000",
       });
       if (error) throw error;
       const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      // Delete the previously-staged upload (if any) so we don't orphan it.
+      if (url && url !== imageUrl) {
+        const prev = pathFromPublicUrl(url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
       setUrl(data.publicUrl);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
@@ -1138,6 +1145,11 @@ function CategoryImageEditor({
     setSaving(true);
     try {
       await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
+      // Delete the previously-saved image from storage when it's been replaced or cleared.
+      if (imageUrl && imageUrl !== next) {
+        const prev = pathFromPublicUrl(imageUrl, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
       toast.success("Category image saved");
       setUrl(next);
       await onChanged();
