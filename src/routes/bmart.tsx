@@ -326,6 +326,7 @@ function BmartPage() {
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
+  const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -338,7 +339,9 @@ function BmartPage() {
         for (const r of res.rows) map[r.id] = r.image_url;
         setCategoryImages(map);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setCategoryImagesLoaded(true));
+
     void listBmartText()
       .then((res) => {
         const map: Record<string, string> = {};
