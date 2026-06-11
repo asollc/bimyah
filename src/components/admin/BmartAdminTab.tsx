@@ -1084,7 +1084,7 @@ function CategoryImagesSection() {
         {loading && <Loader2 className="h-3 w-3 animate-spin" />}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {CATEGORIES.map((c) => (
+        {DISPLAYED_CATEGORIES.map((c) => (
           <CategoryImageEditor
             key={c}
             category={c}
