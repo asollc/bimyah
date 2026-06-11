@@ -290,8 +290,6 @@ export const BMART_TEXT_DEFAULTS: Record<string, string> = {
   "cat.cards.tag": "Custom card backs",
   "cat.victory.name": "Victory Effects",
   "cat.victory.tag": "Win in style",
-  "cat.titles.name": "Titles",
-  "cat.titles.tag": "Wear the brag",
   "cat.backgrounds.name": "Backgrounds",
   "cat.backgrounds.tag": "Set the mood",
   "cat.tabletops.name": "Table Tops",
