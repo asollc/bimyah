@@ -34,8 +34,47 @@ import {
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
+const DISPLAYED_CATEGORIES = ["cards", "victory", "backgrounds", "tabletops"] as const;
 type Currency = (typeof CURRENCIES)[number];
 type Category = (typeof CATEGORIES)[number];
+
+/** Extract storage object path from a Supabase public URL for a given bucket. */
+function pathFromPublicUrl(url: string, bucket: string): string | null {
+  try {
+    const u = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const i = u.pathname.indexOf(marker);
+    if (i === -1) return null;
+    return decodeURIComponent(u.pathname.slice(i + marker.length));
+  } catch {
+    return null;
+  }
+}
+
+/** Re-encode an image to WebP at reduced size for faster loads. Falls back to original on failure. */
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+    return file;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/webp", quality));
+    if (!blob || blob.size >= file.size) return file;
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.webp`, { type: "image/webp" });
+  } catch {
+    return file;
+  }
+}
 
 // Mirror of bmart.tsx PRODUCTS list (id + default metadata only).
 const BUILTIN: Array<{ id: string; name: string; category: Category; price: number; currency: Currency }> = [
@@ -1045,7 +1084,7 @@ function CategoryImagesSection() {
         {loading && <Loader2 className="h-3 w-3 animate-spin" />}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        {CATEGORIES.map((c) => (
+        {DISPLAYED_CATEGORIES.map((c) => (
           <CategoryImageEditor
             key={c}
             category={c}
@@ -1079,14 +1118,21 @@ function CategoryImageEditor({
   async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
       const path = `bmart/category-${category}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
         upsert: true,
-        contentType: file.type,
+        contentType: compressed.type,
+        cacheControl: "31536000",
       });
       if (error) throw error;
       const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      // Delete the previously-staged upload (if any) so we don't orphan it.
+      if (url && url !== imageUrl) {
+        const prev = pathFromPublicUrl(url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
       setUrl(data.publicUrl);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
@@ -1099,6 +1145,11 @@ function CategoryImageEditor({
     setSaving(true);
     try {
       await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
+      // Delete the previously-saved image from storage when it's been replaced or cleared.
+      if (imageUrl && imageUrl !== next) {
+        const prev = pathFromPublicUrl(imageUrl, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
       toast.success("Category image saved");
       setUrl(next);
       await onChanged();

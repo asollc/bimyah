@@ -26,10 +26,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "title" | "badge" | "background" | "tabletop" | "table_art"> = {
+const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "badge" | "background" | "tabletop" | "table_art"> = {
   cards: "card_back",
   victory: "victory",
-  titles: "title",
   backgrounds: "background",
   tabletops: "tabletop",
 };
@@ -48,7 +47,7 @@ export const Route = createFileRoute("/bmart")({
 /* ---------------- Types ---------------- */
 
 type Currency = "bimbucks" | "bimbits";
-type CategoryId = "cards" | "victory" | "titles" | "backgrounds" | "tabletops";
+type CategoryId = "cards" | "victory" | "backgrounds" | "tabletops";
 
 type Product = {
   id: string;
@@ -250,31 +249,8 @@ const PRODUCTS: Product[] = [
     bigPreview: <VictoryWinPreview effect="stars" />,
   },
 
-  // Titles
-  {
-    id: "title_champion_3d",
-    name: "3D Gold Champion Title",
-    category: "titles",
-    price: 2500,
-    currency: "bimbucks",
-    preview: <TitleNameplatePreview />,
-  },
-  {
-    id: "title_legend",
-    name: "Legend Title",
-    category: "titles",
-    price: 1200,
-    currency: "bimbucks",
-    preview: <PlainTitleChip label="LEGEND" tone="mint" />,
-  },
-  {
-    id: "title_rookie",
-    name: "Rookie Title",
-    category: "titles",
-    price: 300,
-    currency: "bimbits",
-    preview: <PlainTitleChip label="ROOKIE" tone="dark" />,
-  },
+
+
 
   // Backgrounds
   ...BG_VARIANTS.map<Product>((b) => ({
@@ -300,7 +276,7 @@ const PRODUCTS: Product[] = [
 export const CATEGORIES: { id: CategoryId; name: string; tag: string; accent: string }[] = [
   { id: "cards", name: "Cards", tag: "Custom card backs", accent: "from-rose-500/30 to-rose-900/20" },
   { id: "victory", name: "Victory Effects", tag: "Win in style", accent: "from-amber-400/30 to-amber-800/20" },
-  { id: "titles", name: "Titles", tag: "Wear the brag", accent: "from-emerald-400/30 to-emerald-900/20" },
+  
   { id: "backgrounds", name: "Backgrounds", tag: "Set the mood", accent: "from-sky-400/30 to-sky-900/20" },
   { id: "tabletops", name: "Table Tops", tag: "Lay it down lux", accent: "from-yellow-300/30 to-yellow-800/20" },
 ];
@@ -314,8 +290,6 @@ export const BMART_TEXT_DEFAULTS: Record<string, string> = {
   "cat.cards.tag": "Custom card backs",
   "cat.victory.name": "Victory Effects",
   "cat.victory.tag": "Win in style",
-  "cat.titles.name": "Titles",
-  "cat.titles.tag": "Wear the brag",
   "cat.backgrounds.name": "Backgrounds",
   "cat.backgrounds.tag": "Set the mood",
   "cat.tabletops.name": "Table Tops",
@@ -352,6 +326,7 @@ function BmartPage() {
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const [overrides, setOverrides] = useState<BmartOverrideRow[]>([]);
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
+  const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -364,7 +339,9 @@ function BmartPage() {
         for (const r of res.rows) map[r.id] = r.image_url;
         setCategoryImages(map);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setCategoryImagesLoaded(true));
+
     void listBmartText()
       .then((res) => {
         const map: Record<string, string> = {};
@@ -532,15 +509,18 @@ function BmartPage() {
                     <img
                       src={categoryImages[c.id] as string}
                       alt={t(`cat.${c.id}.name`, c.name)}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
-                  ) : (
+                  ) : categoryImagesLoaded ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
                       <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
                         <CategoryIcon id={c.id} />
                       </div>
                     </div>
-                  )}
+                  ) : null}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
@@ -1068,7 +1048,7 @@ function CurrencyChip({ icon, value }: { icon: React.ReactNode; value: number })
 function CategoryIcon({ id }: { id: CategoryId }) {
   if (id === "cards") return <CardBackSwatch gradient={CARD_COLORS[0].gradient} size={90} />;
   if (id === "victory") return <VictoryEffectThumb effect="fireworks" small />;
-  if (id === "titles") return <TitleNameplatePreview compact />;
+  
   if (id === "backgrounds") return <BackgroundSwatch gradient={BG_VARIANTS[0].gradient} size={100} />;
   return <TableTopSwatch gradient={TABLETOPS[0].gradient} size={100} />;
 }
