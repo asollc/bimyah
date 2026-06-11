@@ -249,31 +249,8 @@ const PRODUCTS: Product[] = [
     bigPreview: <VictoryWinPreview effect="stars" />,
   },
 
-  // Titles
-  {
-    id: "title_champion_3d",
-    name: "3D Gold Champion Title",
-    category: "titles",
-    price: 2500,
-    currency: "bimbucks",
-    preview: <TitleNameplatePreview />,
-  },
-  {
-    id: "title_legend",
-    name: "Legend Title",
-    category: "titles",
-    price: 1200,
-    currency: "bimbucks",
-    preview: <PlainTitleChip label="LEGEND" tone="mint" />,
-  },
-  {
-    id: "title_rookie",
-    name: "Rookie Title",
-    category: "titles",
-    price: 300,
-    currency: "bimbits",
-    preview: <PlainTitleChip label="ROOKIE" tone="dark" />,
-  },
+
+
 
   // Backgrounds
   ...BG_VARIANTS.map<Product>((b) => ({
