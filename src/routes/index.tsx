@@ -217,11 +217,12 @@ function HomePage() {
           <Link
             to="/bmart"
             aria-label="Shop Bmart"
-            className="btn-3d btn-3d-gold whitespace-nowrap px-2.5 py-1 text-[9px] font-black uppercase tracking-widest"
-            style={{ color: "var(--player-red)" }}
+            className="btn-3d btn-3d-gold whitespace-nowrap px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider leading-none"
+            style={{ color: "oklch(0.35 0.18 25)" }}
           >
             Shop Bmart
           </Link>
+
           </div>
           <SharePopover userId={user?.id ?? null} />
           <BulletinBell userId={user?.id ?? null} />
