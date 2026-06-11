@@ -1067,7 +1067,7 @@ function CurrencyChip({ icon, value }: { icon: React.ReactNode; value: number })
 function CategoryIcon({ id }: { id: CategoryId }) {
   if (id === "cards") return <CardBackSwatch gradient={CARD_COLORS[0].gradient} size={90} />;
   if (id === "victory") return <VictoryEffectThumb effect="fireworks" small />;
-  if (id === "titles") return <TitleNameplatePreview compact />;
+  
   if (id === "backgrounds") return <BackgroundSwatch gradient={BG_VARIANTS[0].gradient} size={100} />;
   return <TableTopSwatch gradient={TABLETOPS[0].gradient} size={100} />;
 }
