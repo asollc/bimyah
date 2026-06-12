@@ -31,11 +31,11 @@ function clampScale(s: number) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 }
 
-export function useMovableLayouts(mode: string, _seatCount: number) {
-  // Key by mode only so customizations made before the match starts
-  // (when seat count may differ from in-game) persist into the live game.
-  void _seatCount;
-  const key = `bimyah_movables_${mode}`;
+export function useMovableLayouts(mode: string, seatCount: number) {
+  // Key by mode + seat count so each seat configuration (2..8) has its own
+  // saved HUD layout. Matches the per-seat-count "SET" workflow on the
+  // Map Game Screen.
+  const key = `bimyah_movables_${mode}_${seatCount}`;
   const [layouts, setLayouts] = useState<MovableLayoutMap>({});
   const lastMovedRef = useRef<string | null>(null);
 
@@ -48,6 +48,7 @@ export function useMovableLayouts(mode: string, _seatCount: number) {
     }
     lastMovedRef.current = null;
   }, [key]);
+
 
   const update = useCallback(
     (id: string, patch: Partial<MovableLayout>) => {
