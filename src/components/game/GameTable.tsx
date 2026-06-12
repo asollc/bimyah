@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameState, Player, PlayerColor } from "@/game/types";
 import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
@@ -35,6 +35,8 @@ import { KeybindEditor } from "./KeybindEditor";
 import { Movable, useMovableLayouts } from "./Movable";
 import { ChatPanel } from "./ChatPanel";
 import type { ChatChannel } from "@/game/types";
+import { toast } from "sonner";
+
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
@@ -356,6 +358,62 @@ export function GameTable({
 
   // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
   const movables = useMovableLayouts(state.mode, seatOrder.length);
+
+  // ===== Map Game Screen: per-seat-count SET workflow =====
+  // Snapshot the full layout bundle (all stores touched by drag/pinch/zoom)
+  // when the player clicks SET. Compare current to snapshot to detect "dirty".
+  const seatCount = seatOrder.length;
+  const mapBundleKeys = useMemo(
+    () => [
+      `bimyah_movables_${state.mode}_${seatCount}`,
+      `bimyah_seat_offsets_${state.mode}_${seatCount}`,
+      `bimyah_center_zoom_${state.mode}_${seatCount}`,
+      `bimyah_center_offset_${state.mode}_${seatCount}`,
+      `bimyah_player_zoom_${state.mode}_${seatCount}`,
+    ],
+    [state.mode, seatCount],
+  );
+  const mapSavedKey = `bimyah_map_saved_${state.mode}_${seatCount}`;
+  const readBundle = useCallback(() => {
+    try {
+      return mapBundleKeys.map((k) => localStorage.getItem(k) ?? "");
+    } catch {
+      return mapBundleKeys.map(() => "");
+    }
+  }, [mapBundleKeys]);
+  const [mapIsSet, setMapIsSet] = useState<boolean>(false);
+  // Re-evaluate "is set" whenever the layout-affecting stores change.
+  useEffect(() => {
+    if (!mapMode) return;
+    const compute = () => {
+      try {
+        const saved = localStorage.getItem(mapSavedKey);
+        if (!saved) {
+          setMapIsSet(false);
+          return;
+        }
+        const current = JSON.stringify(readBundle());
+        setMapIsSet(saved === current);
+      } catch {
+        setMapIsSet(false);
+      }
+    };
+    compute();
+    // Poll lightly — Movable writes to localStorage but doesn't fire events
+    // within the same tab. 250ms is cheap and matches the game tick cadence.
+    const t = setInterval(compute, 250);
+    return () => clearInterval(t);
+  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, centerZoom, centerOffset, playerZoom]);
+  const handleMapSet = () => {
+    try {
+      localStorage.setItem(mapSavedKey, JSON.stringify(readBundle()));
+      setMapIsSet(true);
+      toast.success(`${seatCount}-seat configuration saved.`);
+    } catch {
+      toast.error("Could not save configuration.");
+    }
+  };
+
   // Center pinch + drag: 1 pointer = drag, 2 pointers = pinch-zoom.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
@@ -841,6 +899,12 @@ export function GameTable({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (mapMode && !mapIsSet) {
+                      toast.error(
+                        `SET the current ${seatCount}-seat layout before adding another seat.`,
+                      );
+                      return;
+                    }
                     if (state.players.length < (state.maxSeats ?? 4)) {
                       dispatch({ kind: "addBot" });
                     }
@@ -850,6 +914,7 @@ export function GameTable({
                   aria-label={mapMode ? "Add a seat" : "Add a bot"}
                 >
                   +
+
                 </button>
                 {mapMode && (
                   <span className="font-display tabular-nums text-white/90 min-w-[10px] text-center">
@@ -997,8 +1062,22 @@ export function GameTable({
               </button>
             </div>
           </Movable>
+          {/* Map Game Screen: SET button to save the current seat-count layout. */}
+          {mapMode && (
+            <div className="pointer-events-auto mt-2 flex justify-end">
+              <button
+                onClick={handleMapSet}
+                className={`btn-3d ${mapIsSet ? "btn-3d-mint" : "btn-3d-gold"} flex items-center gap-1.5 px-3 py-1 text-[11px] font-black uppercase tracking-wider`}
+                aria-label={`Save ${seatCount}-seat configuration`}
+              >
+                Set {seatCount}-Seat
+                {mapIsSet && <Check className="h-3.5 w-3.5 text-[oklch(0.18_0.04_165)]" strokeWidth={3} />}
+              </button>
+            </div>
+          )}
         </div>
       )}
+
       {inviteUrl && (
         <InviteFriendsOverlay
           open={inviteOpen}
