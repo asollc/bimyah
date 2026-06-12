@@ -388,10 +388,12 @@ export function GameTable({
     () => [
       `bimyah_movables_${state.mode}_${seatCount}`,
       `bimyah_seat_offsets_${state.mode}_${seatCount}`,
+      `bimyah_seat_scale_${state.mode}_${seatCount}`,
       `bimyah_center_zoom_${state.mode}_${seatCount}`,
       `bimyah_center_offset_${state.mode}_${seatCount}`,
       `bimyah_player_zoom_${state.mode}_${seatCount}`,
     ],
+
     [state.mode, seatCount],
   );
   const mapSavedKey = `bimyah_map_saved_${state.mode}_${seatCount}`;
