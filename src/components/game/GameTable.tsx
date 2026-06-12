@@ -35,6 +35,8 @@ import { KeybindEditor } from "./KeybindEditor";
 import { Movable, useMovableLayouts } from "./Movable";
 import { ChatPanel } from "./ChatPanel";
 import type { ChatChannel } from "@/game/types";
+import { toast } from "sonner";
+
 
 export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
   green: "#22c55e",
