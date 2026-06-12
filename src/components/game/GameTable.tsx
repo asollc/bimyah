@@ -899,6 +899,12 @@ export function GameTable({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (mapMode && !mapIsSet) {
+                      toast.error(
+                        `SET the current ${seatCount}-seat layout before adding another seat.`,
+                      );
+                      return;
+                    }
                     if (state.players.length < (state.maxSeats ?? 4)) {
                       dispatch({ kind: "addBot" });
                     }
@@ -908,6 +914,7 @@ export function GameTable({
                   aria-label={mapMode ? "Add a seat" : "Add a bot"}
                 >
                   +
+
                 </button>
                 {mapMode && (
                   <span className="font-display tabular-nums text-white/90 min-w-[10px] text-center">
