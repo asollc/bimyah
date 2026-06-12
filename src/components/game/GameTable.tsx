@@ -836,7 +836,7 @@ export function GameTable({
         {state.status === "lobby" && isHost && (
           <Movable id="add-bot" {...movables}>
             <div className="btn-3d btn-3d-dark flex flex-col items-center gap-0.5 px-[10px] py-[3px] text-[9.5px] select-none">
-              <span className="underline">Bots</span>
+              <span className="underline">{mapMode ? "Seats" : "Bots"}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={(e) => {
@@ -847,20 +847,31 @@ export function GameTable({
                   }}
                   disabled={state.players.length >= (state.maxSeats ?? 4)}
                   className="px-1 disabled:opacity-40"
-                  aria-label="Add a bot"
+                  aria-label={mapMode ? "Add a seat" : "Add a bot"}
                 >
                   +
                 </button>
+                {mapMode && (
+                  <span className="font-display tabular-nums text-white/90 min-w-[10px] text-center">
+                    {state.players.length}
+                  </span>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (state.players.some((p) => p.isBot)) {
+                    if (mapMode) {
+                      if (state.players.length > 2) dispatch({ kind: "removeBot" });
+                    } else if (state.players.some((p) => p.isBot)) {
                       dispatch({ kind: "removeBot" });
                     }
                   }}
-                  disabled={!state.players.some((p) => p.isBot)}
+                  disabled={
+                    mapMode
+                      ? state.players.length <= 2
+                      : !state.players.some((p) => p.isBot)
+                  }
                   className="px-1 disabled:opacity-40"
-                  aria-label="Remove a bot"
+                  aria-label={mapMode ? "Remove a seat" : "Remove a bot"}
                 >
                   −
                 </button>
@@ -868,6 +879,7 @@ export function GameTable({
             </div>
           </Movable>
         )}
+
       </div>
 
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
