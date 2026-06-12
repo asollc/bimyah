@@ -295,6 +295,27 @@ export function GameTable({
     });
   };
 
+  // ===== Per-seat pinch scale (mobile pinch to enlarge/shrink each seat) =====
+  const seatScaleKey = `bimyah_seat_scale_${state.mode}_${seatOrder.length}`;
+  const [seatScales, setSeatScales] = useState<Record<number, number>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(seatScaleKey);
+      setSeatScales(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatScales({});
+    }
+  }, [seatScaleKey]);
+  const updateSeatScale = (seatIdx: number, s: number) => {
+    setSeatScales((cur) => {
+      const clamped = Math.max(0.5, Math.min(2.5, s));
+      const next = { ...cur, [seatIdx]: clamped };
+      try { localStorage.setItem(seatScaleKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+
   // ===== Center zoom + drag offset (pinch to enlarge/shrink, drag to reposition table + center cards + Bimyah) =====
   const zoomKey = `bimyah_center_zoom_${state.mode}_${seatOrder.length}`;
   const offsetKey = `bimyah_center_offset_${state.mode}_${seatOrder.length}`;
