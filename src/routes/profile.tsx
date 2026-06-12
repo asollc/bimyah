@@ -186,25 +186,62 @@ function ProfilePage() {
         </div>
         <div className="text-xs text-white/50">{user.email}</div>
 
-        <label
-          className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
-            !isPlus ? "opacity-70" : ""
-          }`}
-        >
-          {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-          {uploadingAvatar ? "Uploading…" : "Upload avatar"}
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            className="hidden"
-            disabled={!isPlus || uploadingAvatar}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void uploadAvatar(f);
-            }}
-          />
-        </label>
+        <div className="flex items-end gap-3">
+          <label
+            className={`btn-3d ${isPlus ? "btn-3d-gold" : "btn-3d-dark"} inline-flex cursor-pointer items-center gap-1.5 text-[11px] ${
+              !isPlus ? "opacity-70" : ""
+            }`}
+          >
+            {isPlus ? <Upload className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+            {uploadingAvatar ? "Uploading…" : "Upload avatar"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              disabled={!isPlus || uploadingAvatar}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void uploadAvatar(f);
+              }}
+            />
+          </label>
+
+          {/* Map Game Screen entry: handwritten label, flashing arrow, golden map icon. */}
+          <div className="relative flex flex-col items-center">
+            <span
+              className="whitespace-nowrap text-[11px] leading-none"
+              style={{
+                fontFamily: "'Comic Sans MS', 'Caveat', cursive",
+                color: "#39ff14",
+                textShadow: "0 0 6px rgba(57,255,20,0.6)",
+                transform: "rotate(-4deg)",
+              }}
+            >
+              Map Game Screen
+            </span>
+            <ArrowDown
+              className="mt-0.5 h-4 w-4 animate-pulse"
+              style={{ color: "#39ff14", filter: "drop-shadow(0 0 4px rgba(57,255,20,0.7))" }}
+            />
+            <Link
+              to="/map"
+              aria-label="Open Map Game Screen"
+              className="transition-transform hover:scale-110 active:scale-95"
+            >
+              <MapIcon
+                className="h-8 w-8"
+                strokeWidth={2.25}
+                style={{
+                  color: "#f4cf6a",
+                  filter:
+                    "drop-shadow(0 1px 0 #8a6a16) drop-shadow(0 0 6px rgba(244,207,106,0.55))",
+                }}
+              />
+            </Link>
+          </div>
+        </div>
+
         {!isPlus && (
           <Link
             to="/plus"
