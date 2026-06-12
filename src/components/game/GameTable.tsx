@@ -426,7 +426,7 @@ export function GameTable({
     // within the same tab. 250ms is cheap and matches the game tick cadence.
     const t = setInterval(compute, 250);
     return () => clearInterval(t);
-  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, centerZoom, centerOffset, playerZoom]);
+  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, seatScales, centerZoom, centerOffset, playerZoom]);
   const handleMapSet = () => {
     try {
       localStorage.setItem(mapSavedKey, JSON.stringify(readBundle()));
