@@ -1330,7 +1330,10 @@ export function GameTable({
             offset={offset}
             draggable
             onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
+            pinchScale={seatScales[seatIdx] ?? 1}
+            onPinchEnd={(s) => updateSeatScale(seatIdx, s)}
             isMe={isMe}
+
             status={state.status}
             onReady={isMe ? onReady : undefined}
             onPileTap={isMe ? handlePileTap : undefined}
