@@ -55,6 +55,7 @@ export function GameTable({
   meId,
   inviteUrl,
   spectator = false,
+  mapMode = false,
 }: {
   state: GameState;
   setState: (mutator: (s: GameState) => GameState) => void;
@@ -63,7 +64,11 @@ export function GameTable({
   meId: string;
   inviteUrl?: string;
   spectator?: boolean;
+  /** Map Game Screen mode: lets the player adjust HUD layouts with mock content. */
+  mapMode?: boolean;
 }) {
+  const [showMapTips, setShowMapTips] = useState<boolean>(mapMode);
+
   const me = state.players.find((p) => p.id === meId);
   const others = state.players.filter((p) => p.id !== meId);
   const botMemory = useRef(createBotMemory());
