@@ -1062,8 +1062,22 @@ export function GameTable({
               </button>
             </div>
           </Movable>
+          {/* Map Game Screen: SET button to save the current seat-count layout. */}
+          {mapMode && (
+            <div className="pointer-events-auto mt-2 flex justify-end">
+              <button
+                onClick={handleMapSet}
+                className={`btn-3d ${mapIsSet ? "btn-3d-mint" : "btn-3d-gold"} flex items-center gap-1.5 px-3 py-1 text-[11px] font-black uppercase tracking-wider`}
+                aria-label={`Save ${seatCount}-seat configuration`}
+              >
+                Set {seatCount}-Seat
+                {mapIsSet && <Check className="h-3.5 w-3.5 text-[oklch(0.18_0.04_165)]" strokeWidth={3} />}
+              </button>
+            </div>
+          )}
         </div>
       )}
+
       {inviteUrl && (
         <InviteFriendsOverlay
           open={inviteOpen}
