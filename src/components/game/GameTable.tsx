@@ -295,6 +295,27 @@ export function GameTable({
     });
   };
 
+  // ===== Per-seat pinch scale (mobile pinch to enlarge/shrink each seat) =====
+  const seatScaleKey = `bimyah_seat_scale_${state.mode}_${seatOrder.length}`;
+  const [seatScales, setSeatScales] = useState<Record<number, number>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(seatScaleKey);
+      setSeatScales(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatScales({});
+    }
+  }, [seatScaleKey]);
+  const updateSeatScale = (seatIdx: number, s: number) => {
+    setSeatScales((cur) => {
+      const clamped = Math.max(0.5, Math.min(2.5, s));
+      const next = { ...cur, [seatIdx]: clamped };
+      try { localStorage.setItem(seatScaleKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+
   // ===== Center zoom + drag offset (pinch to enlarge/shrink, drag to reposition table + center cards + Bimyah) =====
   const zoomKey = `bimyah_center_zoom_${state.mode}_${seatOrder.length}`;
   const offsetKey = `bimyah_center_offset_${state.mode}_${seatOrder.length}`;
@@ -367,10 +388,12 @@ export function GameTable({
     () => [
       `bimyah_movables_${state.mode}_${seatCount}`,
       `bimyah_seat_offsets_${state.mode}_${seatCount}`,
+      `bimyah_seat_scale_${state.mode}_${seatCount}`,
       `bimyah_center_zoom_${state.mode}_${seatCount}`,
       `bimyah_center_offset_${state.mode}_${seatCount}`,
       `bimyah_player_zoom_${state.mode}_${seatCount}`,
     ],
+
     [state.mode, seatCount],
   );
   const mapSavedKey = `bimyah_map_saved_${state.mode}_${seatCount}`;
@@ -403,7 +426,7 @@ export function GameTable({
     // within the same tab. 250ms is cheap and matches the game tick cadence.
     const t = setInterval(compute, 250);
     return () => clearInterval(t);
-  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, centerZoom, centerOffset, playerZoom]);
+  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, seatScales, centerZoom, centerOffset, playerZoom]);
   const handleMapSet = () => {
     try {
       localStorage.setItem(mapSavedKey, JSON.stringify(readBundle()));
@@ -1307,7 +1330,10 @@ export function GameTable({
             offset={offset}
             draggable
             onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
+            pinchScale={seatScales[seatIdx] ?? 1}
+            onPinchEnd={(s) => updateSeatScale(seatIdx, s)}
             isMe={isMe}
+
             status={state.status}
             onReady={isMe ? onReady : undefined}
             onPileTap={isMe ? handlePileTap : undefined}
@@ -1872,6 +1898,8 @@ function PlayerSeat({
   offset,
   draggable = false,
   onDragEnd,
+  pinchScale = 1,
+  onPinchEnd,
   isMe,
   status,
   onReady,
@@ -1896,6 +1924,10 @@ function PlayerSeat({
   offset?: { dx: number; dy: number };
   draggable?: boolean;
   onDragEnd?: (dx: number, dy: number) => void;
+  /** Per-seat scale persisted by parent; multiplied on top of `zoom`. */
+  pinchScale?: number;
+  /** Called when a two-finger pinch on this seat ends. */
+  onPinchEnd?: (scale: number) => void;
   isMe: boolean;
   status: GameState["status"];
   onReady?: () => void;
@@ -1917,6 +1949,7 @@ function PlayerSeat({
   now?: number;
   inactivityDisabled?: boolean;
 }) {
+
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
@@ -1975,10 +2008,63 @@ function PlayerSeat({
     });
   })();
 
+  // ===== Per-seat two-finger pinch to resize (mobile) =====
+  // Multiplies on top of `zoom`. Tracked locally with a live preview; parent
+  // is notified via `onPinchEnd` when the gesture finishes.
+  const [livePinch, setLivePinch] = useState<number | null>(null);
+  const pinchRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    startDist: number;
+    startScale: number;
+  }>({ startDist: 0, startScale: 1 });
+  const effectivePinch = livePinch ?? pinchScale;
+  const onWrapperPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    const p = pinchRef.current;
+    if (!p.a) {
+      p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    } else if (!p.b && e.pointerId !== p.a.id) {
+      p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      p.startDist = Math.hypot(dx, dy) || 1;
+      p.startScale = pinchScale;
+      setLivePinch(pinchScale);
+    }
+  };
+  const onWrapperPointerMove = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (!p.a || !p.b) return;
+    if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+    else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+    else return;
+    const dx = p.b.x - p.a.x;
+    const dy = p.b.y - p.a.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const next = Math.max(0.5, Math.min(2.5, p.startScale * (dist / p.startDist)));
+    setLivePinch(next);
+    e.preventDefault();
+  };
+  const onWrapperPointerUp = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    const wasA = p.a?.id === e.pointerId;
+    const wasB = p.b?.id === e.pointerId;
+    if (!wasA && !wasB) return;
+    const wasPinching = !!p.b;
+    p.a = undefined;
+    p.b = undefined;
+    if (wasPinching && livePinch !== null) {
+      onPinchEnd?.(livePinch);
+    }
+    setLivePinch(null);
+  };
+
+  const combinedScale = zoom * effectivePinch;
   const wrapperStyle: React.CSSProperties = {
     left: `${position.x}%`,
     top: `${position.y}%`,
-    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${zoom !== 1 ? ` scale(${zoom})` : ""}`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${combinedScale !== 1 ? ` scale(${combinedScale})` : ""}`,
     transformOrigin:
       position.anchor === "bottom-center"
         ? "center bottom"
@@ -1987,18 +2073,23 @@ function PlayerSeat({
         : position.anchor === "left-center"
         ? "left center"
         : "right center",
-    transition: dragRef.current ? "none" : "transform 160ms ease-out",
-    touchAction: draggable ? "none" : undefined,
+    transition: dragRef.current || livePinch !== null ? "none" : "transform 160ms ease-out",
+    touchAction: "none",
   };
 
   return (
     <div
       className={cn(
         "absolute z-10 flex flex-col items-center gap-1",
-        dragRef.current && "z-30 opacity-95",
+        (dragRef.current || livePinch !== null) && "z-30 opacity-95",
       )}
       style={wrapperStyle}
+      onPointerDown={onWrapperPointerDown}
+      onPointerMove={onWrapperPointerMove}
+      onPointerUp={onWrapperPointerUp}
+      onPointerCancel={onWrapperPointerUp}
     >
+
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {((isMe && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
