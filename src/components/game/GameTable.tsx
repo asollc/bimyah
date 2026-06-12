@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameState, Player, PlayerColor } from "@/game/types";
 import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
 import {
