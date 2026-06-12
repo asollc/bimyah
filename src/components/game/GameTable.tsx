@@ -2008,10 +2008,63 @@ function PlayerSeat({
     });
   })();
 
+  // ===== Per-seat two-finger pinch to resize (mobile) =====
+  // Multiplies on top of `zoom`. Tracked locally with a live preview; parent
+  // is notified via `onPinchEnd` when the gesture finishes.
+  const [livePinch, setLivePinch] = useState<number | null>(null);
+  const pinchRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    startDist: number;
+    startScale: number;
+  }>({ startDist: 0, startScale: 1 });
+  const effectivePinch = livePinch ?? pinchScale;
+  const onWrapperPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
+    const p = pinchRef.current;
+    if (!p.a) {
+      p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    } else if (!p.b && e.pointerId !== p.a.id) {
+      p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      p.startDist = Math.hypot(dx, dy) || 1;
+      p.startScale = pinchScale;
+      setLivePinch(pinchScale);
+    }
+  };
+  const onWrapperPointerMove = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (!p.a || !p.b) return;
+    if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+    else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+    else return;
+    const dx = p.b.x - p.a.x;
+    const dy = p.b.y - p.a.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const next = Math.max(0.5, Math.min(2.5, p.startScale * (dist / p.startDist)));
+    setLivePinch(next);
+    e.preventDefault();
+  };
+  const onWrapperPointerUp = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    const wasA = p.a?.id === e.pointerId;
+    const wasB = p.b?.id === e.pointerId;
+    if (!wasA && !wasB) return;
+    const wasPinching = !!p.b;
+    p.a = undefined;
+    p.b = undefined;
+    if (wasPinching && livePinch !== null) {
+      onPinchEnd?.(livePinch);
+    }
+    setLivePinch(null);
+  };
+
+  const combinedScale = zoom * effectivePinch;
   const wrapperStyle: React.CSSProperties = {
     left: `${position.x}%`,
     top: `${position.y}%`,
-    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${zoom !== 1 ? ` scale(${zoom})` : ""}`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${combinedScale !== 1 ? ` scale(${combinedScale})` : ""}`,
     transformOrigin:
       position.anchor === "bottom-center"
         ? "center bottom"
@@ -2020,18 +2073,23 @@ function PlayerSeat({
         : position.anchor === "left-center"
         ? "left center"
         : "right center",
-    transition: dragRef.current ? "none" : "transform 160ms ease-out",
-    touchAction: draggable ? "none" : undefined,
+    transition: dragRef.current || livePinch !== null ? "none" : "transform 160ms ease-out",
+    touchAction: "none",
   };
 
   return (
     <div
       className={cn(
         "absolute z-10 flex flex-col items-center gap-1",
-        dragRef.current && "z-30 opacity-95",
+        (dragRef.current || livePinch !== null) && "z-30 opacity-95",
       )}
       style={wrapperStyle}
+      onPointerDown={onWrapperPointerDown}
+      onPointerMove={onWrapperPointerMove}
+      onPointerUp={onWrapperPointerUp}
+      onPointerCancel={onWrapperPointerUp}
     >
+
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {((isMe && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
