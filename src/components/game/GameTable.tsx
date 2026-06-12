@@ -895,7 +895,16 @@ export function GameTable({
       </div>
 
       {/* Bottom-right: 3D chat button */}
-      <div className="absolute bottom-3 right-3 z-30">
+      <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2">
+        {mapMode && !showMapTips && (
+          <button
+            onClick={() => setShowMapTips(true)}
+            className="btn-3d btn-3d-mint px-2 py-1 text-[10px] font-black uppercase tracking-wider"
+            aria-label="Show tips"
+          >
+            Tips
+          </button>
+        )}
         <Movable id="chat-button" {...movables} origin="bottom right">
           <button
             onClick={() => setShowChat(true)}
@@ -915,10 +924,52 @@ export function GameTable({
         </Movable>
       </div>
 
+      {/* Map Game Screen tooltip — instructs the player how to adjust elements. */}
+      {mapMode && showMapTips && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-xl border border-[var(--gold)]/60 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-2xl">
+            <button
+              onClick={() => setShowMapTips(false)}
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/80 hover:bg-white/20"
+              aria-label="Close tips"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h2 className="font-display text-base uppercase tracking-widest text-[var(--gold)]">
+              Map Game Screen
+            </h2>
+            <p className="mt-2 text-xs text-white/80">
+              Set up how your game board will look. Each adjustment is saved as your default for that seat count.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-[11px] text-white/85">
+              <li>
+                <span className="font-bold text-[var(--mint)]">PC:</span> click &amp; drag any element to move it. Select an element, then press <kbd className="rounded bg-white/10 px-1">↑</kbd> / <kbd className="rounded bg-white/10 px-1">↓</kbd> to resize.
+              </li>
+              <li>
+                <span className="font-bold text-[var(--mint)]">Mobile:</span> tap &amp; drag to move. Pinch with two fingers on an element to resize it.
+              </li>
+              <li>
+                Use the <span className="font-bold">Seats</span> control (top-left) to change how many seats are on the table.
+              </li>
+              <li>
+                When everything is positioned the way you like, click the <span className="font-bold text-[var(--gold)]">SET</span> button to save this configuration.
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowMapTips(false)}
+              className="btn-3d btn-3d-gold mt-4 w-full text-xs"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Invite (lobby only) — show 4-digit code */}
       {state.status === "lobby" && inviteUrl && (
         <div className="pointer-events-none absolute right-2 top-12 z-30">
           <Movable id="invite-code" {...movables} origin="top right" defaultLayout={{ s: 0.65 }} className="pointer-events-auto">
+
 
 
             <div className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
