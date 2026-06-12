@@ -358,6 +358,62 @@ export function GameTable({
 
   // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
   const movables = useMovableLayouts(state.mode, seatOrder.length);
+
+  // ===== Map Game Screen: per-seat-count SET workflow =====
+  // Snapshot the full layout bundle (all stores touched by drag/pinch/zoom)
+  // when the player clicks SET. Compare current to snapshot to detect "dirty".
+  const seatCount = seatOrder.length;
+  const mapBundleKeys = useMemo(
+    () => [
+      `bimyah_movables_${state.mode}_${seatCount}`,
+      `bimyah_seat_offsets_${state.mode}_${seatCount}`,
+      `bimyah_center_zoom_${state.mode}_${seatCount}`,
+      `bimyah_center_offset_${state.mode}_${seatCount}`,
+      `bimyah_player_zoom_${state.mode}_${seatCount}`,
+    ],
+    [state.mode, seatCount],
+  );
+  const mapSavedKey = `bimyah_map_saved_${state.mode}_${seatCount}`;
+  const readBundle = useCallback(() => {
+    try {
+      return mapBundleKeys.map((k) => localStorage.getItem(k) ?? "");
+    } catch {
+      return mapBundleKeys.map(() => "");
+    }
+  }, [mapBundleKeys]);
+  const [mapIsSet, setMapIsSet] = useState<boolean>(false);
+  // Re-evaluate "is set" whenever the layout-affecting stores change.
+  useEffect(() => {
+    if (!mapMode) return;
+    const compute = () => {
+      try {
+        const saved = localStorage.getItem(mapSavedKey);
+        if (!saved) {
+          setMapIsSet(false);
+          return;
+        }
+        const current = JSON.stringify(readBundle());
+        setMapIsSet(saved === current);
+      } catch {
+        setMapIsSet(false);
+      }
+    };
+    compute();
+    // Poll lightly — Movable writes to localStorage but doesn't fire events
+    // within the same tab. 250ms is cheap and matches the game tick cadence.
+    const t = setInterval(compute, 250);
+    return () => clearInterval(t);
+  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, centerZoom, centerOffset, playerZoom]);
+  const handleMapSet = () => {
+    try {
+      localStorage.setItem(mapSavedKey, JSON.stringify(readBundle()));
+      setMapIsSet(true);
+      toast.success(`${seatCount}-seat configuration saved.`);
+    } catch {
+      toast.error("Could not save configuration.");
+    }
+  };
+
   // Center pinch + drag: 1 pointer = drag, 2 pointers = pinch-zoom.
   const pinchRef = useRef<{
     a?: { id: number; x: number; y: number };
