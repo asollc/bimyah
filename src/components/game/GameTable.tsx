@@ -1898,6 +1898,8 @@ function PlayerSeat({
   offset,
   draggable = false,
   onDragEnd,
+  pinchScale = 1,
+  onPinchEnd,
   isMe,
   status,
   onReady,
@@ -1922,6 +1924,10 @@ function PlayerSeat({
   offset?: { dx: number; dy: number };
   draggable?: boolean;
   onDragEnd?: (dx: number, dy: number) => void;
+  /** Per-seat scale persisted by parent; multiplied on top of `zoom`. */
+  pinchScale?: number;
+  /** Called when a two-finger pinch on this seat ends. */
+  onPinchEnd?: (scale: number) => void;
   isMe: boolean;
   status: GameState["status"];
   onReady?: () => void;
@@ -1943,6 +1949,7 @@ function PlayerSeat({
   now?: number;
   inactivityDisabled?: boolean;
 }) {
+
   const colorHex = PLAYER_COLOR_HEX[player.color];
   const handReady =
     isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
