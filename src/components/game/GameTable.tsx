@@ -230,12 +230,11 @@ export function GameTable({
     return () => clearInterval(t);
   }, [state.status]);
 
-  // Tick "now" while playing so per-seat inactivity warnings count down.
-  useEffect(() => {
-    if (state.status !== "playing") return;
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
-  }, [state.status]);
+  // NOTE: inactivity countdowns previously ticked `now` here every 500ms,
+  // which re-rendered the entire GameTable (and every seat) twice a second
+  // and caused visible frame/input lag during play. The badge is now a
+  // self-ticking subcomponent (<InactivityBadge />) that only re-renders
+  // itself, so no parent tick is needed while playing.
 
   // Global activity heartbeat: any screen touch/click/keypress resets this
   // player's idle timer. Throttled to once per 3s to avoid intent spam.
@@ -436,8 +435,9 @@ export function GameTable({
     };
     compute();
     // Poll lightly — Movable writes to localStorage but doesn't fire events
-    // within the same tab. 250ms is cheap and matches the game tick cadence.
-    const t = setInterval(compute, 250);
+    // within the same tab. 1s is plenty (the SET badge only needs to settle
+    // soon after a drag ends), and lighter than the gameplay tick.
+    const t = setInterval(compute, 1000);
     return () => clearInterval(t);
   }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, seatScales, centerZoom, centerOffset, playerZoom]);
   const handleMapSet = () => {
@@ -2210,40 +2210,15 @@ function PlayerSeat({
 
       </div>
 
-      {/* Inactivity phase warning — shown next to the seat label / sort row.
-          Phases: "Inactive in Ns" (idle warning) → "Inactive — free cards in Ns"
-          → "Free Cards" (terminal). Bots never show this. */}
-      {!player.isBot && status === "playing" && !inactivityDisabled && (() => {
-        const t = now ?? Date.now();
-        if (player.freeCards) {
-          return (
-            <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
-              Free Cards
-            </div>
-          );
-        }
-        if (player.disconnectedAt) {
-          const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - player.disconnectedAt)) / 1000));
-          return (
-            <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
-              Inactive · free cards in {left}s
-            </div>
-          );
-        }
-        if (player.lastActiveAt) {
-          const sinceActive = t - player.lastActiveAt;
-          const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
-          if (sinceActive >= warnAt) {
-            const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
-            return (
-              <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
-                Inactive in {left}s
-              </div>
-            );
-          }
-        }
-        return null;
-      })()}
+      {/* Inactivity phase warning — self-ticking so it doesn't re-render
+          the rest of the seat (or the parent GameTable) every second. */}
+      {!player.isBot && status === "playing" && !inactivityDisabled && (
+        <InactivityBadge
+          freeCards={!!player.freeCards}
+          disconnectedAt={player.disconnectedAt ?? null}
+          lastActiveAt={player.lastActiveAt ?? null}
+        />
+      )}
 
       {/* Piles (with SET/SORT absolutely anchored below for the local player
           so opening a pile does NOT shift the piles upward).
@@ -2591,3 +2566,54 @@ function ViewAllCardsModal({
     </div>
   );
 }
+
+/**
+ * Inactivity warning badge. Ticks ONLY itself once per second instead of
+ * the whole GameTable, so input/animation stay smooth during play.
+ */
+function InactivityBadge({
+  freeCards,
+  disconnectedAt,
+  lastActiveAt,
+}: {
+  freeCards: boolean;
+  disconnectedAt: number | null;
+  lastActiveAt: number | null;
+}) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (freeCards) return; // terminal state, no countdown needed
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [freeCards]);
+  const t = Date.now();
+  if (freeCards) {
+    return (
+      <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
+        Free Cards
+      </div>
+    );
+  }
+  if (disconnectedAt) {
+    const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - disconnectedAt)) / 1000));
+    return (
+      <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+        Inactive · free cards in {left}s
+      </div>
+    );
+  }
+  if (lastActiveAt) {
+    const sinceActive = t - lastActiveAt;
+    const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
+    if (sinceActive >= warnAt) {
+      const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
+      return (
+        <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
+          Inactive in {left}s
+        </div>
+      );
+    }
+  }
+  return null;
+}
+
