@@ -292,7 +292,6 @@ export function Movable({
   return (
     <div
       ref={rootRef}
-      data-movable="1"
       className={className}
       style={{
         transform: `translate(${layout.dx}px, ${layout.dy}px) scale(${layout.s})`,

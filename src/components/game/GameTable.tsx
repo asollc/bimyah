@@ -855,7 +855,6 @@ export function GameTable({
     <div
       className="relative h-[100dvh] w-screen overflow-hidden"
       data-spectator={spectator ? "1" : undefined}
-      data-map-mode={mapMode ? "1" : undefined}
       style={
         hostBackgroundUrl
           ? {
@@ -2080,7 +2079,6 @@ function PlayerSeat({
 
   return (
     <div
-      data-player-seat="1"
       className={cn(
         "absolute z-10 flex flex-col items-center gap-1",
         (dragRef.current || livePinch !== null) && "z-30 opacity-95",

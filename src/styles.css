@@ -655,12 +655,3 @@
 [class*="text-stone-"] {
   color: rgb(255 255 255) !important;
 }
-
-/* Map Game Screen: outline every draggable element and seat so they
-   stand out against the table background while users arrange them. */
-[data-map-mode="1"] [data-movable="1"],
-[data-map-mode="1"] [data-player-seat="1"] {
-  outline: 2px solid #000;
-  outline-offset: 2px;
-  border-radius: 6px;
-}
