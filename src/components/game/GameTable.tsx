@@ -2566,3 +2566,54 @@ function ViewAllCardsModal({
     </div>
   );
 }
+
+/**
+ * Inactivity warning badge. Ticks ONLY itself once per second instead of
+ * the whole GameTable, so input/animation stay smooth during play.
+ */
+function InactivityBadge({
+  freeCards,
+  disconnectedAt,
+  lastActiveAt,
+}: {
+  freeCards: boolean;
+  disconnectedAt: number | null;
+  lastActiveAt: number | null;
+}) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (freeCards) return; // terminal state, no countdown needed
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [freeCards]);
+  const t = Date.now();
+  if (freeCards) {
+    return (
+      <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
+        Free Cards
+      </div>
+    );
+  }
+  if (disconnectedAt) {
+    const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - disconnectedAt)) / 1000));
+    return (
+      <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+        Inactive · free cards in {left}s
+      </div>
+    );
+  }
+  if (lastActiveAt) {
+    const sinceActive = t - lastActiveAt;
+    const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
+    if (sinceActive >= warnAt) {
+      const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
+      return (
+        <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
+          Inactive in {left}s
+        </div>
+      );
+    }
+  }
+  return null;
+}
+
