@@ -9,13 +9,21 @@ import { JoinPicker } from "@/components/game/JoinPicker";
 import { Users, RefreshCw, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/public")({
-  head: () => ({
-    meta: [
-      { title: "Public Matches — Bimyah!" },
-      { name: "description", content: "Browse open Bimyah! lobbies and jump into a public match." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Public Matches — Bimyah!";
+    const description = "Browse open Bimyah! lobbies and jump straight into a public match with players from around the world.";
+    const url = "https://playbimyah.com/public";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PublicMatchesPage,
 });
 
