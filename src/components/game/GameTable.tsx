@@ -435,8 +435,9 @@ export function GameTable({
     };
     compute();
     // Poll lightly — Movable writes to localStorage but doesn't fire events
-    // within the same tab. 250ms is cheap and matches the game tick cadence.
-    const t = setInterval(compute, 250);
+    // within the same tab. 1s is plenty (the SET badge only needs to settle
+    // soon after a drag ends), and lighter than the gameplay tick.
+    const t = setInterval(compute, 1000);
     return () => clearInterval(t);
   }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, seatScales, centerZoom, centerOffset, playerZoom]);
   const handleMapSet = () => {
