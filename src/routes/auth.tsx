@@ -8,15 +8,18 @@ import { WHITELIST_ACK_KEY } from "@/auth/WhitelistAckGuard";
 export const Route = createFileRoute("/auth")({
   head: () => {
     const title = "Sign in — Bimyah!";
-    const description = "Sign in or create your free Bimyah! account to play online with friends.";
+    const description = "Sign in or create your free Bimyah! account to play the no-turns card race online with friends.";
+    const url = "https://playbimyah.com/auth";
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
+        { property: "og:url", content: url },
         { name: "robots", content: "noindex" },
       ],
+      links: [{ rel: "canonical", href: url }],
     };
   },
   component: AuthPage,
