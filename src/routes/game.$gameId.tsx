@@ -14,12 +14,22 @@ import {
 import { clearReentryCode } from "@/game/reentry";
 
 export const Route = createFileRoute("/game/$gameId")({
-  head: () => ({
-    meta: [
-      { title: "Game in progress — Bimyah!" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const title = "Live Bimyah! match in progress";
+    const description = "An active Bimyah! multiplayer match — join with an invite link to play the fast no-turns card race together.";
+    const url = `https://playbimyah.com/game/${params.gameId}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: OnlineGame,
 });
 
