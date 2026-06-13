@@ -69,7 +69,20 @@ export function GameTable({
   /** Map Game Screen mode: lets the player adjust HUD layouts with mock content. */
   mapMode?: boolean;
 }) {
-  const [showMapTips, setShowMapTips] = useState<boolean>(mapMode);
+  const [showMapTips, setShowMapTips] = useState<boolean>(() => {
+    if (!mapMode) return false;
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") !== "1";
+  });
+  const [hideMapTips, setHideMapTips] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hideMapTips) window.localStorage.setItem("bimyah_map_tips_hidden", "1");
+    else window.localStorage.removeItem("bimyah_map_tips_hidden");
+  }, [hideMapTips]);
 
   const me = state.players.find((p) => p.id === meId);
   const others = state.players.filter((p) => p.id !== meId);
