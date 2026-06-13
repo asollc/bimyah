@@ -10,17 +10,22 @@ import type { GameState } from "@/game/types";
 import { secureShortId } from "@/lib/secureId";
 
 export const Route = createFileRoute("/map")({
-  head: () => ({
-    meta: [
-      { title: "Map Game Screen — Bimyah!" },
-      {
-        name: "description",
-        content:
-          "Arrange your Bimyah! HUD: drag, resize, and save default positions for every seat configuration.",
-      },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Map Game Screen — Bimyah!";
+    const description = "Arrange your Bimyah! HUD: drag, resize, and save default seat positions for every player count.";
+    const url = "https://playbimyah.com/map";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: MapPage,
 });
 

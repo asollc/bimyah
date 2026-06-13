@@ -34,13 +34,21 @@ const KIND_BY_CATEGORY: Record<CategoryId, "card_back" | "victory" | "badge" | "
 };
 
 export const Route = createFileRoute("/bmart")({
-  head: () => ({
-    meta: [
-      { title: "Bmart — Bimyah! bling for those who like to look good while they play good." },
-      { name: "description", content: "Bmart is the in-game marketplace for Bimyah! — card backs, victory effects, titles, backgrounds, and table tops." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Bmart — Bimyah! card backs, victories, and table décor";
+    const description = "Shop Bmart, the Bimyah! marketplace for custom card backs, victory effects, backgrounds, and table tops to flex on every match.";
+    const url = "https://playbimyah.com/bmart";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: BmartPage,
 });
 

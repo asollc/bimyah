@@ -46,9 +46,22 @@ import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
 import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({
-    meta: [{ title: "Admin — Bimyah!" }, { name: "robots", content: "noindex, nofollow" }],
-  }),
+  head: () => {
+    const title = "Admin — Bimyah!";
+    const description = "Internal Bimyah! admin console for managing users, subscriptions, and Bimyah!+ entitlements.";
+    const url = "https://playbimyah.com/admin";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex, nofollow" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: AdminPage,
 });
 
