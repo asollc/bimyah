@@ -4,12 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { BplusIcon } from "@/components/BplusIcon";
 
 export const Route = createFileRoute("/plus/return")({
-  head: () => ({
-    meta: [
-      { title: "Bimyah!+ — Payment complete" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Bimyah!+ — Payment complete";
+    const description = "Your Bimyah!+ purchase is complete — your membership perks and cosmetics are now active on your account.";
+    const url = "https://playbimyah.com/plus/return";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PlusReturn,
 });
 
