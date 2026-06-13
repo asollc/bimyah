@@ -2210,40 +2210,15 @@ function PlayerSeat({
 
       </div>
 
-      {/* Inactivity phase warning — shown next to the seat label / sort row.
-          Phases: "Inactive in Ns" (idle warning) → "Inactive — free cards in Ns"
-          → "Free Cards" (terminal). Bots never show this. */}
-      {!player.isBot && status === "playing" && !inactivityDisabled && (() => {
-        const t = now ?? Date.now();
-        if (player.freeCards) {
-          return (
-            <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
-              Free Cards
-            </div>
-          );
-        }
-        if (player.disconnectedAt) {
-          const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - player.disconnectedAt)) / 1000));
-          return (
-            <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
-              Inactive · free cards in {left}s
-            </div>
-          );
-        }
-        if (player.lastActiveAt) {
-          const sinceActive = t - player.lastActiveAt;
-          const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
-          if (sinceActive >= warnAt) {
-            const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
-            return (
-              <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
-                Inactive in {left}s
-              </div>
-            );
-          }
-        }
-        return null;
-      })()}
+      {/* Inactivity phase warning — self-ticking so it doesn't re-render
+          the rest of the seat (or the parent GameTable) every second. */}
+      {!player.isBot && status === "playing" && !inactivityDisabled && (
+        <InactivityBadge
+          freeCards={!!player.freeCards}
+          disconnectedAt={player.disconnectedAt ?? null}
+          lastActiveAt={player.lastActiveAt ?? null}
+        />
+      )}
 
       {/* Piles (with SET/SORT absolutely anchored below for the local player
           so opening a pile does NOT shift the piles upward).
