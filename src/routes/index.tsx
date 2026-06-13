@@ -58,6 +58,36 @@ export const Route = createFileRoute("/")({
         { name: "twitter:image", content: image },
       ],
       links: [{ rel: "canonical", href: "https://playbimyah.com/" }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                name: "Bimyah!",
+                url: "https://playbimyah.com/",
+                logo: "https://playbimyah.com/favicon-512.png",
+              },
+              {
+                "@type": "WebSite",
+                name: "Bimyah!",
+                url: "https://playbimyah.com/",
+              },
+              {
+                "@type": "SoftwareApplication",
+                name: "Bimyah!",
+                applicationCategory: "GameApplication",
+                operatingSystem: "Web",
+                url: "https://playbimyah.com/",
+                description,
+                offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+              },
+            ],
+          }),
+        },
+      ],
     };
   },
   component: HomePage,
