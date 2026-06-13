@@ -1056,9 +1056,18 @@ export function GameTable({
                 When everything is positioned the way you like, click the <span className="font-bold text-[var(--gold)]">SET</span> button to save this configuration.
               </li>
             </ul>
+            <label className="mt-3 flex items-center gap-2 text-[11px] text-white/80 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideMapTips}
+                onChange={(e) => setHideMapTips(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--gold)]"
+              />
+              Don't show this message again
+            </label>
             <button
               onClick={() => setShowMapTips(false)}
-              className="btn-3d btn-3d-gold mt-4 w-full text-xs"
+              className="btn-3d btn-3d-gold mt-3 w-full text-xs"
             >
               Got it
             </button>
