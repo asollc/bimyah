@@ -69,7 +69,20 @@ export function GameTable({
   /** Map Game Screen mode: lets the player adjust HUD layouts with mock content. */
   mapMode?: boolean;
 }) {
-  const [showMapTips, setShowMapTips] = useState<boolean>(mapMode);
+  const [showMapTips, setShowMapTips] = useState<boolean>(() => {
+    if (!mapMode) return false;
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") !== "1";
+  });
+  const [hideMapTips, setHideMapTips] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hideMapTips) window.localStorage.setItem("bimyah_map_tips_hidden", "1");
+    else window.localStorage.removeItem("bimyah_map_tips_hidden");
+  }, [hideMapTips]);
 
   const me = state.players.find((p) => p.id === meId);
   const others = state.players.filter((p) => p.id !== meId);
@@ -1043,9 +1056,18 @@ export function GameTable({
                 When everything is positioned the way you like, click the <span className="font-bold text-[var(--gold)]">SET</span> button to save this configuration.
               </li>
             </ul>
+            <label className="mt-3 flex items-center gap-2 text-[11px] text-white/80 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideMapTips}
+                onChange={(e) => setHideMapTips(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--gold)]"
+              />
+              Don't show this message again
+            </label>
             <button
               onClick={() => setShowMapTips(false)}
-              className="btn-3d btn-3d-gold mt-4 w-full text-xs"
+              className="btn-3d btn-3d-gold mt-3 w-full text-xs"
             >
               Got it
             </button>
