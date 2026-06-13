@@ -23,14 +23,22 @@ function ComingSoon({ label }: { label: string }) {
 }
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({
-    meta: [
-      { title: "Profile — Bimyah!" },
-      { title: "Profile — Bimyah!" },
-      { name: "description", content: "Manage your Bimyah! profile, avatar, and card backs." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Profile — Bimyah!";
+    const description = "Manage your Bimyah! profile, avatar, card backs, and table décor.";
+    const url = "https://playbimyah.com/profile";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   validateSearch: (s: Record<string, unknown>) => ({
     bimbucks: typeof s.bimbucks === "string" ? s.bimbucks : undefined,
   }),
