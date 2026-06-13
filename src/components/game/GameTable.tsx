@@ -230,12 +230,11 @@ export function GameTable({
     return () => clearInterval(t);
   }, [state.status]);
 
-  // Tick "now" while playing so per-seat inactivity warnings count down.
-  useEffect(() => {
-    if (state.status !== "playing") return;
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
-  }, [state.status]);
+  // NOTE: inactivity countdowns previously ticked `now` here every 500ms,
+  // which re-rendered the entire GameTable (and every seat) twice a second
+  // and caused visible frame/input lag during play. The badge is now a
+  // self-ticking subcomponent (<InactivityBadge />) that only re-renders
+  // itself, so no parent tick is needed while playing.
 
   // Global activity heartbeat: any screen touch/click/keypress resets this
   // player's idle timer. Throttled to once per 3s to avoid intent spam.
