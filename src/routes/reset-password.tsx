@@ -4,12 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { PowLogo } from "@/components/game/Visuals";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({
-    meta: [
-      { title: "Reset password — Bimyah!" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () => {
+    const title = "Reset password — Bimyah!";
+    const description = "Choose a new password for your Bimyah! account using the secure recovery link sent to your email.";
+    const url = "https://playbimyah.com/reset-password";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: ResetPasswordPage,
 });
 
