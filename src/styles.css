@@ -656,15 +656,11 @@
   color: rgb(255 255 255) !important;
 }
 
-/* Map Game Screen: trace a black outline around the actual visible
-   silhouette of every draggable element and seat (follows curves,
-   ovals, and rounded buttons — not a square bounding box). Stacked
-   drop-shadows form a 1px black ring around any non-transparent pixel. */
+/* Map Game Screen: outline every draggable element and seat so they
+   stand out against the table background while users arrange them. */
 [data-map-mode="1"] [data-movable="1"],
 [data-map-mode="1"] [data-player-seat="1"] {
-  filter:
-    drop-shadow(1px 0 0 #000)
-    drop-shadow(-1px 0 0 #000)
-    drop-shadow(0 1px 0 #000)
-    drop-shadow(0 -1px 0 #000);
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  border-radius: 6px;
 }
