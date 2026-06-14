@@ -67,7 +67,6 @@ function SoloGame() {
         titleUrl: null,
         badgeUrl: null,
         badgeUrl2: null,
-        specialBadgeUrl: null,
         victoryUrl: null,
         victoryEffectType: null,
         backgroundUrl: null,
