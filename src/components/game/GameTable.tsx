@@ -2199,15 +2199,6 @@ function PlayerSeat({
             className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
           />
         )}
-        {player.specialBadgeUrl && (
-          <img
-            src={player.specialBadgeUrl}
-            alt=""
-            aria-hidden
-            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
-          />
-        )}
-
       </div>
 
       {/* Inactivity phase warning — self-ticking so it doesn't re-render
@@ -2477,15 +2468,6 @@ function ViewAllCardsModal({
                       className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
                     />
                   )}
-                  {player.specialBadgeUrl && (
-                    <img
-                      src={player.specialBadgeUrl}
-                      alt=""
-                      aria-hidden
-                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
-                    />
-                  )}
-
                 </div>
 
                 {/* Hand row — reserved space so piles don't shift */}
