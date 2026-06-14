@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Home, Trophy, Crown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import bimyahLogo from "@/assets/bimyah-logo.webp";
+import bimyahLogo from "@/assets/bimyah-logo-new.png.asset.json";
 import type { GameState, PlayerColor } from "@/game/types";
 import {
   AlertDialog,
@@ -22,7 +22,7 @@ export function PowLogo({ size = 220 }: { size?: number }) {
       style={{ width: size, height: size * (1158 / 1215) }}
     >
       <img
-        src={bimyahLogo}
+        src={bimyahLogo.url}
         alt="BIMYAH! The Card Game"
         draggable={false}
         className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]"
