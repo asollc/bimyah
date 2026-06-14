@@ -1185,7 +1185,7 @@ export function GameTable({
               />
             ) : (
               <img
-                src="/bimyah-logo-table-new.png"
+                src="/__l5e/assets-v1/e0de9d4b-c1d2-4391-af91-1acf8a06f77a/bimyah-logo-new.png"
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain"
