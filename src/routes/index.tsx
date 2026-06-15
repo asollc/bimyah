@@ -57,7 +57,15 @@ export const Route = createFileRoute("/")({
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: image },
       ],
-      links: [{ rel: "canonical", href: "https://playbimyah.com/" }],
+      links: [
+        { rel: "canonical", href: "https://playbimyah.com/" },
+        {
+          rel: "preload",
+          as: "image",
+          href: "/__l5e/assets-v1/e0de9d4b-c1d2-4391-af91-1acf8a06f77a/bimyah-logo-new.png",
+          fetchpriority: "high",
+        },
+      ],
       scripts: [
         {
           type: "application/ld+json",
