@@ -63,7 +63,6 @@ export const Route = createFileRoute("/")({
           rel: "preload",
           as: "image",
           href: "/__l5e/assets-v1/e0de9d4b-c1d2-4391-af91-1acf8a06f77a/bimyah-logo-new.png",
-          // @ts-expect-error - fetchpriority is valid on <link rel=preload>
           fetchpriority: "high",
         },
       ],
