@@ -126,7 +126,7 @@ function AuthPage() {
   return (
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center justify-center px-4 py-6">
       <Link to="/" className="mb-4">
-        <PowLogo size={140} />
+        <PowLogo size={182} />
       </Link>
 
       <p className="mb-3 text-center text-sm font-display uppercase tracking-widest text-amber-300">

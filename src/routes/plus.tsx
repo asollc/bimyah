@@ -165,7 +165,7 @@ function PlusPage() {
     <div className="relative flex min-h-[calc(100dvh-50px)] w-screen flex-col items-center px-4 py-6">
       <PaymentTestModeBanner />
       <Link to="/" className="mb-2 mt-2">
-        <PowLogo size={120} />
+        <PowLogo size={156} />
       </Link>
 
       <div className="text-3d-yellow font-display flex items-center justify-center gap-2 text-center text-2xl font-black uppercase tracking-widest sm:text-3xl">
