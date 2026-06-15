@@ -25,6 +25,11 @@ export function PowLogo({ size = 220 }: { size?: number }) {
         src={bimyahLogo.url}
         alt="BIMYAH! The Card Game"
         draggable={false}
+        width={1215}
+        height={1158}
+        // @ts-expect-error - fetchpriority is a valid HTML attribute
+        fetchpriority="high"
+        decoding="async"
         className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]"
       />
     </div>
