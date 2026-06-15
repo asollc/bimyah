@@ -170,7 +170,15 @@ export function HomeButton({
             <AlertDialogAction
               onClick={() => {
                 setOpen(false);
-                if (isHost && onEndMatch) onEndMatch();
+                if (isHost && onEndMatch) {
+                  // Host: only flag the room as closed here. The route
+                  // effect rebroadcasts the close to peers, then tears
+                  // down the session and navigates home. Navigating now
+                  // would unmount the route and cancel that rebroadcast,
+                  // leaving joiners stranded in the game.
+                  onEndMatch();
+                  return;
+                }
                 void navigate({ to: "/" });
               }}
               className={
