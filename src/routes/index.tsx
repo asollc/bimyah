@@ -274,7 +274,7 @@ function HomePage() {
 
       <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
         <div className="relative">
-          <PowLogo size={207} />
+          <PowLogo size={269} />
           <span
             aria-label="beta"
             className="absolute -bottom-2 -right-4 rotate-[-8deg] text-2xl sm:text-3xl font-black uppercase tracking-wider"

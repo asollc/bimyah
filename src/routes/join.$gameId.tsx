@@ -287,7 +287,7 @@ function JoinGame() {
       </div>
 
       <div className="flex w-full max-w-xs flex-col items-center gap-4">
-        <PowLogo size={220} />
+        <PowLogo size={286} />
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">
