@@ -170,13 +170,39 @@ function OnlineGame() {
   const isSpectator = identity?.role === "spectator";
 
   // ===== Detect host closing the room (End Match) =====
+  // On the host, the broadcast carrying `roomClosed: true` is queued on each
+  // WebRTC data channel synchronously; destroying the peer immediately would
+  // drop those queued messages before they actually flush, leaving joiners
+  // stuck in the game. Give the host a short delay (and a couple of
+  // rebroadcasts for resilience) so the close reaches everyone, then tear
+  // down and navigate. Joiners react immediately on receipt.
   useEffect(() => {
     if (!session || !state) return;
     if (!state.roomClosed) return;
-    clearGame(gameId);
-    clearReentryCode(gameId);
-    session.destroy();
-    void navigate({ to: "/" });
+    const teardown = () => {
+      clearGame(gameId);
+      clearReentryCode(gameId);
+      session.destroy();
+      void navigate({ to: "/" });
+    };
+    if (session.isHost) {
+      const rebroadcast = setInterval(() => {
+        try {
+          session.setState((s) => ({ ...s, roomClosed: true }));
+        } catch {
+          /* ignore */
+        }
+      }, 250);
+      const t = setTimeout(() => {
+        clearInterval(rebroadcast);
+        teardown();
+      }, 1500);
+      return () => {
+        clearInterval(rebroadcast);
+        clearTimeout(t);
+      };
+    }
+    teardown();
   }, [session, state, gameId, navigate]);
 
   // ===== Detect being removed from the game =====
