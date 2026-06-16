@@ -1976,6 +1976,7 @@ function PlayerSeat({
   pinchScale = 1,
   onPinchEnd,
   isMe,
+  canControl,
   status,
   onReady,
   onPileTap,
@@ -2004,6 +2005,9 @@ function PlayerSeat({
   /** Called when a two-finger pinch on this seat ends. */
   onPinchEnd?: (scale: number) => void;
   isMe: boolean;
+  /** True when the local player can drive this seat (always for isMe;
+   *  also true for every seat when training's "Control All Hands" is on). */
+  canControl?: boolean;
   status: GameState["status"];
   onReady?: () => void;
   onPileTap?: (i: number) => void;
