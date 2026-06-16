@@ -199,6 +199,12 @@ export function GameTable({
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+  // Keep `controlAllHands` in a ref so the tick interval below sees the
+  // latest value without restarting on every toggle.
+  const controlAllRef = useRef(controlAllHands);
+  useEffect(() => {
+    controlAllRef.current = controlAllHands;
+  }, [controlAllHands]);
   useEffect(() => {
     if (!isHost) return;
     const t = setInterval(() => {
@@ -207,7 +213,10 @@ export function GameTable({
       setState((s) => tickIdle(s));
       setState((s) => tickInactive(s));
       setState((s) => tickFreeCardHolds(s));
-      stepBots(stateRef.current, botMemory.current, (m) => setState(m));
+      // Training: pause bot actions while the player is driving every seat.
+      if (!controlAllRef.current) {
+        stepBots(stateRef.current, botMemory.current, (m) => setState(m));
+      }
     }, 250);
     return () => clearInterval(t);
   }, [setState, isHost]);
