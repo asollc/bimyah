@@ -2379,7 +2379,7 @@ function PlayerSeat({
 
           {/* SET/SORT buttons — absolutely positioned UNDER the piles so the
               piles never shift when a pile is opened. */}
-          {isMe && player.openPileIndex !== null && status === "playing" && (
+          {controllable && player.openPileIndex !== null && status === "playing" && (
             <div className="absolute left-1/2 top-full mt-1 flex -translate-x-1/2 items-center justify-center gap-1.5">
               <button
                 onClick={onSet}
