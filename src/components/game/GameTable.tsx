@@ -2030,8 +2030,9 @@ function PlayerSeat({
 }) {
 
   const colorHex = PLAYER_COLOR_HEX[player.color];
+  const controllable = canControl ?? isMe;
   const handReady =
-    isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
+    controllable && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
   const pileWidth = isMe ? 37 : position.compact ? 20 : 26;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
