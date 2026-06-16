@@ -1413,7 +1413,7 @@ export function GameTable({
       {/* Player seats */}
       {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
-        const canControl = isMe || (controlAllHands && !player.isBot ? true : controlAllHands);
+        const canControl = isMe || controlAllHands;
         const pos = basePositions[seatIdx];
         const offset = seatOffsets[seatIdx];
         return (
