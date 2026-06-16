@@ -130,13 +130,15 @@ export function GameTable({
   }, []);
   const isTournament = state.mode === "tournament";
 
-  // Clear selection if the selected card is no longer in our hand.
+  // Clear selection if the selected card is no longer in the selecting
+  // player's hand. With "Control All Hands" the selector may be any seat.
   useEffect(() => {
     if (!selectedHandCardId) return;
-    if (!me || !me.hand.some((c) => c.id === selectedHandCardId)) {
+    const actor = state.players.find((p) => p.id === selectedActorId);
+    if (!actor || !actor.hand.some((c) => c.id === selectedHandCardId)) {
       setSelectedHandCardId(null);
     }
-  }, [me, selectedHandCardId]);
+  }, [state.players, selectedHandCardId, selectedActorId]);
 
   // Reset sort mode when the player closes their pile (no open pile).
   useEffect(() => {
