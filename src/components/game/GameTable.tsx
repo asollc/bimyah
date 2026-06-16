@@ -103,7 +103,15 @@ export function GameTable({
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+  const [selectedActorId, setSelectedActorId] = useState<string>(meId);
   const [sortEnabled, setSortEnabled] = useState(false);
+  /** Training-only: when true, the local player can drive every seat
+   *  (including bots) as if they were their own. Bots are paused while on. */
+  const [controlAllHands, setControlAllHands] = useState(false);
+  // If toggle is ever active but mode changes away from training, force off.
+  useEffect(() => {
+    if (state.mode !== "training" && controlAllHands) setControlAllHands(false);
+  }, [state.mode, controlAllHands]);
   const [showViewAll, setShowViewAll] = useState(false);
   const [showKeybinds, setShowKeybinds] = useState(false);
   /** Which inactive player's pile is currently expanded for me to view (one at a time). */
