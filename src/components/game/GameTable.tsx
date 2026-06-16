@@ -103,7 +103,15 @@ export function GameTable({
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [newLimitInput, setNewLimitInput] = useState("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+  const [selectedActorId, setSelectedActorId] = useState<string>(meId);
   const [sortEnabled, setSortEnabled] = useState(false);
+  /** Training-only: when true, the local player can drive every seat
+   *  (including bots) as if they were their own. Bots are paused while on. */
+  const [controlAllHands, setControlAllHands] = useState(false);
+  // If toggle is ever active but mode changes away from training, force off.
+  useEffect(() => {
+    if (state.mode !== "training" && controlAllHands) setControlAllHands(false);
+  }, [state.mode, controlAllHands]);
   const [showViewAll, setShowViewAll] = useState(false);
   const [showKeybinds, setShowKeybinds] = useState(false);
   /** Which inactive player's pile is currently expanded for me to view (one at a time). */
@@ -122,13 +130,15 @@ export function GameTable({
   }, []);
   const isTournament = state.mode === "tournament";
 
-  // Clear selection if the selected card is no longer in our hand.
+  // Clear selection if the selected card is no longer in the selecting
+  // player's hand. With "Control All Hands" the selector may be any seat.
   useEffect(() => {
     if (!selectedHandCardId) return;
-    if (!me || !me.hand.some((c) => c.id === selectedHandCardId)) {
+    const actor = state.players.find((p) => p.id === selectedActorId);
+    if (!actor || !actor.hand.some((c) => c.id === selectedHandCardId)) {
       setSelectedHandCardId(null);
     }
-  }, [me, selectedHandCardId]);
+  }, [state.players, selectedHandCardId, selectedActorId]);
 
   // Reset sort mode when the player closes their pile (no open pile).
   useEffect(() => {
@@ -189,6 +199,12 @@ export function GameTable({
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+  // Keep `controlAllHands` in a ref so the tick interval below sees the
+  // latest value without restarting on every toggle.
+  const controlAllRef = useRef(controlAllHands);
+  useEffect(() => {
+    controlAllRef.current = controlAllHands;
+  }, [controlAllHands]);
   useEffect(() => {
     if (!isHost) return;
     const t = setInterval(() => {
@@ -197,7 +213,10 @@ export function GameTable({
       setState((s) => tickIdle(s));
       setState((s) => tickInactive(s));
       setState((s) => tickFreeCardHolds(s));
-      stepBots(stateRef.current, botMemory.current, (m) => setState(m));
+      // Training: pause bot actions while the player is driving every seat.
+      if (!controlAllRef.current) {
+        stepBots(stateRef.current, botMemory.current, (m) => setState(m));
+      }
     }, 250);
     return () => clearInterval(t);
   }, [setState, isHost]);
@@ -515,41 +534,58 @@ export function GameTable({
   };
 
   // helpers
-  const handlePileTap = (pileIndex: number) => {
-    if (!me || state.status !== "playing") return;
-    if (me.pileLocked[pileIndex]) return;
+  // All seat-driven handlers accept an optional `actorId`. By default the
+  // local player acts on their own seat; when "Control All Hands" is on
+  // (training only) the parent passes the seat's player id so the user can
+  // operate other seats too.
+  const handlePileTap = (pileIndex: number, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || state.status !== "playing") return;
+    if (actor.pileLocked[pileIndex]) return;
     sfx.flip();
-    dispatch({ kind: "openPile", playerId: meId, stackIndex: pileIndex });
+    dispatch({ kind: "openPile", playerId: actorId, stackIndex: pileIndex });
   };
 
   const handleCenterTap = (i: number) => {
-    if (!me || state.status !== "playing") return;
+    if (state.status !== "playing") return;
     const slot = state.center[i];
     if (!slot.card) return;
-    // If this slot is the one we are already holding and we have a selected
-    // hand card, complete the swap.
-    if (slot.heldBy === meId && selectedHandCardId) {
+    // Determine which seat is acting on this center slot. Priority:
+    //   1) whoever already holds this slot,
+    //   2) whoever has a hand card currently selected,
+    //   3) the local player.
+    const actorId =
+      slot.heldBy ?? (selectedHandCardId ? selectedActorId : meId);
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // Complete an in-flight hold + selected swap.
+    if (
+      slot.heldBy === actorId &&
+      selectedHandCardId &&
+      selectedActorId === actorId
+    ) {
       sfx.swap();
-      dispatch({ kind: "swap", playerId: meId, cardId: selectedHandCardId });
+      dispatch({ kind: "swap", playerId: actorId, cardId: selectedHandCardId });
       setSelectedHandCardId(null);
       return;
     }
     if (slot.heldBy) return;
-    if (me.openPileIndex === null) return;
-    if (me.hand.length >= 5) return;
-    // If the player has already pre-selected a hand card, perform the swap
-    // immediately: hold + swap in one tap. We dispatch hold then swap so the
-    // engine sees a consistent transition.
-    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+    if (actor.openPileIndex === null) return;
+    if (actor.hand.length >= 5) return;
+    if (
+      selectedHandCardId &&
+      selectedActorId === actorId &&
+      actor.hand.some((c) => c.id === selectedHandCardId)
+    ) {
       const cardId = selectedHandCardId;
       sfx.swap();
-      dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
-      dispatch({ kind: "swap", playerId: meId, cardId });
+      dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
+      dispatch({ kind: "swap", playerId: actorId, cardId });
       setSelectedHandCardId(null);
       return;
     }
     sfx.flip();
-    dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
+    dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
   };
 
   // True when "I" am currently holding a card from an inactive player's pile.
@@ -565,26 +601,35 @@ export function GameTable({
     return null;
   }, [state.players, meId]);
 
-  const handleHandCardTap = (cardId: string) => {
-    if (!me) return;
-    // If we're holding a free card, that swap takes priority.
-    if (myFreeHold) {
+  const handleHandCardTap = (cardId: string, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // "Me"-only: free-card hold path takes priority.
+    if (actorId === meId && myFreeHold) {
       sfx.swap();
       dispatch({ kind: "swapFreeCard", viewerId: meId, cardId });
       setSelectedHandCardId(null);
       return;
     }
-    const holding = state.center.some((sl) => sl.heldBy === meId);
-    // If we're holding a center card, tapping a hand card completes the swap
-    // immediately (keeps the original one-tap flow working).
+    const holding = state.center.some((sl) => sl.heldBy === actorId);
+    // If this actor is holding a center card, tapping a hand card completes
+    // the swap immediately (one-tap flow).
     if (holding) {
       sfx.swap();
-      dispatch({ kind: "swap", playerId: meId, cardId });
+      dispatch({ kind: "swap", playerId: actorId, cardId });
       setSelectedHandCardId(null);
       return;
     }
-    // Otherwise, toggle selection so the player can pre-pick a card.
-    setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
+    // Otherwise toggle selection on this actor's hand.
+    if (
+      selectedHandCardId === cardId &&
+      selectedActorId === actorId
+    ) {
+      setSelectedHandCardId(null);
+    } else {
+      setSelectedActorId(actorId);
+      setSelectedHandCardId(cardId);
+    }
   };
 
   // Tap a free-card pile to expand/collapse it (one open at a time).
@@ -612,7 +657,11 @@ export function GameTable({
     const existing = owner.freePileHolds?.[pileIndex];
     if (existing) return;
     // If the player has pre-selected a hand card, perform hold + swap in one tap.
-    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+    if (
+      selectedHandCardId &&
+      selectedActorId === meId &&
+      me.hand.some((c) => c.id === selectedHandCardId)
+    ) {
       const handCardId = selectedHandCardId;
       sfx.swap();
       dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
@@ -624,19 +673,21 @@ export function GameTable({
     dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
   };
 
-  const handleSet = () => {
-    if (!me) return;
-    if (me.hand.length === 4 && isFourOfAKind(me.hand)) {
+  const handleSet = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    if (actor.hand.length === 4 && isFourOfAKind(actor.hand)) {
       sfx.set();
-      dispatch({ kind: "declareSet", playerId: meId });
+      dispatch({ kind: "declareSet", playerId: actorId });
     }
   };
 
   // Sort the local hand display so identical ranks cluster together,
   // ordered by frequency desc then by rank. Purely cosmetic — engine state
   // is unchanged, so this stays multiplayer-safe.
-  const handleSort = () => {
-    if (!me || me.hand.length === 0) return;
+  const handleSort = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || actor.hand.length === 0) return;
     setSortEnabled(true);
     sfx.flip();
   };
@@ -648,10 +699,10 @@ export function GameTable({
     }
   };
 
-  const onReady = () => {
+  const onReady = (actorId: string = meId) => {
     // Block readying up when alone in the room — need at least 2 players to start.
     if (state.players.length < 2) return;
-    dispatch({ kind: "ready", playerId: meId, ready: true });
+    dispatch({ kind: "ready", playerId: actorId, ready: true });
   };
 
   // Match-end "ready up" toggle for non-host players. Host uses this same
@@ -924,6 +975,26 @@ export function GameTable({
               aria-label="View all cards"
             >
               👁 View All Cards
+            </button>
+          </Movable>
+        )}
+        {state.mode === "training" && (
+          <Movable id="control-all-hands" {...movables}>
+            <button
+              onClick={() => setControlAllHands((v) => !v)}
+              className={cn(
+                "btn-3d flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]",
+                controlAllHands ? "btn-3d-gold" : "btn-3d-dark",
+              )}
+              aria-pressed={controlAllHands}
+              aria-label="Control all hands"
+              title={
+                controlAllHands
+                  ? "Tap to release control of other seats (bots resume)"
+                  : "Drive every seat as if it were your own (pauses bots)"
+              }
+            >
+              {controlAllHands ? "🎮 Controlling All" : "🎮 Control All Hands"}
             </button>
           </Movable>
         )}
@@ -1342,6 +1413,7 @@ export function GameTable({
       {/* Player seats */}
       {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
+        const canControl = isMe || controlAllHands;
         const pos = basePositions[seatIdx];
         const offset = seatOffsets[seatIdx];
         return (
@@ -1355,14 +1427,15 @@ export function GameTable({
             pinchScale={seatScales[seatIdx] ?? 1}
             onPinchEnd={(s) => updateSeatScale(seatIdx, s)}
             isMe={isMe}
+            canControl={canControl}
 
             status={state.status}
-            onReady={isMe ? onReady : undefined}
-            onPileTap={isMe ? handlePileTap : undefined}
-            onHandCardTap={isMe ? handleHandCardTap : undefined}
-            onSet={isMe ? handleSet : undefined}
-            onSort={isMe ? handleSort : undefined}
-            selectedHandCardId={isMe ? selectedHandCardId : null}
+            onReady={canControl ? () => onReady(player.id) : undefined}
+            onPileTap={canControl ? (i) => handlePileTap(i, player.id) : undefined}
+            onHandCardTap={canControl ? (cardId) => handleHandCardTap(cardId, player.id) : undefined}
+            onSet={canControl ? () => handleSet(player.id) : undefined}
+            onSort={canControl ? () => handleSort(player.id) : undefined}
+            selectedHandCardId={selectedActorId === player.id ? selectedHandCardId : null}
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
             revealAll={state.mode === "training"}
@@ -1923,6 +1996,7 @@ function PlayerSeat({
   pinchScale = 1,
   onPinchEnd,
   isMe,
+  canControl,
   status,
   onReady,
   onPileTap,
@@ -1951,6 +2025,9 @@ function PlayerSeat({
   /** Called when a two-finger pinch on this seat ends. */
   onPinchEnd?: (scale: number) => void;
   isMe: boolean;
+  /** True when the local player can drive this seat (always for isMe;
+   *  also true for every seat when training's "Control All Hands" is on). */
+  canControl?: boolean;
   status: GameState["status"];
   onReady?: () => void;
   onPileTap?: (i: number) => void;
@@ -1973,8 +2050,9 @@ function PlayerSeat({
 }) {
 
   const colorHex = PLAYER_COLOR_HEX[player.color];
+  const controllable = canControl ?? isMe;
   const handReady =
-    isMe && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
+    controllable && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
 
   const pileWidth = isMe ? 37 : position.compact ? 20 : 26;
   const pileGap = position.compact ? "gap-1" : "gap-1.5";
@@ -2113,7 +2191,7 @@ function PlayerSeat({
     >
 
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
-      {((isMe && player.openPileIndex !== null) ||
+      {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
         status === "playing" && (
         <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
@@ -2122,8 +2200,8 @@ function PlayerSeat({
               key={c.id}
               card={c}
               width={isMe ? 36 : 22}
-              selected={isMe && selectedHandCardId === c.id}
-              onClick={isMe ? () => onHandCardTap?.(c.id) : undefined}
+              selected={selectedHandCardId === c.id}
+              onClick={controllable && onHandCardTap ? () => onHandCardTap(c.id) : undefined}
             />
           ))}
         </div>
@@ -2230,7 +2308,7 @@ function PlayerSeat({
               if (locked) {
                 return <CascadeSet key={i} cards={pile} width={pileWidth} />;
               }
-              const isOpen = isMe && player.openPileIndex === i;
+              const isOpen = controllable && player.openPileIndex === i;
               const isFreeOpen = !isMe && player.freeCards && freeView === i;
               const pileHold = player.freePileHolds?.[i] ?? null;
               if (pile.length === 0 && !isOpen) {
@@ -2311,7 +2389,7 @@ function PlayerSeat({
                   key={i}
                   width={pileWidth}
                   count={isOpen ? 0 : pile.length}
-                  onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                  onClick={controllable && onPileTap ? () => onPileTap(i) : undefined}
                   highlight={isOpen}
                   imageUrl={pileBackUrl}
                 />
@@ -2321,7 +2399,7 @@ function PlayerSeat({
 
           {/* SET/SORT buttons — absolutely positioned UNDER the piles so the
               piles never shift when a pile is opened. */}
-          {isMe && player.openPileIndex !== null && status === "playing" && (
+          {controllable && player.openPileIndex !== null && status === "playing" && (
             <div className="absolute left-1/2 top-full mt-1 flex -translate-x-1/2 items-center justify-center gap-1.5">
               <button
                 onClick={onSet}
@@ -2357,7 +2435,7 @@ function PlayerSeat({
       )}
 
       {/* Ready button (lobby) */}
-      {status === "lobby" && isMe && !player.ready && onReady && (() => {
+      {status === "lobby" && controllable && !player.ready && onReady && (() => {
         const alone = (players?.length ?? 1) < 2;
         return (
           <button
@@ -2370,7 +2448,7 @@ function PlayerSeat({
           </button>
         );
       })()}
-      {status === "lobby" && !isMe && (
+      {status === "lobby" && !controllable && (
         <div className="mt-1 text-[10px] text-white/50">
           {player.ready ? "Ready" : "Waiting…"}
         </div>
