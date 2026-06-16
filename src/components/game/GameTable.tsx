@@ -1393,6 +1393,7 @@ export function GameTable({
       {/* Player seats */}
       {seatOrder.map((player, seatIdx) => {
         const isMe = player.id === meId;
+        const canControl = isMe || (controlAllHands && !player.isBot ? true : controlAllHands);
         const pos = basePositions[seatIdx];
         const offset = seatOffsets[seatIdx];
         return (
@@ -1406,14 +1407,15 @@ export function GameTable({
             pinchScale={seatScales[seatIdx] ?? 1}
             onPinchEnd={(s) => updateSeatScale(seatIdx, s)}
             isMe={isMe}
+            canControl={canControl}
 
             status={state.status}
-            onReady={isMe ? onReady : undefined}
-            onPileTap={isMe ? handlePileTap : undefined}
-            onHandCardTap={isMe ? handleHandCardTap : undefined}
-            onSet={isMe ? handleSet : undefined}
-            onSort={isMe ? handleSort : undefined}
-            selectedHandCardId={isMe ? selectedHandCardId : null}
+            onReady={canControl ? () => onReady(player.id) : undefined}
+            onPileTap={canControl ? (i) => handlePileTap(i, player.id) : undefined}
+            onHandCardTap={canControl ? (cardId) => handleHandCardTap(cardId, player.id) : undefined}
+            onSet={canControl ? () => handleSet(player.id) : undefined}
+            onSort={canControl ? () => handleSort(player.id) : undefined}
+            selectedHandCardId={selectedActorId === player.id ? selectedHandCardId : null}
             sortEnabled={isMe ? sortEnabled : false}
             zoom={isMe ? playerZoom : 1}
             revealAll={state.mode === "training"}
