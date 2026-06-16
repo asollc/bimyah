@@ -2171,7 +2171,7 @@ function PlayerSeat({
     >
 
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
-      {((isMe && player.openPileIndex !== null) ||
+      {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
         status === "playing" && (
         <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
@@ -2180,8 +2180,8 @@ function PlayerSeat({
               key={c.id}
               card={c}
               width={isMe ? 36 : 22}
-              selected={isMe && selectedHandCardId === c.id}
-              onClick={isMe ? () => onHandCardTap?.(c.id) : undefined}
+              selected={selectedHandCardId === c.id}
+              onClick={controllable && onHandCardTap ? () => onHandCardTap(c.id) : undefined}
             />
           ))}
         </div>
