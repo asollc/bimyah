@@ -2288,7 +2288,7 @@ function PlayerSeat({
               if (locked) {
                 return <CascadeSet key={i} cards={pile} width={pileWidth} />;
               }
-              const isOpen = isMe && player.openPileIndex === i;
+              const isOpen = controllable && player.openPileIndex === i;
               const isFreeOpen = !isMe && player.freeCards && freeView === i;
               const pileHold = player.freePileHolds?.[i] ?? null;
               if (pile.length === 0 && !isOpen) {
