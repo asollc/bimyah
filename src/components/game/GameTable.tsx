@@ -2369,7 +2369,7 @@ function PlayerSeat({
                   key={i}
                   width={pileWidth}
                   count={isOpen ? 0 : pile.length}
-                  onClick={isMe && onPileTap ? () => onPileTap(i) : undefined}
+                  onClick={controllable && onPileTap ? () => onPileTap(i) : undefined}
                   highlight={isOpen}
                   imageUrl={pileBackUrl}
                 />
