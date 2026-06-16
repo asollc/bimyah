@@ -534,41 +534,58 @@ export function GameTable({
   };
 
   // helpers
-  const handlePileTap = (pileIndex: number) => {
-    if (!me || state.status !== "playing") return;
-    if (me.pileLocked[pileIndex]) return;
+  // All seat-driven handlers accept an optional `actorId`. By default the
+  // local player acts on their own seat; when "Control All Hands" is on
+  // (training only) the parent passes the seat's player id so the user can
+  // operate other seats too.
+  const handlePileTap = (pileIndex: number, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || state.status !== "playing") return;
+    if (actor.pileLocked[pileIndex]) return;
     sfx.flip();
-    dispatch({ kind: "openPile", playerId: meId, stackIndex: pileIndex });
+    dispatch({ kind: "openPile", playerId: actorId, stackIndex: pileIndex });
   };
 
   const handleCenterTap = (i: number) => {
-    if (!me || state.status !== "playing") return;
+    if (state.status !== "playing") return;
     const slot = state.center[i];
     if (!slot.card) return;
-    // If this slot is the one we are already holding and we have a selected
-    // hand card, complete the swap.
-    if (slot.heldBy === meId && selectedHandCardId) {
+    // Determine which seat is acting on this center slot. Priority:
+    //   1) whoever already holds this slot,
+    //   2) whoever has a hand card currently selected,
+    //   3) the local player.
+    const actorId =
+      slot.heldBy ?? (selectedHandCardId ? selectedActorId : meId);
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // Complete an in-flight hold + selected swap.
+    if (
+      slot.heldBy === actorId &&
+      selectedHandCardId &&
+      selectedActorId === actorId
+    ) {
       sfx.swap();
-      dispatch({ kind: "swap", playerId: meId, cardId: selectedHandCardId });
+      dispatch({ kind: "swap", playerId: actorId, cardId: selectedHandCardId });
       setSelectedHandCardId(null);
       return;
     }
     if (slot.heldBy) return;
-    if (me.openPileIndex === null) return;
-    if (me.hand.length >= 5) return;
-    // If the player has already pre-selected a hand card, perform the swap
-    // immediately: hold + swap in one tap. We dispatch hold then swap so the
-    // engine sees a consistent transition.
-    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+    if (actor.openPileIndex === null) return;
+    if (actor.hand.length >= 5) return;
+    if (
+      selectedHandCardId &&
+      selectedActorId === actorId &&
+      actor.hand.some((c) => c.id === selectedHandCardId)
+    ) {
       const cardId = selectedHandCardId;
       sfx.swap();
-      dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
-      dispatch({ kind: "swap", playerId: meId, cardId });
+      dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
+      dispatch({ kind: "swap", playerId: actorId, cardId });
       setSelectedHandCardId(null);
       return;
     }
     sfx.flip();
-    dispatch({ kind: "holdCenter", playerId: meId, centerIndex: i });
+    dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
   };
 
   // True when "I" am currently holding a card from an inactive player's pile.
@@ -584,26 +601,35 @@ export function GameTable({
     return null;
   }, [state.players, meId]);
 
-  const handleHandCardTap = (cardId: string) => {
-    if (!me) return;
-    // If we're holding a free card, that swap takes priority.
-    if (myFreeHold) {
+  const handleHandCardTap = (cardId: string, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // "Me"-only: free-card hold path takes priority.
+    if (actorId === meId && myFreeHold) {
       sfx.swap();
       dispatch({ kind: "swapFreeCard", viewerId: meId, cardId });
       setSelectedHandCardId(null);
       return;
     }
-    const holding = state.center.some((sl) => sl.heldBy === meId);
-    // If we're holding a center card, tapping a hand card completes the swap
-    // immediately (keeps the original one-tap flow working).
+    const holding = state.center.some((sl) => sl.heldBy === actorId);
+    // If this actor is holding a center card, tapping a hand card completes
+    // the swap immediately (one-tap flow).
     if (holding) {
       sfx.swap();
-      dispatch({ kind: "swap", playerId: meId, cardId });
+      dispatch({ kind: "swap", playerId: actorId, cardId });
       setSelectedHandCardId(null);
       return;
     }
-    // Otherwise, toggle selection so the player can pre-pick a card.
-    setSelectedHandCardId((cur) => (cur === cardId ? null : cardId));
+    // Otherwise toggle selection on this actor's hand.
+    if (
+      selectedHandCardId === cardId &&
+      selectedActorId === actorId
+    ) {
+      setSelectedHandCardId(null);
+    } else {
+      setSelectedActorId(actorId);
+      setSelectedHandCardId(cardId);
+    }
   };
 
   // Tap a free-card pile to expand/collapse it (one open at a time).
@@ -631,7 +657,11 @@ export function GameTable({
     const existing = owner.freePileHolds?.[pileIndex];
     if (existing) return;
     // If the player has pre-selected a hand card, perform hold + swap in one tap.
-    if (selectedHandCardId && me.hand.some((c) => c.id === selectedHandCardId)) {
+    if (
+      selectedHandCardId &&
+      selectedActorId === meId &&
+      me.hand.some((c) => c.id === selectedHandCardId)
+    ) {
       const handCardId = selectedHandCardId;
       sfx.swap();
       dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
@@ -643,19 +673,21 @@ export function GameTable({
     dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
   };
 
-  const handleSet = () => {
-    if (!me) return;
-    if (me.hand.length === 4 && isFourOfAKind(me.hand)) {
+  const handleSet = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    if (actor.hand.length === 4 && isFourOfAKind(actor.hand)) {
       sfx.set();
-      dispatch({ kind: "declareSet", playerId: meId });
+      dispatch({ kind: "declareSet", playerId: actorId });
     }
   };
 
   // Sort the local hand display so identical ranks cluster together,
   // ordered by frequency desc then by rank. Purely cosmetic — engine state
   // is unchanged, so this stays multiplayer-safe.
-  const handleSort = () => {
-    if (!me || me.hand.length === 0) return;
+  const handleSort = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || actor.hand.length === 0) return;
     setSortEnabled(true);
     sfx.flip();
   };
@@ -667,10 +699,10 @@ export function GameTable({
     }
   };
 
-  const onReady = () => {
+  const onReady = (actorId: string = meId) => {
     // Block readying up when alone in the room — need at least 2 players to start.
     if (state.players.length < 2) return;
-    dispatch({ kind: "ready", playerId: meId, ready: true });
+    dispatch({ kind: "ready", playerId: actorId, ready: true });
   };
 
   // Match-end "ready up" toggle for non-host players. Host uses this same
