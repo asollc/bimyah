@@ -2415,7 +2415,7 @@ function PlayerSeat({
       )}
 
       {/* Ready button (lobby) */}
-      {status === "lobby" && isMe && !player.ready && onReady && (() => {
+      {status === "lobby" && controllable && !player.ready && onReady && (() => {
         const alone = (players?.length ?? 1) < 2;
         return (
           <button
@@ -2428,7 +2428,7 @@ function PlayerSeat({
           </button>
         );
       })()}
-      {status === "lobby" && !isMe && (
+      {status === "lobby" && !controllable && (
         <div className="mt-1 text-[10px] text-white/50">
           {player.ready ? "Ready" : "Waiting…"}
         </div>
