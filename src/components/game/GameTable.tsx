@@ -980,7 +980,7 @@ export function GameTable({
         )}
         {state.mode === "training" && (
           <div className="absolute bottom-2 left-2 z-30">
-            <Movable id="control-all-hands" {...movables}>
+            <Movable id="control-all-hands-bl" {...movables}>
               <button
                 onClick={() => setControlAllHands((v) => !v)}
                 className={cn(
