@@ -1034,6 +1034,31 @@ export function GameTable({
 
       </div>
 
+      {/* Bottom-left: Control All Hands (training only) */}
+      {state.mode === "training" && (
+        <div className="absolute bottom-2 left-2 z-30">
+          <Movable id="control-all-hands-bl" {...movables}>
+            <button
+              onClick={() => setControlAllHands((v) => !v)}
+              className={cn(
+                "btn-3d px-[5px] py-[1.5px] text-[7px]",
+                controlAllHands ? "btn-3d-gold" : "btn-3d-dark",
+              )}
+              aria-pressed={controlAllHands}
+              aria-label="Control all hands"
+              title={
+                controlAllHands
+                  ? "Tap to release control of other seats (bots resume)"
+                  : "Drive every seat as if it were your own (pauses bots)"
+              }
+            >
+              {controlAllHands ? "Controlling All" : "Control All Hands"}
+            </button>
+          </Movable>
+        </div>
+      )}
+
+
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
         <Movable id="how-to-play" {...movables}>
