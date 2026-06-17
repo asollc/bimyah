@@ -176,13 +176,21 @@ function OnlineGame() {
   // stuck in the game. Give the host a short delay (and a couple of
   // rebroadcasts for resilience) so the close reaches everyone, then tear
   // down and navigate. Joiners react immediately on receipt.
+  //
+  // The teardown sequence is guarded by a ref so that the rebroadcast's own
+  // setState (which re-fires this effect) does NOT reset the teardown timer
+  // and trap the host on the game screen forever.
+  const teardownStartedRef = useRef(false);
   useEffect(() => {
     if (!session || !state) return;
     if (!state.roomClosed) return;
+    if (teardownStartedRef.current) return;
+    teardownStartedRef.current = true;
+
     const teardown = () => {
       clearGame(gameId);
       clearReentryCode(gameId);
-      session.destroy();
+      try { session.destroy(); } catch { /* ignore */ }
       void navigate({ to: "/" });
     };
     if (session.isHost) {
@@ -193,14 +201,11 @@ function OnlineGame() {
           /* ignore */
         }
       }, 250);
-      const t = setTimeout(() => {
+      setTimeout(() => {
         clearInterval(rebroadcast);
         teardown();
       }, 1500);
-      return () => {
-        clearInterval(rebroadcast);
-        clearTimeout(t);
-      };
+      return;
     }
     teardown();
   }, [session, state, gameId, navigate]);
