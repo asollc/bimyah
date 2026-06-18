@@ -911,7 +911,12 @@ export function GameTable({
   const hostPlayer = state.hostId
     ? state.players.find((p) => p.id === state.hostId)
     : state.players[0];
-  const hostBackgroundUrl = hostPlayer?.backgroundUrl ?? null;
+  const localPlayer = state.players.find((p) => p.id === meId);
+  // Background follows the local viewer's equipped selection so every player
+  // sees their own active background. Tabletop / table art remain host-driven
+  // because they represent the shared physical table.
+  const hostBackgroundUrl =
+    localPlayer?.backgroundUrl ?? hostPlayer?.backgroundUrl ?? null;
   const hostTabletopUrl = hostPlayer?.tabletopUrl ?? null;
   const hostTableArtUrl = hostPlayer?.tableArtUrl ?? null;
 
