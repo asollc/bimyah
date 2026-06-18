@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SoloRouteImport } from './routes/solo'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PublicRouteImport } from './routes/public'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlusRouteImport } from './routes/plus'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as BmartRouteImport } from './routes/bmart'
@@ -37,6 +39,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SoloRoute = SoloRouteImport.update({
@@ -67,6 +74,11 @@ const PublicRoute = PublicRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlusRoute = PlusRouteImport.update({
@@ -166,12 +178,14 @@ export interface FileRoutesByFullPath {
   '/bmart': typeof BmartRoute
   '/map': typeof MapRoute
   '/plus': typeof PlusRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
+  '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/game/$gameId': typeof GameGameIdRoute
@@ -192,12 +206,14 @@ export interface FileRoutesByTo {
   '/bmart': typeof BmartRoute
   '/map': typeof MapRoute
   '/plus': typeof PlusRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
+  '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/game/$gameId': typeof GameGameIdRoute
@@ -219,12 +235,14 @@ export interface FileRoutesById {
   '/bmart': typeof BmartRoute
   '/map': typeof MapRoute
   '/plus': typeof PlusRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/public': typeof PublicRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/solo': typeof SoloRoute
+  '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/game/$gameId': typeof GameGameIdRoute
@@ -247,12 +265,14 @@ export interface FileRouteTypes {
     | '/bmart'
     | '/map'
     | '/plus'
+    | '/privacy'
     | '/profile'
     | '/public'
     | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/solo'
+    | '/terms'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/game/$gameId'
@@ -273,12 +293,14 @@ export interface FileRouteTypes {
     | '/bmart'
     | '/map'
     | '/plus'
+    | '/privacy'
     | '/profile'
     | '/public'
     | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/solo'
+    | '/terms'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/game/$gameId'
@@ -299,12 +321,14 @@ export interface FileRouteTypes {
     | '/bmart'
     | '/map'
     | '/plus'
+    | '/privacy'
     | '/profile'
     | '/public'
     | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/solo'
+    | '/terms'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/game/$gameId'
@@ -326,12 +350,14 @@ export interface RootRouteChildren {
   BmartRoute: typeof BmartRoute
   MapRoute: typeof MapRoute
   PlusRoute: typeof PlusRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   PublicRoute: typeof PublicRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoloRoute: typeof SoloRoute
+  TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   GameGameIdRoute: typeof GameGameIdRoute
@@ -352,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/solo': {
@@ -394,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plus': {
@@ -535,12 +575,14 @@ const rootRouteChildren: RootRouteChildren = {
   BmartRoute: BmartRoute,
   MapRoute: MapRoute,
   PlusRoute: PlusRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   PublicRoute: PublicRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoloRoute: SoloRoute,
+  TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   GameGameIdRoute: GameGameIdRoute,
@@ -556,12 +598,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
