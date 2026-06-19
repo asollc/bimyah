@@ -630,7 +630,7 @@ function FloatingCards() {
     { top: "30%", left: "94%", size: 30, rot: 12, dx: -8, dy: 10, dur: 12.5 },
   ];
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-80">
       {cards.map((c, i) => (
         <div
           key={i}
