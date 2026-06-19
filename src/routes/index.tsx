@@ -423,7 +423,7 @@ const SOCIAL_LINKS = [
 
 function SocialIcons() {
   return (
-    <div className="mt-2 flex w-full items-center justify-center gap-3">
+    <div className="relative z-10 mt-2 flex w-full items-center justify-center gap-3">
       {SOCIAL_LINKS.map((s) => (
         <a
           key={s.alt}
