@@ -423,7 +423,7 @@ const SOCIAL_LINKS = [
 
 function SocialIcons() {
   return (
-    <div className="mt-2 flex w-full items-center justify-center gap-3">
+    <div className="relative z-10 mt-2 flex w-full items-center justify-center gap-3">
       {SOCIAL_LINKS.map((s) => (
         <a
           key={s.alt}
@@ -630,7 +630,7 @@ function FloatingCards() {
     { top: "30%", left: "94%", size: 30, rot: 12, dx: -8, dy: 10, dur: 12.5 },
   ];
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-80">
       {cards.map((c, i) => (
         <div
           key={i}
