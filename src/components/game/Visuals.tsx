@@ -19,14 +19,14 @@ export function PowLogo({ size = 220 }: { size?: number }) {
   return (
     <div
       className="animate-pop-in flex items-center justify-center"
-      style={{ width: size, height: size * (1158 / 1215) }}
+      style={{ width: size, height: size * (612 / 408) }}
     >
       <img
         src={bimyahLogo.url}
         alt="BIMYAH! The Card Game"
         draggable={false}
-        width={1215}
-        height={1158}
+        width={408}
+        height={612}
         // @ts-expect-error - fetchpriority is a valid HTML attribute
         fetchpriority="high"
         decoding="async"
