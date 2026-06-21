@@ -132,6 +132,7 @@ function AdminPage() {
             <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
             <TabsTrigger value="bmart">Bmart</TabsTrigger>
+            <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
 
