@@ -157,6 +157,9 @@ function AdminPage() {
           <TabsContent value="bmart" className="mt-6">
             <BmartAdminTab />
           </TabsContent>
+          <TabsContent value="videos" className="mt-6">
+            <VideosAdminTab />
+          </TabsContent>
           <TabsContent value="config" className="mt-6">
             <ConfigTab />
           </TabsContent>
