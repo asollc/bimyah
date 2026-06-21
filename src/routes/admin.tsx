@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, Crown, Trash2, Plus } from "lucide-react";
 import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 import { BmartAdminTab } from "@/components/admin/BmartAdminTab";
+import { VideosAdminTab } from "@/components/admin/VideosAdminTab";
 import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
 import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
