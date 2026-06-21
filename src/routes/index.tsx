@@ -217,7 +217,7 @@ function HomePage() {
   }, [isAuthed]);
 
   return (
-    <div className="relative flex h-[calc(100dvh-50px)] min-h-[560px] w-screen flex-col items-center overflow-x-hidden px-4 pt-2 pb-2 lg:h-auto lg:min-h-[calc(100dvh-50px)] lg:pt-3 lg:pb-3">
+    <div className="relative isolate flex min-h-[100dvh] w-screen flex-col items-center overflow-x-clip px-4 pt-2 pb-8 lg:min-h-[100dvh] lg:pt-3 lg:pb-8">
       <FloatingCards />
 
       <div className="relative z-10 flex w-full items-center justify-between">
@@ -423,7 +423,7 @@ const SOCIAL_LINKS = [
 
 function SocialIcons() {
   return (
-    <div className="relative z-10 mt-2 flex w-full items-center justify-center gap-3">
+    <div className="relative z-[100] mt-2 flex w-full items-center justify-center gap-3">
       {SOCIAL_LINKS.map((s) => (
         <a
           key={s.alt}
@@ -630,7 +630,7 @@ function FloatingCards() {
     { top: "30%", left: "94%", size: 30, rot: 12, dx: -8, dy: 10, dur: 12.5 },
   ];
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-80">
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-80">
       {cards.map((c, i) => (
         <div
           key={i}
