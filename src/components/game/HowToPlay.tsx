@@ -61,7 +61,7 @@ export function HowToPlayButton({
                 How to Play BIMYAH!
               </DialogTitle>
             </DialogHeader>
-            <TabsList className="grid w-full grid-cols-4 bg-black/40">
+            <TabsList className="grid w-full grid-cols-5 bg-black/40">
               <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
                 Standard
               </TabsTrigger>
@@ -73,6 +73,9 @@ export function HowToPlayButton({
               </TabsTrigger>
               <TabsTrigger value="multiplayer" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
                 Multiplayer
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="text-xs data-[state=active]:bg-[var(--mint)] data-[state=active]:text-black">
+                Videos
               </TabsTrigger>
             </TabsList>
           </div>
