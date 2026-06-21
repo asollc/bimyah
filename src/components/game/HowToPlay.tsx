@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,8 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "./KeybindEditor";
+import { listHowToVideos } from "@/lib/rpc/howToVideos.functions";
+import { Maximize2 } from "lucide-react";
 
 function BPlus() {
   return (
