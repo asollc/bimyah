@@ -239,6 +239,10 @@ export function HowToPlayButton({
               </ul>
             </Section>
           </TabsContent>
+
+          <TabsContent value="videos" className="space-y-4 text-sm leading-relaxed text-white/85">
+            <VideosTab />
+          </TabsContent>
           </div>
         </Tabs>
       </DialogContent>
@@ -254,3 +258,155 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
+
+type VideoRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  youtube_url: string;
+};
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+      if (u.pathname === "/watch") return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(embed|shorts|v|live)\/([^/?#]+)/);
+      if (m) return m[2];
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function VideosTab() {
+  const [rows, setRows] = useState<VideoRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    listHowToVideos()
+      .then((r) => {
+        if (alive) setRows(r.rows as VideoRow[]);
+      })
+      .catch((e: unknown) => {
+        if (alive) setError(e instanceof Error ? e.message : "Failed to load videos");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (error) return <p className="text-sm text-red-300">{error}</p>;
+  if (!rows) return <p className="text-sm text-white/60">Loading videos…</p>;
+  if (rows.length === 0)
+    return (
+      <p className="text-sm text-white/60">
+        No videos yet — check back soon for gameplay walkthroughs.
+      </p>
+    );
+
+  return (
+    <div className="space-y-5">
+      {rows.map((v) => {
+        const id = extractYouTubeId(v.youtube_url);
+        return (
+          <div key={v.id} className="rounded-lg border border-white/10 bg-black/30 p-3">
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="font-display text-base font-bold text-[var(--gold)]">{v.title}</h3>
+                {v.description && (
+                  <p className="mt-1 text-xs text-white/75">{v.description}</p>
+                )}
+              </div>
+              {id && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(v.id)}
+                  className="shrink-0 rounded-full bg-white/10 p-1.5 text-white/80 transition hover:bg-white/20"
+                  aria-label="Expand video"
+                  title="Expand video"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {id ? (
+              <div className="aspect-video w-full overflow-hidden rounded-md border border-white/10 bg-black">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${id}`}
+                  title={v.title}
+                  loading="lazy"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="h-full w-full"
+                />
+              </div>
+            ) : (
+              <a
+                href={v.youtube_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-[var(--mint)] underline"
+              >
+                Watch on YouTube
+              </a>
+            )}
+          </div>
+        );
+      })}
+
+      {expanded && (
+        <ExpandedVideo
+          row={rows.find((r) => r.id === expanded) ?? null}
+          onClose={() => setExpanded(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExpandedVideo({ row, onClose }: { row: VideoRow | null; onClose: () => void }) {
+  if (!row) return null;
+  const id = extractYouTubeId(row.youtube_url);
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full max-w-4xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-2 flex items-center justify-between text-white">
+          <h3 className="font-display text-lg font-bold text-[var(--gold)]">{row.title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wider hover:bg-white/20"
+          >
+            Close
+          </button>
+        </div>
+        {id && (
+          <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/15 bg-black">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1`}
+              title={row.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="h-full w-full"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
