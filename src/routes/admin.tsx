@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, Crown, Trash2, Plus } from "lucide-react";
 import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 import { BmartAdminTab } from "@/components/admin/BmartAdminTab";
+import { VideosAdminTab } from "@/components/admin/VideosAdminTab";
 import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
 import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
@@ -131,6 +132,7 @@ function AdminPage() {
             <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="bulletins">Bulletins</TabsTrigger>
             <TabsTrigger value="bmart">Bmart</TabsTrigger>
+            <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
 
@@ -154,6 +156,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="bmart" className="mt-6">
             <BmartAdminTab />
+          </TabsContent>
+          <TabsContent value="videos" className="mt-6">
+            <VideosAdminTab />
           </TabsContent>
           <TabsContent value="config" className="mt-6">
             <ConfigTab />
