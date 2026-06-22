@@ -13,6 +13,7 @@ import {
   type VictoryEffectKey,
 } from "@/components/game/VictoryEffects";
 import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
+import { listBmartCustomCategories } from "@/lib/rpc/bmartCategories.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
 import {
@@ -326,7 +327,7 @@ function makeT(overrides: Record<string, string>) {
 function BmartPage() {
   const { user } = useAuth();
   const [wallet, setWallet] = useState({ bimbucks: 0, bimbits: 0 });
-  const [activeCat, setActiveCat] = useState<CategoryId | null>(null);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
@@ -336,6 +337,9 @@ function BmartPage() {
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
   const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
+  const [customCategories, setCustomCategories] = useState<
+    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean }[]
+  >([]);
 
   useEffect(() => {
     void listBmartProducts()
@@ -357,7 +361,31 @@ function BmartPage() {
         setTextOverrides(map);
       })
       .catch(() => {});
+
+    void listBmartCustomCategories()
+      .then((res) => setCustomCategories(res.rows.filter((r) => !r.hidden) as typeof customCategories))
+      .catch(() => {});
   }, []);
+
+  const displayedCategories = useMemo(() => {
+    const builtin = CATEGORIES.map((c, i) => ({
+      id: c.id as string,
+      name: c.name,
+      tag: c.tag,
+      image_url: null as string | null,
+      sort_order: i,
+      isCustom: false,
+    }));
+    const custom = customCategories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      tag: c.tag,
+      image_url: c.image_url,
+      sort_order: 1000 + (c.sort_order ?? 0),
+      isCustom: true,
+    }));
+    return [...builtin, ...custom].sort((a, b) => a.sort_order - b.sort_order);
+  }, [customCategories]);
 
   const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
@@ -505,7 +533,10 @@ function BmartPage() {
 
             {/* Category grid — 15% smaller cards */}
             <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c) => (
+              {displayedCategories.map((c) => {
+                const builtinImg = categoryImages[c.id] ?? null;
+                const img = builtinImg ?? c.image_url;
+                return (
                 <button
                   key={c.id}
                   type="button"
@@ -513,19 +544,19 @@ function BmartPage() {
                   className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
-                  {categoryImages[c.id] ? (
+                  {img ? (
                     <img
-                      src={categoryImages[c.id] as string}
+                      src={img}
                       alt={t(`cat.${c.id}.name`, c.name)}
                       loading="eager"
                       decoding="async"
                       fetchPriority="high"
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
-                  ) : categoryImagesLoaded ? (
+                  ) : categoryImagesLoaded && !c.isCustom ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
                       <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
-                        <CategoryIcon id={c.id} />
+                        <CategoryIcon id={c.id as CategoryId} />
                       </div>
                     </div>
                   ) : null}
@@ -540,12 +571,14 @@ function BmartPage() {
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
           <CategoryView
             categoryId={activeCat}
+            customCategories={customCategories}
             catalog={catalog}
             t={t}
             onAdd={addToCart}
@@ -705,21 +738,25 @@ function BmartPage() {
 
 function CategoryView({
   categoryId,
+  customCategories,
   catalog,
   t,
   onAdd,
   onBuy,
   onPreview,
 }: {
-  categoryId: CategoryId;
+  categoryId: string;
+  customCategories: { id: string; name: string; tag: string }[];
   catalog: Product[];
   t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
 }) {
-  const cat = CATEGORIES.find((c) => c.id === categoryId)!;
-  const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
+  const builtin = CATEGORIES.find((c) => c.id === categoryId);
+  const custom = customCategories.find((c) => c.id === categoryId);
+  const cat = builtin ?? custom ?? { id: categoryId, name: categoryId, tag: "" };
+  const items = useMemo(() => catalog.filter((p) => (p.category as string) === categoryId), [catalog, categoryId]);
 
   return (
     <div>

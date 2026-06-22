@@ -281,7 +281,7 @@ function HomePage() {
       </div>
 
       <div className="relative z-10 mt-2 flex flex-col items-center gap-2 sm:gap-3">
-        <div className="relative" style={{ marginTop: -48, marginBottom: -51 }}>
+        <div className="pointer-events-none relative" style={{ marginTop: -48, marginBottom: -51 }}>
           <PowLogo size={269} />
           <span
             aria-label="beta"
