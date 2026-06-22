@@ -738,21 +738,25 @@ function BmartPage() {
 
 function CategoryView({
   categoryId,
+  customCategories,
   catalog,
   t,
   onAdd,
   onBuy,
   onPreview,
 }: {
-  categoryId: CategoryId;
+  categoryId: string;
+  customCategories: { id: string; name: string; tag: string }[];
   catalog: Product[];
   t: (key: string, fallback?: string) => string;
   onAdd: (p: Product) => void;
   onBuy: (p: Product) => void;
   onPreview: (p: Product) => void;
 }) {
-  const cat = CATEGORIES.find((c) => c.id === categoryId)!;
-  const items = useMemo(() => catalog.filter((p) => p.category === categoryId), [catalog, categoryId]);
+  const builtin = CATEGORIES.find((c) => c.id === categoryId);
+  const custom = customCategories.find((c) => c.id === categoryId);
+  const cat = builtin ?? custom ?? { id: categoryId, name: categoryId, tag: "" };
+  const items = useMemo(() => catalog.filter((p) => (p.category as string) === categoryId), [catalog, categoryId]);
 
   return (
     <div>
