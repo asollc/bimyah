@@ -1215,3 +1215,245 @@ function CategoryImageEditor({
     </div>
   );
 }
+
+/* ---------------- Custom categories (admin-created) ---------------- */
+
+type CustomCategory = {
+  id: string;
+  name: string;
+  tag: string;
+  image_url: string | null;
+  sort_order: number;
+  hidden: boolean;
+};
+
+function CustomCategoriesSection() {
+  const [rows, setRows] = useState<CustomCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listBmartCustomCategories();
+      setRows(res.rows as CustomCategory[]);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  return (
+    <Card className="p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Custom categories</h3>
+        <div className="flex items-center gap-2">
+          {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+          <Button size="sm" onClick={() => setAdding(true)} disabled={adding}>
+            <Plus className="h-3 w-3 mr-1" /> New category
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Create your own Bmart categories. The id is a slug (lowercase letters, digits, dashes or underscores) and must be unique.
+      </p>
+
+      {adding && (
+        <CustomCategoryEditor
+          mode="create"
+          existingIds={rows.map((r) => r.id)}
+          onCancel={() => setAdding(false)}
+          onSaved={async () => { setAdding(false); await refresh(); }}
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((c) => (
+          <CustomCategoryEditor
+            key={c.id}
+            mode="edit"
+            row={c}
+            onSaved={refresh}
+          />
+        ))}
+        {!rows.length && !adding && (
+          <div className="col-span-full p-4 text-center text-xs text-muted-foreground">
+            No custom categories yet.
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function CustomCategoryEditor({
+  mode,
+  row,
+  existingIds,
+  onSaved,
+  onCancel,
+}: {
+  mode: "create" | "edit";
+  row?: CustomCategory;
+  existingIds?: string[];
+  onSaved: () => void | Promise<void>;
+  onCancel?: () => void;
+}) {
+  const [id, setId] = useState(row?.id ?? "");
+  const [name, setName] = useState(row?.name ?? "");
+  const [tag, setTag] = useState(row?.tag ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(row?.image_url ?? null);
+  const [sortOrder, setSortOrder] = useState<number>(row?.sort_order ?? 0);
+  const [hidden, setHidden] = useState<boolean>(row?.hidden ?? false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const idTaken = mode === "create" && existingIds?.includes(id.trim());
+  const idValid = /^[a-z0-9_-]+$/.test(id.trim());
+  const canSave = id.trim().length > 0 && name.trim().length > 0 && idValid && !idTaken;
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
+      const path = `bmart/custom-cat-${id || "new"}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save() {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await upsertBmartCustomCategory({
+        data: {
+          id: id.trim(),
+          name: name.trim(),
+          tag: tag.trim(),
+          image_url: imageUrl,
+          sort_order: sortOrder,
+          hidden,
+        },
+      });
+      toast.success(mode === "create" ? "Category created" : "Category saved");
+      await onSaved();
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!row) return;
+    if (!confirm(`Delete category "${row.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteBmartCustomCategory({ data: { id: row.id } });
+      toast.success("Category deleted");
+      await onSaved();
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border p-2 space-y-2">
+      <div className="grid h-20 w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {imageUrl ? (
+          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">No image</span>
+        )}
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Id (slug)</label>
+        <Input
+          value={id}
+          onChange={(e) => setId(e.target.value.toLowerCase())}
+          disabled={mode === "edit"}
+          placeholder="my-category"
+        />
+        {id && !idValid && <p className="text-[10px] text-destructive">Use lowercase letters, digits, _ or -</p>}
+        {idTaken && <p className="text-[10px] text-destructive">Id already in use</p>}
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Name</label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Category" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Tag / subtitle</label>
+        <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="Short tagline" />
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 space-y-1">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Sort</label>
+          <Input
+            type="number"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number.parseInt(e.target.value || "0", 10))}
+          />
+        </div>
+        <label className="flex items-center gap-1 pt-4 text-xs">
+          <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+          Hidden
+        </label>
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleUpload(f);
+          e.target.value = "";
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Image
+        </Button>
+        {imageUrl && (
+          <Button size="sm" variant="ghost" onClick={() => setImageUrl(null)} className="h-7 text-xs">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+        <div className="flex-1" />
+        {onCancel && (
+          <Button size="sm" variant="ghost" onClick={onCancel} className="h-7 text-xs">
+            Cancel
+          </Button>
+        )}
+        {mode === "edit" && (
+          <Button size="sm" variant="destructive" onClick={() => void remove()} disabled={deleting} className="h-7 text-xs">
+            {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          </Button>
+        )}
+        <Button size="sm" onClick={() => void save()} disabled={!canSave || saving} className="h-7 text-xs">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
