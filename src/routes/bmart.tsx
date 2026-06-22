@@ -533,7 +533,10 @@ function BmartPage() {
 
             {/* Category grid — 15% smaller cards */}
             <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {CATEGORIES.map((c) => (
+              {displayedCategories.map((c) => {
+                const builtinImg = categoryImages[c.id] ?? null;
+                const img = builtinImg ?? c.image_url;
+                return (
                 <button
                   key={c.id}
                   type="button"
@@ -541,19 +544,19 @@ function BmartPage() {
                   className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
-                  {categoryImages[c.id] ? (
+                  {img ? (
                     <img
-                      src={categoryImages[c.id] as string}
+                      src={img}
                       alt={t(`cat.${c.id}.name`, c.name)}
                       loading="eager"
                       decoding="async"
                       fetchPriority="high"
                       className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                     />
-                  ) : categoryImagesLoaded ? (
+                  ) : categoryImagesLoaded && !c.isCustom ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
                       <div className="drop-shadow-[0_10px_18px_rgba(0,0,0,0.55)]">
-                        <CategoryIcon id={c.id} />
+                        <CategoryIcon id={c.id as CategoryId} />
                       </div>
                     </div>
                   ) : null}
@@ -568,12 +571,14 @@ function BmartPage() {
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
           <CategoryView
             categoryId={activeCat}
+            customCategories={customCategories}
             catalog={catalog}
             t={t}
             onAdd={addToCart}
