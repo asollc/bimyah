@@ -23,6 +23,11 @@ import {
   listBmartText,
   upsertBmartText,
 } from "@/lib/rpc/bmart.functions";
+import {
+  listBmartCustomCategories,
+  upsertBmartCustomCategory,
+  deleteBmartCustomCategory,
+} from "@/lib/rpc/bmartCategories.functions";
 import { BMART_TEXT_DEFAULTS, CATEGORIES as BMART_CATEGORIES } from "@/routes/bmart";
 import {
   VICTORY_EFFECT_KEYS,
