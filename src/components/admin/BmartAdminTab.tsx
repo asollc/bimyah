@@ -416,6 +416,7 @@ function StoreElementsTab() {
       </div>
 
       <CategoryImagesSection />
+      <CustomCategoriesSection />
 
       {groups.map((g) => (
         <Card key={g.label} className="p-3 space-y-2">
