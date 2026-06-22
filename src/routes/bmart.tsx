@@ -13,6 +13,7 @@ import {
   type VictoryEffectKey,
 } from "@/components/game/VictoryEffects";
 import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
+import { listBmartCustomCategories } from "@/lib/rpc/bmartCategories.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
 import { toast } from "sonner";
 import {
