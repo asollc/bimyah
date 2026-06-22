@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bmart_custom_categories: {
+        Row: {
+          created_at: string
+          hidden: boolean
+          id: string
+          image_url: string | null
+          name: string
+          sort_order: number
+          tag: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hidden?: boolean
+          id: string
+          image_url?: string | null
+          name: string
+          sort_order?: number
+          tag?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          image_url?: string | null
+          name?: string
+          sort_order?: number
+          tag?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bmart_products: {
         Row: {
           alt_price: number | null
