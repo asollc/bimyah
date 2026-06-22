@@ -327,7 +327,7 @@ function makeT(overrides: Record<string, string>) {
 function BmartPage() {
   const { user } = useAuth();
   const [wallet, setWallet] = useState({ bimbucks: 0, bimbits: 0 });
-  const [activeCat, setActiveCat] = useState<CategoryId | null>(null);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
@@ -337,6 +337,9 @@ function BmartPage() {
   const [categoryImages, setCategoryImages] = useState<Record<string, string | null>>({});
   const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
+  const [customCategories, setCustomCategories] = useState<
+    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean }[]
+  >([]);
 
   useEffect(() => {
     void listBmartProducts()
@@ -358,7 +361,31 @@ function BmartPage() {
         setTextOverrides(map);
       })
       .catch(() => {});
+
+    void listBmartCustomCategories()
+      .then((res) => setCustomCategories(res.rows.filter((r) => !r.hidden) as typeof customCategories))
+      .catch(() => {});
   }, []);
+
+  const displayedCategories = useMemo(() => {
+    const builtin = CATEGORIES.map((c, i) => ({
+      id: c.id as string,
+      name: c.name,
+      tag: c.tag,
+      image_url: null as string | null,
+      sort_order: i,
+      isCustom: false,
+    }));
+    const custom = customCategories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      tag: c.tag,
+      image_url: c.image_url,
+      sort_order: 1000 + (c.sort_order ?? 0),
+      isCustom: true,
+    }));
+    return [...builtin, ...custom].sort((a, b) => a.sort_order - b.sort_order);
+  }, [customCategories]);
 
   const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
