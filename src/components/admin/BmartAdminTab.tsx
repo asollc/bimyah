@@ -339,11 +339,22 @@ function StoreElementsTab() {
   async function refresh() {
     setLoading(true);
     try {
-      const res = await listBmartText();
+      const [textRes, customRes] = await Promise.all([
+        listBmartText(),
+        listBmartCustomCategories(),
+      ]);
       const map: Record<string, string> = {};
-      for (const r of res.rows) map[r.key] = r.value;
-      // Seed missing keys with defaults so admin always sees full editable surface.
-      const merged: Record<string, string> = { ...BMART_TEXT_DEFAULTS, ...map };
+      for (const r of textRes.rows) map[r.key] = r.value;
+      const customRows = customRes.rows as { id: string; name: string; tag: string }[];
+      setCustomCats(customRows);
+      // Seed defaults for built-in keys and seed custom-category text overrides
+      // from their stored name/tag so admins always see populated inputs.
+      const customDefaults: Record<string, string> = {};
+      for (const c of customRows) {
+        customDefaults[`cat.${c.id}.name`] = c.name;
+        customDefaults[`cat.${c.id}.tag`] = c.tag ?? "";
+      }
+      const merged: Record<string, string> = { ...BMART_TEXT_DEFAULTS, ...customDefaults, ...map };
       setValues(merged);
       setInitial(merged);
     } catch (e) {
