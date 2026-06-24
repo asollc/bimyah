@@ -1611,7 +1611,7 @@ function CustomCategoryEditor({
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) void handleUpload(f);
+          if (f) setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
           e.target.value = "";
         }}
       />
