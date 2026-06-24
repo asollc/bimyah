@@ -36,6 +36,10 @@ import {
   isVictoryEffectKey,
   type VictoryEffectKey,
 } from "@/components/game/VictoryEffects";
+import { ImageCropModal } from "@/components/admin/ImageCropModal";
+
+/** Aspect ratio of the category cards rendered in Bmart (aspect-[4/5]). */
+const CATEGORY_CARD_ASPECT = 4 / 5;
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
