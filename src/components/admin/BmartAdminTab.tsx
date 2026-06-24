@@ -1497,6 +1497,7 @@ function CustomCategoryEditor({
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
 
   const idTaken = mode === "create" && existingIds?.includes(id.trim());
   const idValid = /^[a-z0-9_-]+$/.test(id.trim());
