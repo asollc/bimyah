@@ -1067,15 +1067,20 @@ function NewProductForm({
 
 function CategoryImagesSection() {
   const [images, setImages] = useState<Record<string, string | null>>({});
+  const [custom, setCustom] = useState<CustomCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
     setLoading(true);
     try {
-      const res = await listBmartCategoryImages();
+      const [imgRes, customRes] = await Promise.all([
+        listBmartCategoryImages(),
+        listBmartCustomCategories(),
+      ]);
       const map: Record<string, string | null> = {};
-      for (const r of res.rows) map[r.id] = r.image_url;
+      for (const r of imgRes.rows) map[r.id] = r.image_url;
       setImages(map);
+      setCustom(customRes.rows as CustomCategory[]);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     } finally {
@@ -1101,6 +1106,9 @@ function CategoryImagesSection() {
             imageUrl={images[c] ?? null}
             onChanged={refresh}
           />
+        ))}
+        {custom.map((c) => (
+          <CustomCategoryImageEditor key={c.id} row={c} onChanged={refresh} />
         ))}
       </div>
     </Card>
