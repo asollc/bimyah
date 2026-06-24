@@ -1641,6 +1641,21 @@ function CustomCategoryEditor({
           Save
         </Button>
       </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => { URL.revokeObjectURL(pending.url); setPending(null); }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
     </div>
   );
 }
