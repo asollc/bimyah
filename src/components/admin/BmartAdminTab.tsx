@@ -1564,7 +1564,7 @@ function CustomCategoryEditor({
 
   return (
     <div className="rounded-md border p-2 space-y-2">
-      <div className="grid h-20 w-full place-items-center overflow-hidden rounded bg-muted/50">
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
         {imageUrl ? (
           <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
         ) : (
