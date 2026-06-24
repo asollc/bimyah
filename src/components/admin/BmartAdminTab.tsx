@@ -385,8 +385,17 @@ function StoreElementsTab() {
     }
   }
 
+  const keyDefaults = useMemo(() => {
+    const d: Record<string, string> = { ...BMART_TEXT_DEFAULTS };
+    for (const c of customCats) {
+      d[`cat.${c.id}.name`] = c.name;
+      d[`cat.${c.id}.tag`] = c.tag ?? "";
+    }
+    return d;
+  }, [customCats]);
+
   function resetKey(k: string) {
-    setKey(k, BMART_TEXT_DEFAULTS[k] ?? "");
+    setKey(k, keyDefaults[k] ?? "");
   }
 
   const groups: { label: string; keys: string[] }[] = [
