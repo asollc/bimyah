@@ -332,6 +332,7 @@ function ProductsTab() {
 function StoreElementsTab() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [initial, setInitial] = useState<Record<string, string>>({});
+  const [customCats, setCustomCats] = useState<{ id: string; name: string; tag: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
