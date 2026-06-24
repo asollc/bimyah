@@ -1127,6 +1127,7 @@ function CategoryImageEditor({
   const [url, setUrl] = useState<string | null>(imageUrl);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1146,7 +1147,6 @@ function CategoryImageEditor({
       });
       if (error) throw error;
       const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
-      // Delete the previously-staged upload (if any) so we don't orphan it.
       if (url && url !== imageUrl) {
         const prev = pathFromPublicUrl(url, "public-assets");
         if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
@@ -1163,7 +1163,6 @@ function CategoryImageEditor({
     setSaving(true);
     try {
       await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
-      // Delete the previously-saved image from storage when it's been replaced or cleared.
       if (imageUrl && imageUrl !== next) {
         const prev = pathFromPublicUrl(imageUrl, "public-assets");
         if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
@@ -1181,9 +1180,9 @@ function CategoryImageEditor({
   return (
     <div className="rounded-md border p-2 space-y-1.5">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{category}</div>
-      <div className="grid h-20 w-full place-items-center overflow-hidden rounded bg-muted/50">
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
         {url ? (
-          <img src={url} alt={category} className="h-full w-full object-contain" />
+          <img src={url} alt={category} className="h-full w-full object-cover" />
         ) : (
           <span className="text-[10px] text-muted-foreground">Default icon</span>
         )}
@@ -1195,7 +1194,9 @@ function CategoryImageEditor({
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) void handleUpload(f);
+          if (f) {
+            setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
+          }
           e.target.value = "";
         }}
       />
@@ -1224,9 +1225,158 @@ function CategoryImageEditor({
           </Button>
         )}
       </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+          }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
     </div>
   );
 }
+
+/** Edit the image of an admin-created custom category from the Category card
+ *  images section. Saves the image URL back onto the custom category row so
+ *  the Bmart category grid picks it up automatically. */
+function CustomCategoryImageEditor({
+  row,
+  onChanged,
+}: {
+  row: CustomCategory;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(row.image_url);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrl(row.image_url);
+  }, [row.image_url]);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
+      const path = `bmart/custom-cat-${row.id}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      if (url && url !== row.image_url) {
+        const prev = pathFromPublicUrl(url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      setUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await upsertBmartCustomCategory({
+        data: {
+          id: row.id,
+          name: row.name,
+          tag: row.tag,
+          image_url: next,
+          sort_order: row.sort_order,
+          hidden: row.hidden,
+        },
+      });
+      if (row.image_url && row.image_url !== next) {
+        const prev = pathFromPublicUrl(row.image_url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      toast.success("Category image saved");
+      setUrl(next);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-[var(--gold)]/30 p-2 space-y-1.5">
+      <div className="flex items-center justify-between gap-1">
+        <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{row.name}</div>
+        <span className="rounded bg-[var(--gold)]/20 px-1 text-[8px] uppercase tracking-wider text-[var(--gold)]">custom</span>
+      </div>
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {url ? (
+          <img src={url} alt={row.name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">No image</span>
+        )}
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload
+        </Button>
+        <Button size="sm" disabled={saving || url === row.image_url} onClick={() => void save(url)} className="h-7 text-xs">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        {row.image_url && (
+          <Button size="sm" variant="ghost" disabled={saving} onClick={() => void save(null)} className="h-7 text-xs">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => { URL.revokeObjectURL(pending.url); setPending(null); }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+
 
 /* ---------------- Custom categories (admin-created) ---------------- */
 
