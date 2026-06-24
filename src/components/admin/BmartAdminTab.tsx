@@ -456,7 +456,7 @@ function StoreElementsTab() {
                 <div key={k} className={`space-y-1 ${isLong ? "sm:col-span-2" : ""}`}>
                   <div className="flex items-center justify-between gap-2">
                     <label className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{k}</label>
-                    {values[k] !== (BMART_TEXT_DEFAULTS[k] ?? "") && (
+                    {values[k] !== (keyDefaults[k] ?? "") && (
                       <button
                         type="button"
                         onClick={() => resetKey(k)}
@@ -469,7 +469,7 @@ function StoreElementsTab() {
                   <Input
                     value={values[k] ?? ""}
                     onChange={(e) => setKey(k, e.target.value)}
-                    placeholder={BMART_TEXT_DEFAULTS[k] ?? ""}
+                    placeholder={keyDefaults[k] ?? ""}
                   />
                 </div>
               );
