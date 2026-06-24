@@ -393,7 +393,10 @@ function StoreElementsTab() {
     { label: "Hero", keys: ["hero.title", "hero.subtitle"] },
     {
       label: "Categories",
-      keys: BMART_CATEGORIES.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+      keys: [
+        ...BMART_CATEGORIES.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+        ...customCats.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+      ],
     },
     {
       label: "Buttons & labels",
