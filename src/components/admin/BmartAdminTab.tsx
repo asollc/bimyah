@@ -194,8 +194,9 @@ export function BmartAdminTab() {
 
 function ProductsTab() {
   const [overrides, setOverrides] = useState<Override[]>([]);
+  const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Category | "all">("all");
+  const [filter, setFilter] = useState<string>("all");
   const [adding, setAdding] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
@@ -211,8 +212,14 @@ function ProductsTab() {
   async function refresh() {
     setLoading(true);
     try {
-      const res = await listBmartProducts();
+      const [res, customRes] = await Promise.all([
+        listBmartProducts(),
+        listBmartCustomCategories(),
+      ]);
       setOverrides(res.rows as Override[]);
+      setCustomCats(
+        (customRes.rows as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name })),
+      );
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     } finally {
@@ -222,6 +229,14 @@ function ProductsTab() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  const categoryOptions = useMemo(
+    () => [
+      ...CATEGORIES.map((c) => ({ id: c as string, name: c as string })),
+      ...customCats,
+    ],
+    [customCats],
+  );
 
   const allRows = useMemo(() => mergeRows(overrides), [overrides]);
   const deletedCount = useMemo(
@@ -259,15 +274,15 @@ function ProductsTab() {
   return (
     <div className="space-y-4">
       <div className="sticky top-[105px] z-20 -mx-1 flex flex-wrap items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
-        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+        <Select value={filter} onValueChange={(v) => setFilter(v)}>
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -297,6 +312,7 @@ function ProductsTab() {
       {adding && (
         <NewProductForm
           existingIds={rows.map((r) => r.id)}
+          categoryOptions={categoryOptions}
           onCancel={() => setAdding(false)}
           onSaved={async () => {
             setAdding(false);
@@ -313,6 +329,7 @@ function ProductsTab() {
             <ProductEditor
               key={r.id}
               row={r}
+              categoryOptions={categoryOptions}
               onChanged={refresh}
               registerSaver={registerSaver}
               unregisterSaver={unregisterSaver}
@@ -484,11 +501,13 @@ function StoreElementsTab() {
 
 function ProductEditor({
   row,
+  categoryOptions,
   onChanged,
   registerSaver,
   unregisterSaver,
 }: {
   row: Row;
+  categoryOptions: { id: string; name: string }[];
   onChanged: () => void | Promise<void>;
   registerSaver?: (id: string, fn: () => Promise<void>) => void;
   unregisterSaver?: (id: string) => void;
@@ -497,7 +516,7 @@ function ProductEditor({
   const [price, setPrice] = useState(row.price);
   const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
   const [currency, setCurrency] = useState<Currency>(row.currency);
-  const [category, setCategory] = useState<Category>(row.category);
+  const [category, setCategory] = useState<string>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
   const [effectType, setEffectType] = useState<string | null>(row.effect_type);
@@ -774,11 +793,11 @@ function ProductEditor({
 
       <div className="space-y-1.5">
         <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
-        <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+        <Select value={category} onValueChange={(v) => setCategory(v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -910,10 +929,12 @@ function ProductEditor({
 
 function NewProductForm({
   existingIds,
+  categoryOptions,
   onCancel,
   onSaved,
 }: {
   existingIds: string[];
+  categoryOptions: { id: string; name: string }[];
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
 }) {
@@ -922,7 +943,7 @@ function NewProductForm({
   const [price, setPrice] = useState(100);
   const [altPrice, setAltPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState<Currency>("bimbucks");
-  const [category, setCategory] = useState<Category>("cards");
+  const [category, setCategory] = useState<string>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [effectType, setEffectType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1037,10 +1058,10 @@ function NewProductForm({
         </div>
         <div className="space-y-1 sm:col-span-2">
           <label className="text-[10px] uppercase text-muted-foreground">Category</label>
-          <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+          <Select value={category} onValueChange={(v) => setCategory(v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+              {categoryOptions.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
             </SelectContent>
           </Select>
         </div>
