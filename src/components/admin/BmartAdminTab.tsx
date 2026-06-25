@@ -47,6 +47,30 @@ const DISPLAYED_CATEGORIES = ["cards", "victory", "backgrounds", "tabletops"] as
 type Currency = (typeof CURRENCIES)[number];
 type Category = (typeof CATEGORIES)[number];
 
+/** Decor sub-categories for custom-category products. Maps to the
+ *  `inventory_kind` enum so purchased items land in the correct Decor
+ *  section on the player's profile. */
+const DECOR_KINDS = [
+  "card_back",
+  "title",
+  "badge",
+  "victory",
+  "background",
+  "tabletop",
+  "table_art",
+] as const;
+type DecorKind = (typeof DECOR_KINDS)[number];
+const DECOR_KIND_LABELS: Record<DecorKind, string> = {
+  card_back: "Card Back",
+  title: "Title",
+  badge: "Badge",
+  victory: "Victory Effect",
+  background: "Background",
+  tabletop: "Table Top",
+  table_art: "Table Art",
+};
+const BUILTIN_CATEGORY_IDS = new Set<string>(CATEGORIES);
+
 /** Extract storage object path from a Supabase public URL for a given bucket. */
 function pathFromPublicUrl(url: string, bucket: string): string | null {
   try {
@@ -118,6 +142,7 @@ type Override = {
   is_custom: boolean;
   sort_order: number;
   effect_type: string | null;
+  kind: DecorKind | null;
 };
 
 type Row = {
@@ -133,6 +158,7 @@ type Row = {
   isBuiltin: boolean;
   hasOverride: boolean;
   effect_type: string | null;
+  kind: DecorKind | null;
 };
 
 function mergeRows(overrides: Override[]): Row[] {
@@ -150,6 +176,7 @@ function mergeRows(overrides: Override[]): Row[] {
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
       effect_type: o?.effect_type ?? null,
+      kind: o?.kind ?? null,
       is_custom: false,
       isBuiltin: true,
       hasOverride: !!o,
@@ -167,6 +194,7 @@ function mergeRows(overrides: Override[]): Row[] {
       hidden: o.hidden,
       image_url: o.image_url,
       effect_type: o.effect_type ?? null,
+      kind: o.kind ?? null,
       is_custom: true,
       isBuiltin: false,
       hasOverride: true,
@@ -520,6 +548,7 @@ function ProductEditor({
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
   const [effectType, setEffectType] = useState<string | null>(row.effect_type);
+  const [kind, setKind] = useState<DecorKind | null>(row.kind);
   const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -537,6 +566,7 @@ function ProductEditor({
     setHidden(row.hidden);
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
+    setKind(row.kind);
   }, [row]);
 
   // Register a silent saver so the parent's "Save all" can persist this card.
@@ -556,6 +586,7 @@ function ProductEditor({
           image_url: imageUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
     });
@@ -573,6 +604,7 @@ function ProductEditor({
     hidden,
     imageUrl,
     effectType,
+    kind,
   ]);
 
   const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
@@ -592,6 +624,7 @@ function ProductEditor({
           image_url: imageUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success("Saved");
@@ -626,6 +659,7 @@ function ProductEditor({
             image_url: imageUrl,
             is_custom: false,
             effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
           },
         });
         setHidden(true);
@@ -682,6 +716,7 @@ function ProductEditor({
           image_url: newUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success(`Imported as ${filename}`);
@@ -802,6 +837,22 @@ function ProductEditor({
           </SelectContent>
         </Select>
       </div>
+
+      {!BUILTIN_CATEGORY_IDS.has(category) && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Decor sub-category
+          </label>
+          <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+            <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+            <SelectContent>
+              {DECOR_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {category === "victory" && (
         <div className="space-y-1.5">
@@ -946,6 +997,7 @@ function NewProductForm({
   const [category, setCategory] = useState<string>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [effectType, setEffectType] = useState<string | null>(null);
+  const [kind, setKind] = useState<DecorKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -983,6 +1035,10 @@ function NewProductForm({
       toast.error("Name required");
       return;
     }
+    if (!BUILTIN_CATEGORY_IDS.has(category) && !kind) {
+      toast.error("Pick a Decor sub-category so purchased items land in the right place");
+      return;
+    }
     setBusy(true);
     try {
       await upsertBmartProduct({
@@ -997,6 +1053,7 @@ function NewProductForm({
           is_custom: true,
           hidden: false,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success("Product created");
@@ -1065,6 +1122,21 @@ function NewProductForm({
             </SelectContent>
           </Select>
         </div>
+        {!BUILTIN_CATEGORY_IDS.has(category) && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">
+              Decor sub-category — where purchased items appear on the player's profile
+            </label>
+            <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+              <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+              <SelectContent>
+                {DECOR_KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {category === "victory" && (
           <div className="space-y-1 sm:col-span-2">
             <label className="text-[10px] uppercase text-muted-foreground">Victory Effect</label>

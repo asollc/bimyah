@@ -58,14 +58,18 @@ export const Route = createFileRoute("/bmart")({
 type Currency = "bimbucks" | "bimbits";
 type CategoryId = "cards" | "victory" | "backgrounds" | "tabletops";
 
+type DecorKind = "card_back" | "title" | "badge" | "victory" | "background" | "tabletop" | "table_art";
+
 type Product = {
   id: string;
   name: string;
-  category: CategoryId;
+  category: CategoryId | string;
   price: number;
   currency: Currency;
   /** Optional secondary price in the OTHER currency (set by admin). */
   altPrice?: number | null;
+  /** Decor sub-category for custom-category products. Falls back to KIND_BY_CATEGORY. */
+  kind?: DecorKind | null;
   /** Render the product preview thumbnail */
   preview: React.ReactNode;
   /** Optional larger preview (e.g. victory effect demo) */
@@ -80,12 +84,13 @@ type BmartOverrideRow = {
   price: number | null;
   alt_price: number | null;
   currency: Currency | null;
-  category: CategoryId | null;
+  category: CategoryId | string | null;
   hidden: boolean;
   image_url: string | null;
   effect_type: string | null;
   is_custom: boolean;
   sort_order: number;
+  kind: DecorKind | null;
 };
 
 function buildVictoryBigPreview(
@@ -117,6 +122,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       altPrice: o.alt_price,
       currency: o.currency ?? p.currency,
       category: o.category ?? p.category,
+      kind: o.kind ?? p.kind ?? null,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? p.name} /> : p.preview,
       bigPreview: isVictory
         ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? p.name, p.bigPreview ?? p.preview)
@@ -141,6 +147,7 @@ function mergeCatalog(base: Product[], overrides: BmartOverrideRow[]): Product[]
       currency: o.currency,
       price: o.price,
       altPrice: o.alt_price,
+      kind: o.kind,
       preview: o.image_url ? <ImagePreview src={o.image_url} alt={o.name ?? o.id} /> : fallback,
       bigPreview: isVictory
         ? buildVictoryBigPreview(effectKey, o.image_url, o.name ?? o.id, fallback)
@@ -440,13 +447,18 @@ function BmartPage() {
       return;
     }
     try {
+      const resolvedKind = p.kind ?? KIND_BY_CATEGORY[p.category as CategoryId];
+      if (!resolvedKind) {
+        toast.error("This item is missing a Decor sub-category. Ask an admin to set it.");
+        return;
+      }
       const res = await purchaseItem({
         data: {
           itemId: p.id,
           itemName: p.name,
           currency,
           price,
-          kind: KIND_BY_CATEGORY[p.category],
+          kind: resolvedKind,
         },
       });
       setWallet({ bimbucks: res.bimbucks, bimbits: res.bimbits });
@@ -618,13 +630,21 @@ function BmartPage() {
             try {
               let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
               for (const i of cart) {
+                const resolvedKind =
+                  i.product.kind ?? KIND_BY_CATEGORY[i.product.category as CategoryId];
+                if (!resolvedKind) {
+                  toast.error(
+                    `"${i.product.name}" is missing a Decor sub-category. Ask an admin to set it.`,
+                  );
+                  return;
+                }
                 latest = await purchaseItem({
                   data: {
                     itemId: i.product.id,
                     itemName: i.product.name,
                     currency: i.currency,
                     price: i.price,
-                    kind: KIND_BY_CATEGORY[i.product.category],
+                    kind: resolvedKind,
                   },
                 });
               }
