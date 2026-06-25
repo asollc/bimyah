@@ -274,15 +274,15 @@ function ProductsTab() {
   return (
     <div className="space-y-4">
       <div className="sticky top-[105px] z-20 -mx-1 flex flex-wrap items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
-        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+        <Select value={filter} onValueChange={(v) => setFilter(v)}>
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
               </SelectItem>
             ))}
           </SelectContent>
