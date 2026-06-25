@@ -548,6 +548,7 @@ function ProductEditor({
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
   const [effectType, setEffectType] = useState<string | null>(row.effect_type);
+  const [kind, setKind] = useState<DecorKind | null>(row.kind);
   const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
