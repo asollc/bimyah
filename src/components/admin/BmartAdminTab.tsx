@@ -1019,6 +1019,10 @@ function NewProductForm({
       toast.error("Name required");
       return;
     }
+    if (!BUILTIN_CATEGORY_IDS.has(category) && !kind) {
+      toast.error("Pick a Decor sub-category so purchased items land in the right place");
+      return;
+    }
     setBusy(true);
     try {
       await upsertBmartProduct({
