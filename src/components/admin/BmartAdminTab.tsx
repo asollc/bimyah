@@ -142,6 +142,7 @@ type Override = {
   is_custom: boolean;
   sort_order: number;
   effect_type: string | null;
+  kind: DecorKind | null;
 };
 
 type Row = {
@@ -153,6 +154,12 @@ type Row = {
   currency: Currency;
   hidden: boolean;
   image_url: string | null;
+  is_custom: boolean;
+  isBuiltin: boolean;
+  hasOverride: boolean;
+  effect_type: string | null;
+  kind: DecorKind | null;
+};
   is_custom: boolean;
   isBuiltin: boolean;
   hasOverride: boolean;
