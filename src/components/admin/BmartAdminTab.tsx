@@ -312,6 +312,7 @@ function ProductsTab() {
       {adding && (
         <NewProductForm
           existingIds={rows.map((r) => r.id)}
+          categoryOptions={categoryOptions}
           onCancel={() => setAdding(false)}
           onSaved={async () => {
             setAdding(false);
@@ -328,6 +329,7 @@ function ProductsTab() {
             <ProductEditor
               key={r.id}
               row={r}
+              categoryOptions={categoryOptions}
               onChanged={refresh}
               registerSaver={registerSaver}
               unregisterSaver={unregisterSaver}
