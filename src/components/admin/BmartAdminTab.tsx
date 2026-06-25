@@ -1106,6 +1106,21 @@ function NewProductForm({
             </SelectContent>
           </Select>
         </div>
+        {!BUILTIN_CATEGORY_IDS.has(category) && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">
+              Decor sub-category — where purchased items appear on the player's profile
+            </label>
+            <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+              <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+              <SelectContent>
+                {DECOR_KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {category === "victory" && (
           <div className="space-y-1 sm:col-span-2">
             <label className="text-[10px] uppercase text-muted-foreground">Victory Effect</label>
