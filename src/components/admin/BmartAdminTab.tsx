@@ -929,10 +929,12 @@ function ProductEditor({
 
 function NewProductForm({
   existingIds,
+  categoryOptions,
   onCancel,
   onSaved,
 }: {
   existingIds: string[];
+  categoryOptions: { id: string; name: string }[];
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
 }) {
@@ -941,7 +943,7 @@ function NewProductForm({
   const [price, setPrice] = useState(100);
   const [altPrice, setAltPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState<Currency>("bimbucks");
-  const [category, setCategory] = useState<Category>("cards");
+  const [category, setCategory] = useState<string>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [effectType, setEffectType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
