@@ -58,14 +58,18 @@ export const Route = createFileRoute("/bmart")({
 type Currency = "bimbucks" | "bimbits";
 type CategoryId = "cards" | "victory" | "backgrounds" | "tabletops";
 
+type DecorKind = "card_back" | "title" | "badge" | "victory" | "background" | "tabletop" | "table_art";
+
 type Product = {
   id: string;
   name: string;
-  category: CategoryId;
+  category: CategoryId | string;
   price: number;
   currency: Currency;
   /** Optional secondary price in the OTHER currency (set by admin). */
   altPrice?: number | null;
+  /** Decor sub-category for custom-category products. Falls back to KIND_BY_CATEGORY. */
+  kind?: DecorKind | null;
   /** Render the product preview thumbnail */
   preview: React.ReactNode;
   /** Optional larger preview (e.g. victory effect demo) */
