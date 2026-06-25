@@ -194,8 +194,9 @@ export function BmartAdminTab() {
 
 function ProductsTab() {
   const [overrides, setOverrides] = useState<Override[]>([]);
+  const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Category | "all">("all");
+  const [filter, setFilter] = useState<string>("all");
   const [adding, setAdding] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
@@ -211,8 +212,14 @@ function ProductsTab() {
   async function refresh() {
     setLoading(true);
     try {
-      const res = await listBmartProducts();
+      const [res, customRes] = await Promise.all([
+        listBmartProducts(),
+        listBmartCustomCategories(),
+      ]);
       setOverrides(res.rows as Override[]);
+      setCustomCats(
+        (customRes.rows as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name })),
+      );
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     } finally {
@@ -222,6 +229,14 @@ function ProductsTab() {
   useEffect(() => {
     void refresh();
   }, []);
+
+  const categoryOptions = useMemo(
+    () => [
+      ...CATEGORIES.map((c) => ({ id: c as string, name: c as string })),
+      ...customCats,
+    ],
+    [customCats],
+  );
 
   const allRows = useMemo(() => mergeRows(overrides), [overrides]);
   const deletedCount = useMemo(
