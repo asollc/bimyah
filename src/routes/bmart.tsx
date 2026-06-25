@@ -447,13 +447,18 @@ function BmartPage() {
       return;
     }
     try {
+      const resolvedKind = p.kind ?? KIND_BY_CATEGORY[p.category as CategoryId];
+      if (!resolvedKind) {
+        toast.error("This item is missing a Decor sub-category. Ask an admin to set it.");
+        return;
+      }
       const res = await purchaseItem({
         data: {
           itemId: p.id,
           itemName: p.name,
           currency,
           price,
-          kind: KIND_BY_CATEGORY[p.category],
+          kind: resolvedKind,
         },
       });
       setWallet({ bimbucks: res.bimbucks, bimbits: res.bimbits });
