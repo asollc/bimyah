@@ -981,6 +981,7 @@ function NewProductForm({
   const [category, setCategory] = useState<string>("cards");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [effectType, setEffectType] = useState<string | null>(null);
+  const [kind, setKind] = useState<DecorKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
