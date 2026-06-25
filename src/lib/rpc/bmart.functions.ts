@@ -16,6 +16,15 @@ async function assertAdmin(userId: string) {
 
 const CURRENCIES = ["bimbucks", "bimbits"] as const;
 const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
+const DECOR_KINDS = [
+  "card_back",
+  "title",
+  "badge",
+  "victory",
+  "background",
+  "tabletop",
+  "table_art",
+] as const;
 
 const upsertSchema = z.object({
   id: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/),
@@ -29,6 +38,7 @@ const upsertSchema = z.object({
   is_custom: z.boolean().optional(),
   sort_order: z.number().int().min(0).max(10000).optional(),
   effect_type: z.string().min(1).max(50).regex(/^[a-z0-9_]+$/).nullable().optional(),
+  kind: z.enum(DECOR_KINDS).nullable().optional(),
 });
 
 export const listBmartProducts = createServerFn({ method: "GET" }).handler(async () => {
