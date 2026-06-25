@@ -23,7 +23,7 @@ const upsertSchema = z.object({
   price: z.number().int().min(0).max(1_000_000).nullable().optional(),
   alt_price: z.number().int().min(0).max(1_000_000).nullable().optional(),
   currency: z.enum(CURRENCIES).nullable().optional(),
-  category: z.enum(CATEGORIES).nullable().optional(),
+  category: z.string().min(1).max(60).regex(/^[a-z0-9_-]+$/).nullable().optional(),
   hidden: z.boolean().optional(),
   image_url: z.string().url().max(500).nullable().optional(),
   is_custom: z.boolean().optional(),
