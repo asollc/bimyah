@@ -501,11 +501,13 @@ function StoreElementsTab() {
 
 function ProductEditor({
   row,
+  categoryOptions,
   onChanged,
   registerSaver,
   unregisterSaver,
 }: {
   row: Row;
+  categoryOptions: { id: string; name: string }[];
   onChanged: () => void | Promise<void>;
   registerSaver?: (id: string, fn: () => Promise<void>) => void;
   unregisterSaver?: (id: string) => void;
@@ -514,7 +516,7 @@ function ProductEditor({
   const [price, setPrice] = useState(row.price);
   const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
   const [currency, setCurrency] = useState<Currency>(row.currency);
-  const [category, setCategory] = useState<Category>(row.category);
+  const [category, setCategory] = useState<string>(row.category);
   const [hidden, setHidden] = useState(row.hidden);
   const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
   const [effectType, setEffectType] = useState<string | null>(row.effect_type);
