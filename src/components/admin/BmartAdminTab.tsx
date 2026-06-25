@@ -160,11 +160,6 @@ type Row = {
   effect_type: string | null;
   kind: DecorKind | null;
 };
-  is_custom: boolean;
-  isBuiltin: boolean;
-  hasOverride: boolean;
-  effect_type: string | null;
-};
 
 function mergeRows(overrides: Override[]): Row[] {
   const byId = new Map(overrides.map((o) => [o.id, o]));
@@ -181,6 +176,7 @@ function mergeRows(overrides: Override[]): Row[] {
       hidden: o?.hidden ?? false,
       image_url: o?.image_url ?? null,
       effect_type: o?.effect_type ?? null,
+      kind: o?.kind ?? null,
       is_custom: false,
       isBuiltin: true,
       hasOverride: !!o,
@@ -198,6 +194,7 @@ function mergeRows(overrides: Override[]): Row[] {
       hidden: o.hidden,
       image_url: o.image_url,
       effect_type: o.effect_type ?? null,
+      kind: o.kind ?? null,
       is_custom: true,
       isBuiltin: false,
       hasOverride: true,
