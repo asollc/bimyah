@@ -793,11 +793,11 @@ function ProductEditor({
 
       <div className="space-y-1.5">
         <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
-        <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+        <Select value={category} onValueChange={(v) => setCategory(v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
