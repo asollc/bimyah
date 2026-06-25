@@ -630,13 +630,21 @@ function BmartPage() {
             try {
               let latest = { bimbucks: wallet.bimbucks, bimbits: wallet.bimbits };
               for (const i of cart) {
+                const resolvedKind =
+                  i.product.kind ?? KIND_BY_CATEGORY[i.product.category as CategoryId];
+                if (!resolvedKind) {
+                  toast.error(
+                    `"${i.product.name}" is missing a Decor sub-category. Ask an admin to set it.`,
+                  );
+                  return;
+                }
                 latest = await purchaseItem({
                   data: {
                     itemId: i.product.id,
                     itemName: i.product.name,
                     currency: i.currency,
                     price: i.price,
-                    kind: KIND_BY_CATEGORY[i.product.category],
+                    kind: resolvedKind,
                   },
                 });
               }
