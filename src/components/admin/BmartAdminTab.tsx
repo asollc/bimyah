@@ -838,6 +838,22 @@ function ProductEditor({
         </Select>
       </div>
 
+      {!BUILTIN_CATEGORY_IDS.has(category) && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Decor sub-category
+          </label>
+          <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+            <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+            <SelectContent>
+              {DECOR_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {category === "victory" && (
         <div className="space-y-1.5">
           <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
