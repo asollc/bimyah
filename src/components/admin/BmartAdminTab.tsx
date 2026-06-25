@@ -47,6 +47,30 @@ const DISPLAYED_CATEGORIES = ["cards", "victory", "backgrounds", "tabletops"] as
 type Currency = (typeof CURRENCIES)[number];
 type Category = (typeof CATEGORIES)[number];
 
+/** Decor sub-categories for custom-category products. Maps to the
+ *  `inventory_kind` enum so purchased items land in the correct Decor
+ *  section on the player's profile. */
+const DECOR_KINDS = [
+  "card_back",
+  "title",
+  "badge",
+  "victory",
+  "background",
+  "tabletop",
+  "table_art",
+] as const;
+type DecorKind = (typeof DECOR_KINDS)[number];
+const DECOR_KIND_LABELS: Record<DecorKind, string> = {
+  card_back: "Card Back",
+  title: "Title",
+  badge: "Badge",
+  victory: "Victory Effect",
+  background: "Background",
+  tabletop: "Table Top",
+  table_art: "Table Art",
+};
+const BUILTIN_CATEGORY_IDS = new Set<string>(CATEGORIES);
+
 /** Extract storage object path from a Supabase public URL for a given bucket. */
 function pathFromPublicUrl(url: string, bucket: string): string | null {
   try {
