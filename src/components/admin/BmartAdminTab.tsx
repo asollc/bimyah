@@ -566,6 +566,7 @@ function ProductEditor({
     setHidden(row.hidden);
     setImageUrl(row.image_url);
     setEffectType(row.effect_type);
+    setKind(row.kind);
   }, [row]);
 
   // Register a silent saver so the parent's "Save all" can persist this card.
