@@ -604,6 +604,7 @@ function ProductEditor({
     hidden,
     imageUrl,
     effectType,
+    kind,
   ]);
 
   const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
