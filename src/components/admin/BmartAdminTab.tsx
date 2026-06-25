@@ -586,6 +586,7 @@ function ProductEditor({
           image_url: imageUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
     });
@@ -622,6 +623,7 @@ function ProductEditor({
           image_url: imageUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success("Saved");
@@ -656,6 +658,7 @@ function ProductEditor({
             image_url: imageUrl,
             is_custom: false,
             effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
           },
         });
         setHidden(true);
@@ -712,6 +715,7 @@ function ProductEditor({
           image_url: newUrl,
           is_custom: row.is_custom,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success(`Imported as ${filename}`);
@@ -1027,6 +1031,7 @@ function NewProductForm({
           is_custom: true,
           hidden: false,
           effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
         },
       });
       toast.success("Product created");
