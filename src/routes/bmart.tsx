@@ -84,12 +84,13 @@ type BmartOverrideRow = {
   price: number | null;
   alt_price: number | null;
   currency: Currency | null;
-  category: CategoryId | null;
+  category: CategoryId | string | null;
   hidden: boolean;
   image_url: string | null;
   effect_type: string | null;
   is_custom: boolean;
   sort_order: number;
+  kind: DecorKind | null;
 };
 
 function buildVictoryBigPreview(
