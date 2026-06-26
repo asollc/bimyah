@@ -155,6 +155,34 @@ export const purchaseItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Enforce Bimyah!+ gating: if the product belongs to a custom category
+    // marked requires_plus, the buyer must have an active subscription.
+    const { data: prod } = await supabaseAdmin
+      .from("bmart_products")
+      .select("category")
+      .eq("id", data.itemId)
+      .maybeSingle();
+    const category = prod?.category as string | null | undefined;
+    if (category) {
+      const { data: cat } = await supabaseAdmin
+        .from("bmart_custom_categories")
+        .select("requires_plus")
+        .eq("id", category)
+        .maybeSingle();
+      if (cat?.requires_plus) {
+        const { data: subs } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .limit(1);
+        if (!subs || subs.length === 0) {
+          throw new Error("Bimyah!+ membership is required to purchase items in this category.");
+        }
+      }
+    }
+
     const { data: res, error } = await supabaseAdmin.rpc("purchase_bmart_item", {
       _user_id: userId,
       _item_id: data.itemId,
@@ -167,6 +195,7 @@ export const purchaseItem = createServerFn({ method: "POST" })
     void supabase;
     return res as { bimbucks: number; bimbits: number };
   });
+
 
 /** Recent purchase history for the signed-in user. */
 export const getMyLedger = createServerFn({ method: "GET" })
