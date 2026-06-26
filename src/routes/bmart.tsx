@@ -399,9 +399,17 @@ function BmartPage() {
       image_url: c.image_url,
       sort_order: 1000 + (c.sort_order ?? 0),
       isCustom: true,
+      requires_plus: !!c.requires_plus,
     }));
     return [...builtin, ...custom].sort((a, b) => a.sort_order - b.sort_order);
   }, [customCategories]);
+
+  const requiresPlusById = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const c of customCategories) m.set(c.id, !!c.requires_plus);
+    return m;
+  }, [customCategories]);
+
 
   const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
