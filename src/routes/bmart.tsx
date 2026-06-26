@@ -431,7 +431,15 @@ function BmartPage() {
 
   const cartCount = cart.length;
 
+  function productRequiresPlus(p: Product) {
+    return requiresPlusById.get(p.category as string) === true;
+  }
+
   function addToCart(p: Product) {
+    if (productRequiresPlus(p) && !isPlus) {
+      toast.error("Bimyah!+ membership is required to purchase items in this category.");
+      return;
+    }
     setCart((prev) => {
       if (prev.find((i) => i.product.id === p.id)) {
         toast.info("Already in cart");
@@ -441,6 +449,7 @@ function BmartPage() {
       return [...prev, { product: p, currency: p.currency, price: p.price }];
     });
   }
+
 
   function setCartCurrency(id: string, currency: Currency) {
     setCart((prev) =>
