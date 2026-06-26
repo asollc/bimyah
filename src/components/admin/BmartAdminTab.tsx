@@ -1633,8 +1633,10 @@ function CustomCategoryEditor({
           image_url: imageUrl,
           sort_order: sortOrder,
           hidden,
+          requires_plus: requiresPlus,
         },
       });
+
       toast.success(mode === "create" ? "Category created" : "Category saved");
       await onSaved();
     } catch (e) {
