@@ -655,6 +655,14 @@ function BmartPage() {
           onSetCurrency={setCartCurrency}
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
           onCheckout={async () => {
+            const lockedItem = cart.find((i) => productRequiresPlus(i.product) && !isPlus);
+            if (lockedItem) {
+              toast.error(
+                `"${lockedItem.product.name}" requires Bimyah!+ membership. Remove it or upgrade to continue.`,
+              );
+              return;
+            }
+
             const needBimbucks = cart
               .filter((i) => i.currency === "bimbucks")
               .reduce((n, i) => n + i.price, 0);
