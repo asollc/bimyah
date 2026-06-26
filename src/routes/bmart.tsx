@@ -579,11 +579,18 @@ function BmartPage() {
               {displayedCategories.map((c) => {
                 const builtinImg = categoryImages[c.id] ?? null;
                 const img = builtinImg ?? c.image_url;
+                const locked = "requires_plus" in c && c.requires_plus && !isPlus;
                 return (
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setActiveCat(c.id)}
+                  onClick={() => {
+                    if (locked) {
+                      toast.error("Bimyah!+ members only. Visit /plus to upgrade.");
+                      return;
+                    }
+                    setActiveCat(c.id);
+                  }}
                   className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
@@ -594,7 +601,7 @@ function BmartPage() {
                       loading="eager"
                       decoding="async"
                       fetchPriority="high"
-                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                      className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${locked ? "opacity-50 grayscale" : "opacity-90"}`}
                     />
                   ) : categoryImagesLoaded && !c.isCustom ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
@@ -603,6 +610,11 @@ function BmartPage() {
                       </div>
                     </div>
                   ) : null}
+                  {locked && (
+                    <div className="absolute right-1.5 top-1.5 z-[3] flex items-center gap-1 rounded-full border border-[var(--gold)]/60 bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-[var(--gold)] shadow">
+                      <Sparkles className="h-3 w-3" /> B+
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
@@ -610,12 +622,13 @@ function BmartPage() {
                       {t(`cat.${c.id}.name`, c.name)}
                     </div>
                     <div className="text-[9px] uppercase tracking-widest text-[var(--gold)]/80">
-                      {t(`cat.${c.id}.tag`, c.tag)}
+                      {locked ? "Bimyah!+ members only" : t(`cat.${c.id}.tag`, c.tag)}
                     </div>
                   </div>
                 </button>
                 );
               })}
+
             </div>
           </>
         ) : (
