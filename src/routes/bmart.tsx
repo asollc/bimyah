@@ -376,7 +376,12 @@ function BmartPage() {
     void listBmartCustomCategories()
       .then((res) => setCustomCategories(res.rows.filter((r) => !r.hidden) as typeof customCategories))
       .catch(() => {});
+
+    void getMyEntitlement()
+      .then((e) => setIsPlus(!!e?.is_plus))
+      .catch(() => setIsPlus(false));
   }, []);
+
 
   const displayedCategories = useMemo(() => {
     const builtin = CATEGORIES.map((c, i) => ({
