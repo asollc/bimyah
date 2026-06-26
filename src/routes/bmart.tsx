@@ -347,8 +347,10 @@ function BmartPage() {
   const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [customCategories, setCustomCategories] = useState<
-    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean }[]
+    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean; requires_plus?: boolean }[]
   >([]);
+  const [isPlus, setIsPlus] = useState(false);
+
 
   useEffect(() => {
     void listBmartProducts()
