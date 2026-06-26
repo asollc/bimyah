@@ -27,7 +27,7 @@ export const listBmartCustomCategories = createServerFn({ method: "GET" }).handl
   const supabase = publicClient();
   const { data, error } = await supabase
     .from("bmart_custom_categories")
-    .select("id, name, tag, image_url, sort_order, hidden")
+    .select("id, name, tag, image_url, sort_order, hidden, requires_plus")
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
@@ -41,6 +41,7 @@ const upsertSchema = z.object({
   image_url: z.string().url().max(500).nullable().optional(),
   sort_order: z.number().int().min(0).max(10000).optional(),
   hidden: z.boolean().optional(),
+  requires_plus: z.boolean().optional(),
 });
 
 export const upsertBmartCustomCategory = createServerFn({ method: "POST" })
@@ -57,6 +58,7 @@ export const upsertBmartCustomCategory = createServerFn({ method: "POST" })
         image_url: data.image_url ?? null,
         sort_order: data.sort_order ?? 0,
         hidden: data.hidden ?? false,
+        requires_plus: data.requires_plus ?? false,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" },
@@ -64,6 +66,7 @@ export const upsertBmartCustomCategory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 export const deleteBmartCustomCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

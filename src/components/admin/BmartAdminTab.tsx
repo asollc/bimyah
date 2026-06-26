@@ -1504,7 +1504,9 @@ type CustomCategory = {
   image_url: string | null;
   sort_order: number;
   hidden: boolean;
+  requires_plus?: boolean;
 };
+
 
 function CustomCategoriesSection() {
   const [rows, setRows] = useState<CustomCategory[]>([]);
@@ -1586,6 +1588,8 @@ function CustomCategoryEditor({
   const [imageUrl, setImageUrl] = useState<string | null>(row?.image_url ?? null);
   const [sortOrder, setSortOrder] = useState<number>(row?.sort_order ?? 0);
   const [hidden, setHidden] = useState<boolean>(row?.hidden ?? false);
+  const [requiresPlus, setRequiresPlus] = useState<boolean>(row?.requires_plus ?? false);
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1629,8 +1633,10 @@ function CustomCategoryEditor({
           image_url: imageUrl,
           sort_order: sortOrder,
           hidden,
+          requires_plus: requiresPlus,
         },
       });
+
       toast.success(mode === "create" ? "Category created" : "Category saved");
       await onSaved();
     } catch (e) {
@@ -1697,6 +1703,20 @@ function CustomCategoryEditor({
           Hidden
         </label>
       </div>
+      <label className="flex items-center gap-2 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5 px-2 py-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={requiresPlus}
+          onChange={(e) => setRequiresPlus(e.target.checked)}
+        />
+        <span>
+          <span className="font-semibold text-[var(--gold)]">Requires Bimyah!+</span>
+          <span className="ml-1 text-muted-foreground">
+            (only B+ members can browse or purchase from this category)
+          </span>
+        </span>
+      </label>
+
       <input
         ref={fileInput}
         type="file"

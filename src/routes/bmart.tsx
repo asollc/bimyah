@@ -14,7 +14,9 @@ import {
 } from "@/components/game/VictoryEffects";
 import { listBmartProducts, listBmartCategoryImages, listBmartText } from "@/lib/rpc/bmart.functions";
 import { listBmartCustomCategories } from "@/lib/rpc/bmartCategories.functions";
+import { getMyEntitlement } from "@/lib/rpc/bplus.functions";
 import { purchaseItem } from "@/lib/rpc/decor.functions";
+
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -345,8 +347,10 @@ function BmartPage() {
   const [categoryImagesLoaded, setCategoryImagesLoaded] = useState(false);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [customCategories, setCustomCategories] = useState<
-    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean }[]
+    { id: string; name: string; tag: string; image_url: string | null; sort_order: number; hidden: boolean; requires_plus?: boolean }[]
   >([]);
+  const [isPlus, setIsPlus] = useState(false);
+
 
   useEffect(() => {
     void listBmartProducts()
@@ -372,7 +376,12 @@ function BmartPage() {
     void listBmartCustomCategories()
       .then((res) => setCustomCategories(res.rows.filter((r) => !r.hidden) as typeof customCategories))
       .catch(() => {});
+
+    void getMyEntitlement()
+      .then((e) => setIsPlus(!!e?.is_plus))
+      .catch(() => setIsPlus(false));
   }, []);
+
 
   const displayedCategories = useMemo(() => {
     const builtin = CATEGORIES.map((c, i) => ({
@@ -390,9 +399,17 @@ function BmartPage() {
       image_url: c.image_url,
       sort_order: 1000 + (c.sort_order ?? 0),
       isCustom: true,
+      requires_plus: !!c.requires_plus,
     }));
     return [...builtin, ...custom].sort((a, b) => a.sort_order - b.sort_order);
   }, [customCategories]);
+
+  const requiresPlusById = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const c of customCategories) m.set(c.id, !!c.requires_plus);
+    return m;
+  }, [customCategories]);
+
 
   const t = useMemo(() => makeT(textOverrides), [textOverrides]);
   const catalog = useMemo(() => mergeCatalog(PRODUCTS, overrides), [overrides]);
@@ -414,7 +431,15 @@ function BmartPage() {
 
   const cartCount = cart.length;
 
+  function productRequiresPlus(p: Product) {
+    return requiresPlusById.get(p.category as string) === true;
+  }
+
   function addToCart(p: Product) {
+    if (productRequiresPlus(p) && !isPlus) {
+      toast.error("Bimyah!+ membership is required to purchase items in this category.");
+      return;
+    }
     setCart((prev) => {
       if (prev.find((i) => i.product.id === p.id)) {
         toast.info("Already in cart");
@@ -424,6 +449,7 @@ function BmartPage() {
       return [...prev, { product: p, currency: p.currency, price: p.price }];
     });
   }
+
 
   function setCartCurrency(id: string, currency: Currency) {
     setCart((prev) =>
@@ -436,7 +462,12 @@ function BmartPage() {
   }
 
   async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
+    if (productRequiresPlus(p) && !isPlus) {
+      toast.error("Bimyah!+ membership is required to purchase items in this category.");
+      return;
+    }
     const have = currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
+
     if (have < price) {
       if (currency === "bimbucks") {
         toast.error("Not enough Bimbucks. Buy more to continue.");
@@ -548,11 +579,18 @@ function BmartPage() {
               {displayedCategories.map((c) => {
                 const builtinImg = categoryImages[c.id] ?? null;
                 const img = builtinImg ?? c.image_url;
+                const locked = requiresPlusById.get(c.id) === true && !isPlus;
                 return (
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setActiveCat(c.id)}
+                  onClick={() => {
+                    if (locked) {
+                      toast.error("Bimyah!+ members only. Visit /plus to upgrade.");
+                      return;
+                    }
+                    setActiveCat(c.id);
+                  }}
                   className="shop-card group relative mx-auto aspect-[4/5] w-[85%] overflow-hidden text-left"
                 >
                   <span className="shop-glow" />
@@ -563,7 +601,7 @@ function BmartPage() {
                       loading="eager"
                       decoding="async"
                       fetchPriority="high"
-                      className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                      className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${locked ? "opacity-50 grayscale" : "opacity-90"}`}
                     />
                   ) : categoryImagesLoaded && !c.isCustom ? (
                     <div className="absolute inset-x-0 top-0 z-[1] grid place-items-center pt-7">
@@ -572,6 +610,11 @@ function BmartPage() {
                       </div>
                     </div>
                   ) : null}
+                  {locked && (
+                    <div className="absolute right-1.5 top-1.5 z-[3] flex items-center gap-1 rounded-full border border-[var(--gold)]/60 bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-[var(--gold)] shadow">
+                      <Sparkles className="h-3 w-3" /> B+
+                    </div>
+                  )}
                   <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-0.5 px-3 pb-3 pt-10"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.45) 60%, transparent)" }}
                   >
@@ -579,12 +622,13 @@ function BmartPage() {
                       {t(`cat.${c.id}.name`, c.name)}
                     </div>
                     <div className="text-[9px] uppercase tracking-widest text-[var(--gold)]/80">
-                      {t(`cat.${c.id}.tag`, c.tag)}
+                      {locked ? "Bimyah!+ members only" : t(`cat.${c.id}.tag`, c.tag)}
                     </div>
                   </div>
                 </button>
                 );
               })}
+
             </div>
           </>
         ) : (
@@ -611,6 +655,14 @@ function BmartPage() {
           onSetCurrency={setCartCurrency}
           onRemove={(id) => setCart((prev) => prev.filter((i) => i.product.id !== id))}
           onCheckout={async () => {
+            const lockedItem = cart.find((i) => productRequiresPlus(i.product) && !isPlus);
+            if (lockedItem) {
+              toast.error(
+                `"${lockedItem.product.name}" requires Bimyah!+ membership. Remove it or upgrade to continue.`,
+              );
+              return;
+            }
+
             const needBimbucks = cart
               .filter((i) => i.currency === "bimbucks")
               .reduce((n, i) => n + i.price, 0);
