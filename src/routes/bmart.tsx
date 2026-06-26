@@ -579,7 +579,7 @@ function BmartPage() {
               {displayedCategories.map((c) => {
                 const builtinImg = categoryImages[c.id] ?? null;
                 const img = builtinImg ?? c.image_url;
-                const locked = "requires_plus" in c && c.requires_plus && !isPlus;
+                const locked = requiresPlusById.get(c.id) === true && !isPlus;
                 return (
                 <button
                   key={c.id}
