@@ -1588,6 +1588,8 @@ function CustomCategoryEditor({
   const [imageUrl, setImageUrl] = useState<string | null>(row?.image_url ?? null);
   const [sortOrder, setSortOrder] = useState<number>(row?.sort_order ?? 0);
   const [hidden, setHidden] = useState<boolean>(row?.hidden ?? false);
+  const [requiresPlus, setRequiresPlus] = useState<boolean>(row?.requires_plus ?? false);
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
