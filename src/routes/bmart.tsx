@@ -462,7 +462,12 @@ function BmartPage() {
   }
 
   async function buyNow(p: Product, currency: Currency = p.currency, price: number = p.price) {
+    if (productRequiresPlus(p) && !isPlus) {
+      toast.error("Bimyah!+ membership is required to purchase items in this category.");
+      return;
+    }
     const have = currency === "bimbucks" ? wallet.bimbucks : wallet.bimbits;
+
     if (have < price) {
       if (currency === "bimbucks") {
         toast.error("Not enough Bimbucks. Buy more to continue.");
