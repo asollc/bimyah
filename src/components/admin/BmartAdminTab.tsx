@@ -1703,6 +1703,20 @@ function CustomCategoryEditor({
           Hidden
         </label>
       </div>
+      <label className="flex items-center gap-2 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5 px-2 py-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={requiresPlus}
+          onChange={(e) => setRequiresPlus(e.target.checked)}
+        />
+        <span>
+          <span className="font-semibold text-[var(--gold)]">Requires Bimyah!+</span>
+          <span className="ml-1 text-muted-foreground">
+            (only B+ members can browse or purchase from this category)
+          </span>
+        </span>
+      </label>
+
       <input
         ref={fileInput}
         type="file"
