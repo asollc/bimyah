@@ -69,6 +69,7 @@ export type Database = {
           id: string
           image_url: string | null
           name: string
+          requires_plus: boolean
           sort_order: number
           tag: string
           updated_at: string
@@ -79,6 +80,7 @@ export type Database = {
           id: string
           image_url?: string | null
           name: string
+          requires_plus?: boolean
           sort_order?: number
           tag?: string
           updated_at?: string
@@ -89,6 +91,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string
+          requires_plus?: boolean
           sort_order?: number
           tag?: string
           updated_at?: string
