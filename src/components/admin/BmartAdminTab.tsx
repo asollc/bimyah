@@ -1504,7 +1504,9 @@ type CustomCategory = {
   image_url: string | null;
   sort_order: number;
   hidden: boolean;
+  requires_plus?: boolean;
 };
+
 
 function CustomCategoriesSection() {
   const [rows, setRows] = useState<CustomCategory[]>([]);
