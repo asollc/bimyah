@@ -72,6 +72,7 @@ export function createInitialGame(
     cardBackUrls: p.cardBackUrls ?? null,
     titleUrl: p.titleUrl ?? null,
     badgeUrl: p.badgeUrl ?? null,
+    badgeUrl2: p.badgeUrl2 ?? null,
     specialBadgeUrl: p.specialBadgeUrl ?? null,
     victoryUrl: p.victoryUrl ?? null,
     victoryEffectType: p.victoryEffectType ?? null,
