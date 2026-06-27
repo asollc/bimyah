@@ -24,12 +24,24 @@ function BPlus() {
 export function HowToPlayButton({
   floating = true,
   variant = "default",
+  autoOpenTab = null,
 }: {
   floating?: boolean;
   variant?: "default" | "lime";
+  /** When set to a tab id (e.g. "videos"), opens the dialog on that tab on mount, once. */
+  autoOpenTab?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>(autoOpenTab ?? "standard");
+  const autoOpenedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (autoOpenTab && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      setActiveTab(autoOpenTab);
+      setOpen(true);
+    }
+  }, [autoOpenTab]);
   const className =
     variant === "lime"
       ? "flex h-9 items-center gap-1 rounded-full bg-lime-400 px-3 font-display text-[10px] font-black uppercase tracking-widest text-black ring-1 ring-lime-300 transition hover:scale-105"
@@ -46,14 +58,15 @@ export function HowToPlayButton({
         className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white"
       >
         <Tabs
-          defaultValue="standard"
-          className="w-full"
-          onValueChange={() => {
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v);
             // Scroll the dialog body to the top whenever a new tab is selected.
             requestAnimationFrame(() => {
               scrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
             });
           }}
+          className="w-full"
         >
           <div className="sticky top-0 z-10 bg-[oklch(0.18_0.04_165)] px-6 pb-3 pt-6 shadow-[0_4px_8px_-4px_rgba(0,0,0,0.6)]">
             <DialogHeader>
