@@ -271,6 +271,36 @@ function PlusPage() {
 
 
 
+      {!success && (
+        <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
+          <div className="font-display text-center text-[30px] font-black uppercase tracking-widest text-[var(--gold)]">
+            B+ Exclusive Items
+          </div>
+          <div className="mt-4 flex flex-col items-center gap-4">
+            <img
+              src={foundingCarderAsset.url}
+              alt="Founding Carder"
+              className="h-auto w-full max-w-[280px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+              draggable={false}
+            />
+            <div className="flex items-center justify-center gap-6">
+              <img
+                src={bplusGoldAsset.url}
+                alt="B+ Gold Badge"
+                className="h-auto w-28 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+                draggable={false}
+              />
+              <img
+                src={bplusRedAsset.url}
+                alt="B+ Red Badge"
+                className="h-auto w-24 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+                draggable={false}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {!success && user && stripeReady && (
         <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
           <div className="font-display text-center text-lg font-black uppercase tracking-widest text-[var(--gold)]">
