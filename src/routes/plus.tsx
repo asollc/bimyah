@@ -175,6 +175,9 @@ function PlusPage() {
         <span>Bimyah!<span className="text-[var(--gold)]">+</span></span>
         <BplusIcon size={36} />
       </div>
+      <div className="mt-1 text-center text-xs font-semibold uppercase tracking-widest text-[var(--gold)]/90 sm:text-sm">
+        Only {status.lifetime_remaining}/{status.lifetime_quota} Founding Carder Accounts Left
+      </div>
 
       {success && (
         <div className="mt-4 w-full max-w-md rounded-xl border border-[var(--mint)]/40 bg-[var(--mint)]/10 p-4 text-center">
