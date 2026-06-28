@@ -1067,7 +1067,11 @@ export function GameTable({
       {/* Top-right: HowToPlay + Scoreboard (in tournament) */}
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
         <Movable id="how-to-play" {...movables}>
-          <HowToPlayButton />
+          <HowToPlayButton
+            autoOpenTab={
+              state.mode === "training" && state.status === "lobby" ? "videos" : null
+            }
+          />
         </Movable>
         {isTournament && (
           <Movable id="scoreboard-btn" {...movables}>
