@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
 import { BplusIcon } from "@/components/BplusIcon";
+import foundingCarderAsset from "@/assets/founding-carder.png.asset.json";
+import bplusGoldAsset from "@/assets/bplus-gold.png.asset.json";
+import bplusRedAsset from "@/assets/bplus-red.png.asset.json";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { hasStripeConfigured } from "@/lib/stripe";
@@ -172,6 +175,9 @@ function PlusPage() {
         <span>Bimyah!<span className="text-[var(--gold)]">+</span></span>
         <BplusIcon size={36} />
       </div>
+      <div className="mt-1 text-center text-xs font-semibold uppercase tracking-widest text-[var(--gold)]/90 sm:text-sm">
+        Only {status.lifetime_remaining}/{status.lifetime_quota} Founding Carder Accounts Left
+      </div>
 
       {success && (
         <div className="mt-4 w-full max-w-md rounded-xl border border-[var(--mint)]/40 bg-[var(--mint)]/10 p-4 text-center">
@@ -264,6 +270,36 @@ function PlusPage() {
       )}
 
 
+
+      {!success && (
+        <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
+          <div className="font-display text-center text-[30px] font-black uppercase tracking-widest text-[var(--gold)]">
+            B+ Exclusive Items
+          </div>
+          <div className="mt-4 flex flex-col items-center gap-4">
+            <img
+              src={foundingCarderAsset.url}
+              alt="Founding Carder"
+              className="h-auto w-full max-w-[280px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+              draggable={false}
+            />
+            <div className="flex items-center justify-center gap-6">
+              <img
+                src={bplusGoldAsset.url}
+                alt="B+ Gold Badge"
+                className="h-auto w-28 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+                draggable={false}
+              />
+              <img
+                src={bplusRedAsset.url}
+                alt="B+ Red Badge"
+                className="h-auto w-24 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+                draggable={false}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {!success && user && stripeReady && (
         <div className="mt-5 w-full max-w-md rounded-2xl border border-[var(--gold)]/40 bg-black/50 p-5 backdrop-blur">
