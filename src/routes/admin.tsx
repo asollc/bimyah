@@ -889,8 +889,8 @@ function SharesTab() {
                   )}
                 </td>
                 <td className="p-2">
-                  <Badge variant={r.method === "web_share" ? "default" : "secondary"}>
-                    {r.method === "web_share" ? "Native share" : "Copied link"}
+                  <Badge variant={r.method === "web_share" ? "default" : r.method === "referral" ? "outline" : "secondary"}>
+                    {r.method === "web_share" ? "Native share" : r.method === "referral" ? "Referral visit" : "Copied link"}
                   </Badge>
                 </td>
                 <td className="p-2 text-xs">{r.source}</td>
