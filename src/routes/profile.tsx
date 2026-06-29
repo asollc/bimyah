@@ -56,6 +56,7 @@ function ProfilePage() {
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
