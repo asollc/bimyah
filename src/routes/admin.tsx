@@ -834,12 +834,19 @@ function SharesTab() {
   }, []);
   if (loading && !data) return <Loader2 className="h-5 w-5 animate-spin" />;
   if (!data) return null;
+  const referral30 =
+    (data.recent ?? []).filter(
+      (r) =>
+        r.method === "referral" &&
+        new Date(r.created_at).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000,
+    ).length;
   const stats = [
     { label: "Total shares", value: String(data.total) },
     { label: "Last 30 days", value: String(data.last_30d) },
     { label: "Last 7 days", value: String(data.last_7d) },
     { label: "Native share (30d)", value: String(data.web_share_30d) },
     { label: "Copied link (30d)", value: String(data.clipboard_30d) },
+    { label: "Referral visits (recent)", value: String(referral30) },
   ];
   return (
     <div className="space-y-4">
@@ -851,7 +858,7 @@ function SharesTab() {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         {stats.map((s) => (
           <Card key={s.label} className="p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
@@ -882,8 +889,8 @@ function SharesTab() {
                   )}
                 </td>
                 <td className="p-2">
-                  <Badge variant={r.method === "web_share" ? "default" : "secondary"}>
-                    {r.method === "web_share" ? "Native share" : "Copied link"}
+                  <Badge variant={r.method === "web_share" ? "default" : r.method === "referral" ? "outline" : "secondary"}>
+                    {r.method === "web_share" ? "Native share" : r.method === "referral" ? "Referral visit" : "Copied link"}
                   </Badge>
                 </td>
                 <td className="p-2 text-xs">{r.source}</td>

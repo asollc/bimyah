@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-r
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, Upload, Lock, X, Wallet, Map as MapIcon, ArrowDown } from "lucide-react";
+import { ArrowLeft, LogOut, Upload, Lock, X, Wallet, Map as MapIcon, ArrowDown, Copy, Check } from "lucide-react";
 import { setMyAvatar } from "@/lib/rpc/cosmetics.functions";
 import { getMyEntitlement } from "@/lib/rpc/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
@@ -56,6 +56,7 @@ function ProfilePage() {
   const [activeCardBack, setActiveCardBack] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/auth" });
@@ -271,6 +272,40 @@ function ProfilePage() {
         <div className="text-[10px] text-white/40">
           Your display name is locked once your account is created.
         </div>
+
+        {profile?.display_name && (
+          <div className="mt-3 flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase tracking-widest text-white/50">
+              Your referral link
+            </label>
+            <div className="flex items-stretch gap-2">
+              <div className="flex-1 truncate rounded-lg border border-[var(--gold)]/30 bg-black/30 px-3 py-2 font-mono text-xs text-white/80">
+                playbimyah.com/{profile.display_name}
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const url = `https://playbimyah.com/${profile.display_name}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setCopiedRef(true);
+                    setMsg("Referral link copied");
+                    setTimeout(() => setCopiedRef(false), 1500);
+                  } catch {
+                    setErr("Couldn't copy link");
+                  }
+                }}
+                aria-label="Copy referral link"
+                className="grid h-auto w-10 place-items-center rounded-lg border border-[var(--gold)]/40 bg-gradient-to-b from-[#f4cf6a] via-[#d9a834] to-[#8a6a16] text-[#1a1303] shadow-[0_2px_0_0_#5a4310] active:translate-y-0.5"
+              >
+                {copiedRef ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="text-[10px] text-white/40">
+              Share this link — visits are tracked as referrals.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
