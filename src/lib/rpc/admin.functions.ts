@@ -354,7 +354,7 @@ export const getAdminBplusConfig = createServerFn({ method: "GET" })
 
 // ---------- Share tracking ----------
 const recordShareSchema = z.object({
-  method: z.enum(["web_share", "clipboard"]),
+  method: z.enum(["web_share", "clipboard", "referral"]),
   source: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).default("home"),
   user_id: z.string().uuid().nullable().optional(),
 });
@@ -368,6 +368,28 @@ export const recordShareEvent = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ---------- Referral visits ----------
+const referralVisitSchema = z.object({
+  username: z.string().min(1).max(64),
+});
+export const recordReferralVisit = createServerFn({ method: "POST" })
+  .inputValidator((d) => referralVisitSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("id, display_name")
+      .ilike("display_name", data.username)
+      .maybeSingle();
+    if (!prof) return { ok: false, found: false };
+    const { error } = await supabaseAdmin.from("share_events").insert({
+      user_id: prof.id,
+      method: "referral",
+      source: "referral_link",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, found: true };
   });
 
 export const getShareStats = createServerFn({ method: "GET" })
