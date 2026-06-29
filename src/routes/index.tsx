@@ -99,12 +99,26 @@ export const Route = createFileRoute("/")({
     };
   },
   component: HomePage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    ref: typeof s.ref === "string" ? s.ref : undefined,
+  }),
 });
 
 function HomePage() {
+  const search = Route.useSearch();
   useEffect(() => {
     sfx.init();
   }, []);
+  useEffect(() => {
+    const ref = search.ref?.trim();
+    if (!ref) return;
+    try {
+      localStorage.setItem("bimyah_referrer", ref);
+    } catch { /* ignore */ }
+    void import("@/lib/rpc/admin.functions").then(({ recordReferralVisit }) =>
+      recordReferralVisit({ data: { username: ref } }).catch(() => {}),
+    );
+  }, [search.ref]);
   const [showSolo, setShowSolo] = useState(false);
   const [showHost, setShowHost] = useState(false);
   const [forcedMode, setForcedMode] = useState<GameMode | null>(null);
