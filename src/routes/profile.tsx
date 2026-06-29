@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-r
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, LogOut, Upload, Lock, X, Wallet, Map as MapIcon, ArrowDown } from "lucide-react";
+import { ArrowLeft, LogOut, Upload, Lock, X, Wallet, Map as MapIcon, ArrowDown, Copy, Check } from "lucide-react";
 import { setMyAvatar } from "@/lib/rpc/cosmetics.functions";
 import { getMyEntitlement } from "@/lib/rpc/bplus.functions";
 import { BplusIcon } from "@/components/BplusIcon";
