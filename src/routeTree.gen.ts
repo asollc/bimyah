@@ -23,7 +23,6 @@ import { Route as MapRouteImport } from './routes/map'
 import { Route as BmartRouteImport } from './routes/bmart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as UsernameRouteImport } from './routes/$username'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlusReturnRouteImport } from './routes/plus.return'
 import { Route as JoinGameIdRouteImport } from './routes/join.$gameId'
@@ -107,11 +106,6 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UsernameRoute = UsernameRouteImport.update({
-  id: '/$username',
-  path: '/$username',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -179,7 +173,6 @@ const LovableEmailQueueProcessRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bmart': typeof BmartRoute
@@ -208,7 +201,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bmart': typeof BmartRoute
@@ -238,7 +230,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bmart': typeof BmartRoute
@@ -269,7 +260,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/$username'
     | '/admin'
     | '/auth'
     | '/bmart'
@@ -298,7 +288,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/$username'
     | '/admin'
     | '/auth'
     | '/bmart'
@@ -327,7 +316,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/$username'
     | '/admin'
     | '/auth'
     | '/bmart'
@@ -357,7 +345,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  UsernameRoute: typeof UsernameRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BmartRoute: typeof BmartRoute
@@ -484,13 +471,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$username': {
-      id: '/$username'
-      path: '/$username'
-      fullPath: '/$username'
-      preLoaderRoute: typeof UsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -590,7 +570,6 @@ const PlusRouteWithChildren = PlusRoute._addFileChildren(PlusRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  UsernameRoute: UsernameRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BmartRoute: BmartRoute,

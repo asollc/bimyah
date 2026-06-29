@@ -280,12 +280,12 @@ function ProfilePage() {
             </label>
             <div className="flex items-stretch gap-2">
               <div className="flex-1 truncate rounded-lg border border-[var(--gold)]/30 bg-black/30 px-3 py-2 font-mono text-xs text-white/80">
-                playbimyah.com/{profile.display_name}
+                playbimyah.com/?ref={profile.display_name}
               </div>
               <button
                 type="button"
                 onClick={async () => {
-                  const url = `https://playbimyah.com/${profile.display_name}`;
+                  const url = `https://playbimyah.com/?ref=${encodeURIComponent(profile.display_name!)}`;
                   try {
                     await navigator.clipboard.writeText(url);
                     setCopiedRef(true);
