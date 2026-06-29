@@ -858,7 +858,7 @@ function SharesTab() {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         {stats.map((s) => (
           <Card key={s.label} className="p-4">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
