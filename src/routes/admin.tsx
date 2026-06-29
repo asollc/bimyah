@@ -834,12 +834,19 @@ function SharesTab() {
   }, []);
   if (loading && !data) return <Loader2 className="h-5 w-5 animate-spin" />;
   if (!data) return null;
+  const referral30 =
+    (data.recent ?? []).filter(
+      (r) =>
+        r.method === "referral" &&
+        new Date(r.created_at).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000,
+    ).length;
   const stats = [
     { label: "Total shares", value: String(data.total) },
     { label: "Last 30 days", value: String(data.last_30d) },
     { label: "Last 7 days", value: String(data.last_7d) },
     { label: "Native share (30d)", value: String(data.web_share_30d) },
     { label: "Copied link (30d)", value: String(data.clipboard_30d) },
+    { label: "Referral visits (recent)", value: String(referral30) },
   ];
   return (
     <div className="space-y-4">
