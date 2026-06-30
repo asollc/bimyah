@@ -12,6 +12,7 @@ import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { DecorTab } from "@/components/profile/DecorTab";
+import { ReferralsTab } from "@/components/profile/ReferralsTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
