@@ -90,10 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Defer to avoid deadlocks per Supabase guidance.
         setTimeout(() => {
           void fetchProfile(newSession.user.id);
+          void claimPendingReferral();
         }, 0);
       } else {
         setProfile(null);
       }
+
     });
 
     void supabase.auth.getSession().then(({ data }) => {
