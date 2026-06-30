@@ -547,8 +547,16 @@ function UsersTab() {
                       {u.email ?? <span className="font-mono">{u.id.slice(0, 8)}…</span>}
                     </div>
                   </td>
+                  <td className="p-2 text-xs">
+                    {u.sponsor ? (
+                      <span className="text-foreground">{u.sponsor}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-2">
                     <div className="flex gap-1">
+
                       {u.roles.map((r) => (
                         <Badge key={r} variant={r === "admin" ? "default" : "outline"}>
                           {r}
