@@ -518,6 +518,7 @@ function UsersTab() {
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="p-2">User</th>
+              <th className="p-2">Sponsor</th>
               <th className="p-2">Roles</th>
               <th className="p-2">Bimyah!+</th>
               <th className="p-2">Joined</th>
