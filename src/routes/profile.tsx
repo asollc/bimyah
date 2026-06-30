@@ -348,9 +348,10 @@ function ProfilePage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="stats" className="mt-4">
-          <ComingSoon label="Stats" />
+        <TabsContent value="referrals" className="mt-4">
+          <ReferralsTab />
         </TabsContent>
+
       </Tabs>
 
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
