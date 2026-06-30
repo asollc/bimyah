@@ -34,6 +34,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as Profile | null) ?? null);
   }
 
+  async function claimPendingReferral() {
+    if (typeof window === "undefined") return;
+    const username = window.localStorage.getItem("bimyah_referrer");
+    if (!username) return;
+    try {
+      const { claimReferral } = await import("@/lib/rpc/referrals.functions");
+      await claimReferral({ data: { username } });
+    } catch {
+      /* ignore — best effort */
+    } finally {
+      window.localStorage.removeItem("bimyah_referrer");
+    }
+  }
+
+
+
+
   // Install a fetch interceptor that attaches the current Supabase access token
   // to all server-fn calls (so requireSupabaseAuth middleware works).
   useEffect(() => {
@@ -90,10 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Defer to avoid deadlocks per Supabase guidance.
         setTimeout(() => {
           void fetchProfile(newSession.user.id);
+          void claimPendingReferral();
         }, 0);
       } else {
         setProfile(null);
       }
+
     });
 
     void supabase.auth.getSession().then(({ data }) => {

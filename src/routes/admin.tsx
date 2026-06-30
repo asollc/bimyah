@@ -518,6 +518,7 @@ function UsersTab() {
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="p-2">User</th>
+              <th className="p-2">Sponsor</th>
               <th className="p-2">Roles</th>
               <th className="p-2">Bimyah!+</th>
               <th className="p-2">Joined</th>
@@ -546,8 +547,16 @@ function UsersTab() {
                       {u.email ?? <span className="font-mono">{u.id.slice(0, 8)}…</span>}
                     </div>
                   </td>
+                  <td className="p-2 text-xs">
+                    {u.sponsor ? (
+                      <span className="text-foreground">{u.sponsor}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="p-2">
                     <div className="flex gap-1">
+
                       {u.roles.map((r) => (
                         <Badge key={r} variant={r === "admin" ? "default" : "outline"}>
                           {r}
@@ -615,7 +624,7 @@ function UsersTab() {
             })}
             {!rows.length && !loading && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">
+                <td colSpan={7} className="p-6 text-center text-muted-foreground text-sm">
                   No users
                 </td>
               </tr>

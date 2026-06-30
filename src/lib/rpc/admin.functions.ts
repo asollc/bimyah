@@ -219,7 +219,7 @@ export const listUsers = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const ids = (profs ?? []).map((p) => p.id);
-    const [rolesRes, subsRes, foundersRes, usersRes] = await Promise.all([
+    const [rolesRes, subsRes, foundersRes, usersRes, refsRes] = await Promise.all([
       ids.length
         ? supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids)
         : Promise.resolve({ data: [] as { user_id: string; role: string }[] }),
@@ -235,6 +235,12 @@ export const listUsers = createServerFn({ method: "POST" })
         : Promise.resolve({ data: [] as { user_id: string }[] }),
       // auth.admin.listUsers paginates; pull enough to cover this page of profiles.
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: Math.max(data.limit, 200) }),
+      ids.length
+        ? supabaseAdmin
+            .from("referrals")
+            .select("referrer_id, referred_id")
+            .in("referred_id", ids)
+        : Promise.resolve({ data: [] as { referrer_id: string; referred_id: string }[] }),
     ]);
 
     const rolesByUser = new Map<string, string[]>();
@@ -249,6 +255,18 @@ export const listUsers = createServerFn({ method: "POST" })
     const emailByUser = new Map<string, string | null>();
     for (const u of usersRes.data?.users ?? []) emailByUser.set(u.id, u.email ?? null);
 
+    const sponsorIdByUser = new Map<string, string>();
+    for (const r of refsRes.data ?? []) sponsorIdByUser.set(r.referred_id, r.referrer_id);
+    const sponsorIds = Array.from(new Set(sponsorIdByUser.values()));
+    const sponsorNameById = new Map<string, string>();
+    if (sponsorIds.length) {
+      const { data: sponsors } = await supabaseAdmin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", sponsorIds);
+      for (const p of sponsors ?? []) sponsorNameById.set(p.id, p.display_name);
+    }
+
     return {
       rows: (profs ?? []).map((p) => ({
         ...p,
@@ -256,9 +274,13 @@ export const listUsers = createServerFn({ method: "POST" })
         roles: rolesByUser.get(p.id) ?? ["user"],
         active_plan: subByUser.get(p.id)?.plan ?? null,
         founding_member: founders.has(p.id),
+        sponsor: sponsorIdByUser.has(p.id)
+          ? sponsorNameById.get(sponsorIdByUser.get(p.id)!) ?? null
+          : null,
       })),
     };
   });
+
 
 // ---------- Promote / demote admin ----------
 const roleSchema = z.object({

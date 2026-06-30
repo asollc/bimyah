@@ -12,6 +12,7 @@ import { FriendsPanel } from "@/components/FriendsPanel";
 import { CardsTab } from "@/components/profile/CardsTab";
 import { WalletOverlay } from "@/components/wallet/WalletOverlay";
 import { DecorTab } from "@/components/profile/DecorTab";
+import { ReferralsTab } from "@/components/profile/ReferralsTab";
 
 function ComingSoon({ label }: { label: string }) {
   return (
@@ -315,7 +316,7 @@ function ProfilePage() {
           <TabsTrigger value="friends" className="text-[9px] uppercase tracking-wider">Friends</TabsTrigger>
           <TabsTrigger value="decor" className="text-[9px] uppercase tracking-wider">Decor</TabsTrigger>
           <TabsTrigger value="keys" className="text-[9px] uppercase tracking-wider">Controls</TabsTrigger>
-          <TabsTrigger value="stats" className="text-[9px] uppercase tracking-wider">Stats</TabsTrigger>
+          <TabsTrigger value="referrals" className="text-[9px] uppercase tracking-wider">Referrals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="cards" className="mt-4">
@@ -347,9 +348,10 @@ function ProfilePage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="stats" className="mt-4">
-          <ComingSoon label="Stats" />
+        <TabsContent value="referrals" className="mt-4">
+          <ReferralsTab />
         </TabsContent>
+
       </Tabs>
 
       {msg && <div className="mt-3 text-center text-xs text-[var(--mint)]">{msg}</div>}
