@@ -46,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       window.localStorage.removeItem("bimyah_referrer");
     }
+  }
+
+
 
 
   // Install a fetch interceptor that attaches the current Supabase access token
