@@ -496,7 +496,21 @@ function UsersTab() {
       toast.success(`Gifted ${amount.toLocaleString()} ${label} to ${u.display_name}`);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
+  }
+
+  async function handleAssignSponsor(u: UserRow) {
+    const input = prompt(`Assign sponsor for ${u.display_name}.\nEnter sponsor's username:`);
+    if (!input) return;
+    const sponsor_username = input.trim();
+    if (!sponsor_username) return;
+    try {
+      const res = await adminAssignSponsor({ data: { user_id: u.id, sponsor_username } });
+      toast.success(`Sponsor set to ${res.sponsor}`);
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
     }
+  }
   }
 
   return (
