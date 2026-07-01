@@ -44,6 +44,7 @@ import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 import { BmartAdminTab } from "@/components/admin/BmartAdminTab";
 import { VideosAdminTab } from "@/components/admin/VideosAdminTab";
 import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
+import { adminAssignSponsor } from "@/lib/rpc/referrals.functions";
 import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
 export const Route = createFileRoute("/admin")({
@@ -498,6 +499,20 @@ function UsersTab() {
     }
   }
 
+  async function handleAssignSponsor(u: UserRow) {
+    const input = prompt(`Assign sponsor for ${u.display_name}.\nEnter sponsor's username:`);
+    if (!input) return;
+    const sponsor_username = input.trim();
+    if (!sponsor_username) return;
+    try {
+      const res = await adminAssignSponsor({ data: { user_id: u.id, sponsor_username } });
+      toast.success(`Sponsor set to ${res.sponsor}`);
+      await refresh();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -551,7 +566,14 @@ function UsersTab() {
                     {u.sponsor ? (
                       <span className="text-foreground">{u.sponsor}</span>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => void handleAssignSponsor(u)}
+                      >
+                        Assign
+                      </Button>
                     )}
                   </td>
                   <td className="p-2">
