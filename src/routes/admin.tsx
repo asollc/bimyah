@@ -566,7 +566,14 @@ function UsersTab() {
                     {u.sponsor ? (
                       <span className="text-foreground">{u.sponsor}</span>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => void handleAssignSponsor(u)}
+                      >
+                        Assign
+                      </Button>
                     )}
                   </td>
                   <td className="p-2">
