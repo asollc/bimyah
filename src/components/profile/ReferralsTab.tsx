@@ -13,13 +13,16 @@ type Row = {
 export function ReferralsTab() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [sponsor, setSponsor] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await getMyReferrals();
-        if (!cancelled) setRows(res.rows);
+        const [refs, spon] = await Promise.all([getMyReferrals(), getMySponsor()]);
+        if (cancelled) return;
+        setRows(refs.rows);
+        setSponsor(spon.sponsor);
       } catch (e) {
         if (!cancelled) setErr((e as Error).message);
       }
