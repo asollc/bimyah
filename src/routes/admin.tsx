@@ -44,6 +44,7 @@ import { BulletinsAdminTab } from "@/components/admin/BulletinsAdminTab";
 import { BmartAdminTab } from "@/components/admin/BmartAdminTab";
 import { VideosAdminTab } from "@/components/admin/VideosAdminTab";
 import { giftUserCurrency } from "@/lib/rpc/bmart.functions";
+import { adminAssignSponsor } from "@/lib/rpc/referrals.functions";
 import { BimbucksIcon, BimbitsIcon } from "@/components/wallet/CurrencyIcons";
 
 export const Route = createFileRoute("/admin")({
