@@ -6,6 +6,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
 import { BplusIcon } from "@/components/BplusIcon";
 import foundingCarderAsset from "@/assets/founding-carder.png.asset.json";
+import foundingCarderNewAsset from "@/assets/founding-bimyah-carder-new.jpg.asset.json";
 import bplusGoldAsset from "@/assets/bplus-gold.png.asset.json";
 import bplusRedAsset from "@/assets/bplus-red.png.asset.json";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -280,6 +281,12 @@ function PlusPage() {
             <img
               src={foundingCarderAsset.url}
               alt="Founding Carder"
+              className="h-auto w-full max-w-[280px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+              draggable={false}
+            />
+            <img
+              src={foundingCarderNewAsset.url}
+              alt="Founding Bimyah Carder"
               className="h-auto w-full max-w-[280px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
               draggable={false}
             />
