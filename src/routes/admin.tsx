@@ -496,6 +496,7 @@ function UsersTab() {
       toast.success(`Gifted ${amount.toLocaleString()} ${label} to ${u.display_name}`);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
+    }
   }
 
   async function handleAssignSponsor(u: UserRow) {
@@ -510,7 +511,6 @@ function UsersTab() {
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
     }
-  }
   }
 
   return (
