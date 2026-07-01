@@ -6,6 +6,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { PowLogo } from "@/components/game/Visuals";
 import { BplusIcon } from "@/components/BplusIcon";
 import foundingCarderAsset from "@/assets/founding-carder.png.asset.json";
+import foundingCarderNewAsset from "@/assets/founding-bimyah-carder-new.jpg.asset.json";
 import bplusGoldAsset from "@/assets/bplus-gold.png.asset.json";
 import bplusRedAsset from "@/assets/bplus-red.png.asset.json";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
