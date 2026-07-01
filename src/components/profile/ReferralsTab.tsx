@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyReferrals } from "@/lib/rpc/referrals.functions";
+import { getMyReferrals, getMySponsor } from "@/lib/rpc/referrals.functions";
 import { BplusIcon } from "@/components/BplusIcon";
 import { Loader2 } from "lucide-react";
 
