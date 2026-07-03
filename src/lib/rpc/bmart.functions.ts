@@ -77,6 +77,7 @@ const giftCurrencySchema = z.object({
   user_id: z.string().uuid(),
   currency: z.enum(CURRENCIES),
   amount: z.number().int().min(1).max(1_000_000),
+  memo: z.string().trim().max(140).optional(),
 });
 
 export const giftUserCurrency = createServerFn({ method: "POST" })
@@ -90,6 +91,17 @@ export const giftUserCurrency = createServerFn({ method: "POST" })
       _amount: data.amount,
     });
     if (error) throw new Error(error.message);
+
+    const memo = data.memo?.trim();
+    const itemName = memo && memo.length > 0 ? `Admin gift: ${memo}` : "Admin gift";
+    await supabaseAdmin.from("purchase_ledger").insert({
+      user_id: data.user_id,
+      item_id: "admin_gift",
+      item_name: itemName,
+      currency: data.currency,
+      price: data.amount,
+      kind: null,
+    });
     return { ok: true };
   });
 
