@@ -250,7 +250,7 @@ function PlusPage() {
                     }}
                     className="btn-3d btn-3d-gold w-full text-xs"
                   >
-                    Upgrade — ${dollars} lifetime
+                    Support with $5 one-time to unlock bonus perks
                   </button>
                 ) : (
                   <div className="mt-3 overflow-hidden rounded-lg bg-white">
