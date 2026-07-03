@@ -491,8 +491,16 @@ function UsersTab() {
       toast.error("Invalid amount");
       return;
     }
+    const memoInput = prompt(
+      `Memo (optional) — shown in ${u.display_name}'s wallet activity:`,
+      "",
+    );
+    if (memoInput === null) return;
+    const memo = memoInput.trim().slice(0, 140);
     try {
-      await giftUserCurrency({ data: { user_id: u.id, currency, amount } });
+      await giftUserCurrency({
+        data: { user_id: u.id, currency, amount, memo: memo || undefined },
+      });
       toast.success(`Gifted ${amount.toLocaleString()} ${label} to ${u.display_name}`);
     } catch (e: unknown) {
       toast.error(String((e as Error)?.message ?? e));
