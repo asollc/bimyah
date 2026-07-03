@@ -287,7 +287,7 @@ function PlusPage() {
             <img
               src={foundingCarderNewAsset.url}
               alt="Founding Bimyah Carder"
-              className="h-auto w-full max-w-[280px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+              className="h-auto w-full max-w-[120px] object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
               draggable={false}
             />
             <div className="flex items-center justify-center gap-6">
