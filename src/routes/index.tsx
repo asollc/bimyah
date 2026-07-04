@@ -374,7 +374,7 @@ function HomePage() {
               <span className="flex flex-col items-center leading-tight">
                 <span>Upgrade to BIMYAH!+</span>
                 <span className="text-[10px] font-normal opacity-80 normal-case">
-                  Gain exclusive perks for your support
+                  Support with $5 one-time to unlock bonus perks
                 </span>
               </span>
             </Link>
