@@ -2204,6 +2204,17 @@ function PlayerSeat({
       onPointerCancel={onWrapperPointerUp}
     >
 
+      {/* Emblems — sit on either side of this player's hand area,
+          above the background layer. Others' emblems can be hidden by tapping. */}
+      {(player.emblemUrl || player.emblemUrl2) && (
+        <PlayerEmblems
+          playerId={player.id}
+          isMe={isMe}
+          leftUrl={player.emblemUrl ?? null}
+          rightUrl={player.emblemUrl2 ?? null}
+        />
+      )}
+
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
@@ -2220,6 +2231,7 @@ function PlayerSeat({
           ))}
         </div>
       )}
+
 
       {/* Name tag — also acts as the drag handle for non-me seats.
           Title sits outside the oval on the left; badges outside on the right. */}
