@@ -315,9 +315,13 @@ export const deleteMyInventoryItem = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
     const eqRow = (eq ?? {}) as Record<string, string | null>;
-    // Badges have a second slot — clear whichever slot held the deleted item.
+    // Badges and emblems have a second slot — clear whichever slot held the deleted item.
     const colsToCheck =
-      data.kind === "badge" ? [col, "badge_id_2"] : [col];
+      data.kind === "badge"
+        ? [col, "badge_id_2"]
+        : data.kind === "emblem"
+          ? [col, "emblem_id_2"]
+          : [col];
     const activeCols = colsToCheck.filter((c) => eqRow[c] === data.itemId);
     const wasActive = activeCols.length > 0;
     if (wasActive) {
