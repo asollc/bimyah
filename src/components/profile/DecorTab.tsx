@@ -1112,6 +1112,7 @@ export function DecorTab() {
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-black/30 p-1">
           <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
           <TabsTrigger value="badges" className="text-[9px] uppercase tracking-wider">Badges</TabsTrigger>
+          <TabsTrigger value="emblems" className="text-[9px] uppercase tracking-wider">Emblems</TabsTrigger>
           <TabsTrigger value="victory" className="text-[9px] uppercase tracking-wider">Victory FX</TabsTrigger>
           <TabsTrigger value="backgrounds" className="text-[9px] uppercase tracking-wider">Backgrounds</TabsTrigger>
           <TabsTrigger value="tables" className="text-[9px] uppercase tracking-wider">Tables</TabsTrigger>
