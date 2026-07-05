@@ -9,6 +9,7 @@ import {
   adminCreateTestDecor,
   deleteMyInventoryItem,
   purchaseBadgeSlot,
+  purchaseEmblemSlot,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
