@@ -53,7 +53,7 @@ export const getMyDecor = createServerFn({ method: "GET" })
           .maybeSingle(),
         supabase
           .from("wallets")
-          .select("badge_slots_purchased")
+          .select("badge_slots_purchased, emblem_slots_purchased")
           .eq("user_id", userId)
           .maybeSingle(),
         supabase
@@ -93,11 +93,16 @@ export const getMyDecor = createServerFn({ method: "GET" })
     const isPlus = !!(sub && sub.length);
     const purchased = (wallet?.badge_slots_purchased as number | undefined) ?? 0;
     const badgeSlotCount = Math.min(2, 1 + purchased + (isPlus ? 1 : 0));
+    const emblemPurchased =
+      (wallet?.emblem_slots_purchased as number | undefined) ?? 0;
+    const emblemSlotCount = Math.min(2, 1 + emblemPurchased + (isPlus ? 1 : 0));
     return {
       inventory,
       equipped: (eq ?? null) as null | Record<string, string | null>,
       badgeSlotCount,
       badgeSlotsPurchased: purchased,
+      emblemSlotCount,
+      emblemSlotsPurchased: emblemPurchased,
       isPlus,
     };
   });
