@@ -778,6 +778,7 @@ export function DecorTab() {
       card_back: [],
       title: [],
       badge: [],
+      emblem: [],
       victory: [],
       background: [],
       tabletop: [],
