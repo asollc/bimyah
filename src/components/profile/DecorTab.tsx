@@ -734,6 +734,8 @@ export function DecorTab() {
       title: urlForId(equipped?.title_id),
       badge: urlForId(equipped?.badge_id),
       badge2: urlForId(equipped?.badge_id_2),
+      emblem: urlForId(equipped?.emblem_id),
+      emblem2: urlForId(equipped?.emblem_id_2),
       victory: urlForId(equipped?.victory_id),
       background: urlForId(equipped?.background_id),
       tabletop: urlForId(equipped?.tabletop_id),
