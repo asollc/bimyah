@@ -9,6 +9,7 @@ import {
   adminCreateTestDecor,
   deleteMyInventoryItem,
   purchaseBadgeSlot,
+  purchaseEmblemSlot,
   type DecorKind,
   type DecorInventoryItem,
 } from "@/lib/rpc/decor.functions";
@@ -701,11 +702,14 @@ export function DecorTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [badgeSlotCount, setBadgeSlotCount] = useState(1);
   const [badgeSlotsPurchased, setBadgeSlotsPurchased] = useState(0);
+  const [emblemSlotCount, setEmblemSlotCount] = useState(1);
+  const [emblemSlotsPurchased, setEmblemSlotsPurchased] = useState(0);
   const [isPlus, setIsPlus] = useState(false);
   const [defaultOverrides, setDefaultOverrides] = useState<
     Map<string, DecorDefaultOverride>
   >(new Map());
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
+  const [selectedEmblemId, setSelectedEmblemId] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     kind: DecorKind;
     itemId: string | null;
@@ -730,6 +734,8 @@ export function DecorTab() {
       title: urlForId(equipped?.title_id),
       badge: urlForId(equipped?.badge_id),
       badge2: urlForId(equipped?.badge_id_2),
+      emblem: urlForId(equipped?.emblem_id),
+      emblem2: urlForId(equipped?.emblem_id_2),
       victory: urlForId(equipped?.victory_id),
       background: urlForId(equipped?.background_id),
       tabletop: urlForId(equipped?.tabletop_id),
@@ -750,6 +756,8 @@ export function DecorTab() {
         setEquippedState(res.equipped);
         setBadgeSlotCount(res.badgeSlotCount);
         setBadgeSlotsPurchased(res.badgeSlotsPurchased);
+        setEmblemSlotCount(res.emblemSlotCount);
+        setEmblemSlotsPurchased(res.emblemSlotsPurchased);
         setIsPlus(res.isPlus);
         setIsAdmin(!!admin.is_admin);
         const m = new Map<string, DecorDefaultOverride>();
@@ -770,6 +778,7 @@ export function DecorTab() {
       card_back: [],
       title: [],
       badge: [],
+      emblem: [],
       victory: [],
       background: [],
       tabletop: [],
@@ -811,10 +820,13 @@ export function DecorTab() {
       if (res.wasActive) {
         setEquippedState((prev) => {
           const next = { ...(prev ?? {}) } as Record<string, string | null>;
-          // Clear whichever badge slot held it.
+          // Clear whichever badge/emblem slot held it.
           if (kind === "badge") {
             if (next.badge_id === itemId) next.badge_id = null;
             if (next.badge_id_2 === itemId) next.badge_id_2 = null;
+          } else if (kind === "emblem") {
+            if (next.emblem_id === itemId) next.emblem_id = null;
+            if (next.emblem_id_2 === itemId) next.emblem_id_2 = null;
           } else {
             next[`${kind}_id`] = null;
           }
@@ -835,15 +847,24 @@ export function DecorTab() {
       const b = equipped?.badge_id_2 ?? null;
       return a === itemId || b === itemId;
     }
+    if (kind === "emblem") {
+      const a = equipped?.emblem_id ?? null;
+      const b = equipped?.emblem_id_2 ?? null;
+      return a === itemId || b === itemId;
+    }
     const col = `${kind}_id`;
     const cur = equipped?.[col] ?? null;
     return cur === itemId;
   }
 
   function ask(kind: DecorKind, label: string, itemId: string | null) {
-    // Badges use tap-to-equip, not the confirm modal.
+    // Badges/Emblems use tap-to-equip, not the confirm modal.
     if (kind === "badge") {
       void handleBadgeTap(itemId, label);
+      return;
+    }
+    if (kind === "emblem") {
+      void handleEmblemTap(itemId, label);
       return;
     }
     setPending({ kind, label, itemId });
@@ -948,6 +969,87 @@ export function DecorTab() {
     }
   }
 
+  /* ---- Emblems (mirrors badge logic) ---- */
+  async function handleEmblemTap(itemId: string | null, label: string) {
+    if (emblemSlotCount === 1) {
+      const cur = equipped?.emblem_id ?? null;
+      if (itemId === null) {
+        await applyEmblem(1, null, "No emblem");
+        return;
+      }
+      if (cur === itemId) {
+        await applyEmblem(1, null, label);
+        return;
+      }
+      await applyEmblem(1, itemId, label);
+      return;
+    }
+    if (itemId === null) {
+      await applyEmblem(1, null, "Cleared");
+      await applyEmblem(2, null, "Cleared");
+      setSelectedEmblemId(null);
+      return;
+    }
+    const a = equipped?.emblem_id ?? null;
+    const b = equipped?.emblem_id_2 ?? null;
+    if (a === itemId) {
+      await applyEmblem(1, null, label);
+      return;
+    }
+    if (b === itemId) {
+      await applyEmblem(2, null, label);
+      return;
+    }
+    setSelectedEmblemId((prev) => (prev === itemId ? null : itemId));
+  }
+
+  async function applyEmblem(slot: 1 | 2, itemId: string | null, label: string) {
+    try {
+      await setEquipped({ data: { kind: "emblem", itemId, slot } });
+      setEquippedState((prev) => {
+        const next = { ...(prev ?? {}) } as Record<string, string | null>;
+        if (slot === 1) next.emblem_id = itemId;
+        else next.emblem_id_2 = itemId;
+        return next;
+      });
+      if (itemId) toast.success(`${label} equipped in slot ${slot}.`);
+      else toast.success(`Slot ${slot} cleared.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleEmblemSlotTap(slot: 1 | 2) {
+    if (selectedEmblemId) {
+      const label =
+        inventory.find((r) => r.item_id === selectedEmblemId)?.name ?? selectedEmblemId;
+      await applyEmblem(slot, selectedEmblemId, label);
+      setSelectedEmblemId(null);
+      return;
+    }
+    const cur = slot === 1 ? equipped?.emblem_id : equipped?.emblem_id_2;
+    if (cur) {
+      await applyEmblem(slot, null, "Cleared");
+    }
+  }
+
+  async function handleEmblemClearSlot(slot: 1 | 2) {
+    await applyEmblem(slot, null, "Cleared");
+  }
+
+  async function handlePurchaseEmblemSlot() {
+    try {
+      const res = await purchaseEmblemSlot();
+      setEmblemSlotsPurchased(res.emblem_slots_purchased);
+      setEmblemSlotCount(
+        Math.min(2, 1 + res.emblem_slots_purchased + (isPlus ? 1 : 0)),
+      );
+      toast.success("Second emblem slot unlocked!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   function handleDefaultSaved(
     base: DefaultItem,
     next: { name: string; imageUrl: string | null },
@@ -983,6 +1085,7 @@ export function DecorTab() {
   // Apply admin overrides to default items.
   const dTitle = NONE_RECT;
   const dBadge = NONE_SQUARE;
+  const dEmblem = { ...NONE_SQUARE, kind: "emblem" as DecorKind };
   const dVictory = withOverride(DEFAULT_VICTORY, defaultOverrides);
   const dBg = withOverride(DEFAULT_BACKGROUND, defaultOverrides);
   const dTabletop = withOverride(DEFAULT_TABLETOP, defaultOverrides);
@@ -991,6 +1094,12 @@ export function DecorTab() {
   const slotState: BadgeSlotState = {
     count: badgeSlotCount,
     canPurchase: badgeSlotCount < 2 && !isPlus && badgeSlotsPurchased === 0,
+    isPlus,
+  };
+
+  const emblemSlotState: BadgeSlotState = {
+    count: emblemSlotCount,
+    canPurchase: emblemSlotCount < 2 && !isPlus && emblemSlotsPurchased === 0,
     isPlus,
   };
 
@@ -1003,6 +1112,7 @@ export function DecorTab() {
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-black/30 p-1">
           <TabsTrigger value="titles" className="text-[9px] uppercase tracking-wider">Titles</TabsTrigger>
           <TabsTrigger value="badges" className="text-[9px] uppercase tracking-wider">Badges</TabsTrigger>
+          <TabsTrigger value="emblems" className="text-[9px] uppercase tracking-wider">Emblems</TabsTrigger>
           <TabsTrigger value="victory" className="text-[9px] uppercase tracking-wider">Victory FX</TabsTrigger>
           <TabsTrigger value="backgrounds" className="text-[9px] uppercase tracking-wider">Backgrounds</TabsTrigger>
           <TabsTrigger value="tables" className="text-[9px] uppercase tracking-wider">Tables</TabsTrigger>
@@ -1062,6 +1172,50 @@ export function DecorTab() {
           )}
           {isAdmin && <AdminTestUploader kind="badge" onCreated={handleTestCreated} />}
         </TabsContent>
+
+        <TabsContent value="emblems" className="mt-3">
+          <ActiveBadges
+            slotState={emblemSlotState}
+            slot1Id={equipped?.emblem_id ?? null}
+            slot2Id={equipped?.emblem_id_2 ?? null}
+            inventory={ownedByKind.emblem}
+            selectedId={selectedEmblemId}
+            onTapSlot={(s) => void handleEmblemSlotTap(s)}
+            onClearSlot={(s) => void handleEmblemClearSlot(s)}
+            onPurchaseSlot={() => void handlePurchaseEmblemSlot()}
+          />
+          <SectionLabel>Emblems</SectionLabel>
+          <HRow>
+            <DecorTile
+              item={dEmblem}
+              active={isActive("emblem", null) && !(equipped?.emblem_id) && !(equipped?.emblem_id_2)}
+              onClick={() => ask("emblem", "No emblem", null)}
+            />
+            {ownedByKind.emblem.map((r) => {
+              const label = r.name ?? r.item_id;
+              const selected = selectedEmblemId === r.item_id;
+              return (
+                <DecorTile
+                  key={r.item_id}
+                  item={{
+                    id: r.item_id,
+                    label,
+                    shape: "square",
+                    preview: <OwnedPreview imageUrl={r.image_url} />,
+                  }}
+                  active={isActive("emblem", r.item_id) || selected}
+                  onClick={() => ask("emblem", label, r.item_id)}
+                  onDelete={() => deleteFn("emblem", label, r.item_id)}
+                />
+              );
+            })}
+          </HRow>
+          {ownedByKind.emblem.length === 0 && (
+            <EmptyHint label="Purchased emblems will appear here." />
+          )}
+          {isAdmin && <AdminTestUploader kind="emblem" onCreated={handleTestCreated} />}
+        </TabsContent>
+
 
         <TabsContent value="victory" className="mt-3">
           <SectionLabel>Victory Effects</SectionLabel>

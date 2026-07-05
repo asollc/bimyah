@@ -157,6 +157,8 @@ function HomePage() {
         titleUrl: null,
         badgeUrl: null,
         badgeUrl2: null,
+        emblemUrl: null,
+        emblemUrl2: null,
         victoryUrl: null,
         victoryEffectType: null,
         backgroundUrl: null,

@@ -2204,6 +2204,17 @@ function PlayerSeat({
       onPointerCancel={onWrapperPointerUp}
     >
 
+      {/* Emblems — sit on either side of this player's hand area,
+          above the background layer. Others' emblems can be hidden by tapping. */}
+      {(player.emblemUrl || player.emblemUrl2) && (
+        <PlayerEmblems
+          playerId={player.id}
+          isMe={isMe}
+          leftUrl={player.emblemUrl ?? null}
+          rightUrl={player.emblemUrl2 ?? null}
+        />
+      )}
+
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
@@ -2220,6 +2231,7 @@ function PlayerSeat({
           ))}
         </div>
       )}
+
 
       {/* Name tag — also acts as the drag handle for non-me seats.
           Title sits outside the oval on the left; badges outside on the right. */}
@@ -2690,4 +2702,172 @@ function InactivityBadge({
   }
   return null;
 }
+
+/** Renders equipped emblems on either side of a player's hand. For other
+ *  players, tapping an emblem hides it from the local viewer (persisted).
+ *  Local player's own emblems are draggable via one-finger touch/mouse and
+ *  resizable via pinch or wheel. Layered just above the background. */
+function PlayerEmblems({
+  playerId,
+  isMe,
+  leftUrl,
+  rightUrl,
+}: {
+  playerId: string;
+  isMe: boolean;
+  leftUrl: string | null;
+  rightUrl: string | null;
+}) {
+  const storageKey = "bimyah_hidden_emblems";
+  const [hidden, setHidden] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+  const toggleHide = (slot: 1 | 2) => {
+    if (isMe) return;
+    const key = `${playerId}:${slot}`;
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      try { window.localStorage.setItem(storageKey, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  return (
+    <>
+      {leftUrl && !hidden.has(`${playerId}:1`) && (
+        <EmblemImg url={leftUrl} side="left" movable={isMe} onTap={() => toggleHide(1)} storageId={`emblem-${playerId}-1`} />
+      )}
+      {rightUrl && !hidden.has(`${playerId}:2`) && (
+        <EmblemImg url={rightUrl} side="right" movable={isMe} onTap={() => toggleHide(2)} storageId={`emblem-${playerId}-2`} />
+      )}
+    </>
+  );
+}
+
+/** A single emblem image. For the local player, drag/resize is enabled with
+ *  per-emblem layout persisted to localStorage. */
+function EmblemImg({
+  url,
+  side,
+  movable,
+  onTap,
+  storageId,
+}: {
+  url: string;
+  side: "left" | "right";
+  movable: boolean;
+  onTap?: () => void;
+  storageId: string;
+}) {
+  type L = { dx: number; dy: number; s: number };
+  const key = `bimyah_emblem_layout_${storageId}`;
+  const [layout, setLayout] = useState<L>(() => {
+    if (typeof window === "undefined") return { dx: 0, dy: 0, s: 1 };
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as L) : { dx: 0, dy: 0, s: 1 };
+    } catch { return { dx: 0, dy: 0, s: 1 }; }
+  });
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const save = (next: L) => {
+    setLayout(next);
+    try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+  const stateRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    origin?: { x: number; y: number };
+    startDx: number; startDy: number; startScale: number; startDist: number;
+    dragging: boolean; pinching: boolean; movedFar: boolean;
+  }>({ startDx: 0, startDy: 0, startScale: 1, startDist: 0, dragging: false, pinching: false, movedFar: false });
+  const clamp = (s: number) => Math.max(0.4, Math.min(3, s));
+  const onPointerDown = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    if (!movable) return;
+    if (st.a && !st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = st.b.x - st.a.x, dy = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dx, dy) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true; st.dragging = false;
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      return;
+    }
+    if (st.a) return;
+    st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    st.origin = { x: e.clientX, y: e.clientY };
+    st.startDx = layoutRef.current.dx;
+    st.startDy = layoutRef.current.dy;
+    st.startScale = layoutRef.current.s;
+    st.dragging = false; st.movedFar = false;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    if (!st.a) return;
+    if (st.pinching && st.b) {
+      if (e.pointerId === st.a.id) st.a = { ...st.a, x: e.clientX, y: e.clientY };
+      else if (e.pointerId === st.b.id) st.b = { ...st.b, x: e.clientX, y: e.clientY };
+      else return;
+      const dx = st.b.x - st.a.x, dy = st.b.y - st.a.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      save({ ...layoutRef.current, s: clamp(st.startScale * (dist / st.startDist)) });
+      return;
+    }
+    if (e.pointerId !== st.a.id || !st.origin) return;
+    const ddx = e.clientX - st.origin.x, ddy = e.clientY - st.origin.y;
+    if (!st.dragging && Math.hypot(ddx, ddy) < 6) return;
+    st.dragging = true; st.movedFar = true;
+    save({ ...layoutRef.current, dx: st.startDx + ddx, dy: st.startDy + ddy });
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    const wasA = st.a?.id === e.pointerId;
+    const wasB = st.b?.id === e.pointerId;
+    if (!wasA && !wasB) return;
+    const wasTap = wasA && !st.movedFar && !st.pinching;
+    st.a = undefined; st.b = undefined; st.origin = undefined;
+    st.dragging = false; st.pinching = false; st.movedFar = false;
+    if (wasTap && !movable && onTap) onTap();
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    if (!movable) return;
+    e.preventDefault();
+    save({ ...layoutRef.current, s: clamp(layoutRef.current.s + (e.deltaY < 0 ? 0.08 : -0.08)) });
+  };
+  return (
+    <div
+      className="pointer-events-auto absolute bottom-full mb-1 select-none"
+      style={{
+        [side === "left" ? "right" : "left"]: "100%",
+        [side === "left" ? "marginRight" : "marginLeft"]: 8,
+        transform: `translate(${layout.dx}px, ${layout.dy}px) scale(${layout.s})`,
+        transformOrigin: "center bottom",
+        touchAction: "none",
+        zIndex: 1,
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onWheel={onWheel}
+      onClick={!movable && onTap ? (e) => { e.stopPropagation(); } : undefined}
+      title={movable ? "Drag to move · pinch or scroll to resize" : "Tap to hide"}
+    >
+      <img
+        src={url}
+        alt=""
+        draggable={false}
+        className="h-14 w-14 object-contain drop-shadow-lg"
+      />
+    </div>
+  );
+}
+
 

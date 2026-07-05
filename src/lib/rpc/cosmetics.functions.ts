@@ -95,7 +95,7 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
         supabase
           .from("user_equipped")
           .select(
-            "title_id, badge_id, badge_id_2, victory_id, background_id, tabletop_id, table_art_id",
+            "title_id, badge_id, badge_id_2, emblem_id, emblem_id_2, victory_id, background_id, tabletop_id, table_art_id",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -105,6 +105,8 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
       equipped?.title_id,
       equipped?.badge_id,
       equipped?.badge_id_2,
+      equipped?.emblem_id,
+      equipped?.emblem_id_2,
       equipped?.victory_id,
       equipped?.background_id,
       equipped?.tabletop_id,
@@ -135,6 +137,8 @@ export const getMyCosmetics = createServerFn({ method: "GET" })
       titleUrl: lookup(equipped?.title_id),
       badgeUrl: lookup(equipped?.badge_id),
       badgeUrl2: lookup(equipped?.badge_id_2),
+      emblemUrl: lookup(equipped?.emblem_id),
+      emblemUrl2: lookup(equipped?.emblem_id_2),
       victoryUrl: lookup(equipped?.victory_id),
       victoryEffectType: lookupEffect(equipped?.victory_id),
       backgroundUrl: lookup(equipped?.background_id),

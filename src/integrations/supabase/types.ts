@@ -887,6 +887,8 @@ export type Database = {
           badge_id: string | null
           badge_id_2: string | null
           card_back_id: string | null
+          emblem_id: string | null
+          emblem_id_2: string | null
           table_art_id: string | null
           tabletop_id: string | null
           title_id: string | null
@@ -899,6 +901,8 @@ export type Database = {
           badge_id?: string | null
           badge_id_2?: string | null
           card_back_id?: string | null
+          emblem_id?: string | null
+          emblem_id_2?: string | null
           table_art_id?: string | null
           tabletop_id?: string | null
           title_id?: string | null
@@ -911,6 +915,8 @@ export type Database = {
           badge_id?: string | null
           badge_id_2?: string | null
           card_back_id?: string | null
+          emblem_id?: string | null
+          emblem_id_2?: string | null
           table_art_id?: string | null
           tabletop_id?: string | null
           title_id?: string | null
@@ -1011,6 +1017,7 @@ export type Database = {
           bimbucks: number
           created_at: string
           custom_slots_purchased: number
+          emblem_slots_purchased: number
           updated_at: string
           user_id: string
         }
@@ -1020,6 +1027,7 @@ export type Database = {
           bimbucks?: number
           created_at?: string
           custom_slots_purchased?: number
+          emblem_slots_purchased?: number
           updated_at?: string
           user_id: string
         }
@@ -1029,6 +1037,7 @@ export type Database = {
           bimbucks?: number
           created_at?: string
           custom_slots_purchased?: number
+          emblem_slots_purchased?: number
           updated_at?: string
           user_id?: string
         }
@@ -1090,6 +1099,7 @@ export type Database = {
         Args: { _quantity: number; _user_id: string }
         Returns: Json
       }
+      purchase_emblem_slot: { Args: { _user_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -1124,6 +1134,7 @@ export type Database = {
         | "background"
         | "tabletop"
         | "table_art"
+        | "emblem"
       payment_status: "completed" | "refunded" | "failed"
     }
     CompositeTypes: {
@@ -1266,6 +1277,7 @@ export const Constants = {
         "background",
         "tabletop",
         "table_art",
+        "emblem",
       ],
       payment_status: ["completed", "refunded", "failed"],
     },

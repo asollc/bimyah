@@ -6,6 +6,7 @@ const KINDS = [
   "card_back",
   "title",
   "badge",
+  "emblem",
   "victory",
   "background",
   "tabletop",
@@ -17,6 +18,7 @@ const equippedKindToColumn: Record<DecorKind, string> = {
   card_back: "card_back_id",
   title: "title_id",
   badge: "badge_id",
+  emblem: "emblem_id",
   victory: "victory_id",
   background: "background_id",
   tabletop: "tabletop_id",
@@ -51,7 +53,7 @@ export const getMyDecor = createServerFn({ method: "GET" })
           .maybeSingle(),
         supabase
           .from("wallets")
-          .select("badge_slots_purchased")
+          .select("badge_slots_purchased, emblem_slots_purchased")
           .eq("user_id", userId)
           .maybeSingle(),
         supabase
@@ -91,11 +93,16 @@ export const getMyDecor = createServerFn({ method: "GET" })
     const isPlus = !!(sub && sub.length);
     const purchased = (wallet?.badge_slots_purchased as number | undefined) ?? 0;
     const badgeSlotCount = Math.min(2, 1 + purchased + (isPlus ? 1 : 0));
+    const emblemPurchased =
+      (wallet?.emblem_slots_purchased as number | undefined) ?? 0;
+    const emblemSlotCount = Math.min(2, 1 + emblemPurchased + (isPlus ? 1 : 0));
     return {
       inventory,
       equipped: (eq ?? null) as null | Record<string, string | null>,
       badgeSlotCount,
       badgeSlotsPurchased: purchased,
+      emblemSlotCount,
+      emblemSlotsPurchased: emblemPurchased,
       isPlus,
     };
   });
@@ -104,19 +111,21 @@ export const getMyDecor = createServerFn({ method: "GET" })
 const equipSchema = z.object({
   kind: z.enum(KINDS),
   itemId: z.string().nullable(),
-  /** Only meaningful when kind === 'badge'. Slot 2 writes to badge_id_2. */
+  /** For badges/emblems, slot 2 writes to `<kind>_id_2`. */
   slot: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 /** Equip (or clear with null) the given decor kind for the signed-in user.
- *  For badges, an optional slot (1|2) targets the primary or secondary badge column. */
+ *  For badges and emblems, an optional slot (1|2) targets the primary or secondary column. */
 export const setEquipped = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => equipSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     let col = equippedKindToColumn[data.kind];
-    if (data.kind === "badge" && data.slot === 2) col = "badge_id_2";
+    if (data.slot === 2 && (data.kind === "badge" || data.kind === "emblem")) {
+      col = `${data.kind}_id_2`;
+    }
     const payload: Record<string, string | null> = { user_id: userId };
     payload[col] = data.itemId;
     const { error } = await supabase
@@ -137,6 +146,18 @@ export const purchaseBadgeSlot = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return data as { bimbucks: number; badge_slots_purchased: number };
+  });
+
+/** Spend 150 Bimbucks to unlock the second emblem slot. Returns updated wallet. */
+export const purchaseEmblemSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("purchase_emblem_slot", {
+      _user_id: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    return data as { bimbucks: number; emblem_slots_purchased: number };
   });
 
 
@@ -247,6 +268,7 @@ export const adminCreateTestDecor = createServerFn({ method: "POST" })
       victory: "victory",
       background: "backgrounds",
       tabletop: "tabletops",
+      emblem: "emblems",
     };
     const { error: prodErr } = await supabaseAdmin.from("bmart_products").insert({
       id,
@@ -293,9 +315,13 @@ export const deleteMyInventoryItem = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
     const eqRow = (eq ?? {}) as Record<string, string | null>;
-    // Badges have a second slot — clear whichever slot held the deleted item.
+    // Badges and emblems have a second slot — clear whichever slot held the deleted item.
     const colsToCheck =
-      data.kind === "badge" ? [col, "badge_id_2"] : [col];
+      data.kind === "badge"
+        ? [col, "badge_id_2"]
+        : data.kind === "emblem"
+          ? [col, "emblem_id_2"]
+          : [col];
     const activeCols = colsToCheck.filter((c) => eqRow[c] === data.itemId);
     const wasActive = activeCols.length > 0;
     if (wasActive) {
