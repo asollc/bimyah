@@ -111,19 +111,21 @@ export const getMyDecor = createServerFn({ method: "GET" })
 const equipSchema = z.object({
   kind: z.enum(KINDS),
   itemId: z.string().nullable(),
-  /** Only meaningful when kind === 'badge'. Slot 2 writes to badge_id_2. */
+  /** For badges/emblems, slot 2 writes to `<kind>_id_2`. */
   slot: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 /** Equip (or clear with null) the given decor kind for the signed-in user.
- *  For badges, an optional slot (1|2) targets the primary or secondary badge column. */
+ *  For badges and emblems, an optional slot (1|2) targets the primary or secondary column. */
 export const setEquipped = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => equipSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     let col = equippedKindToColumn[data.kind];
-    if (data.kind === "badge" && data.slot === 2) col = "badge_id_2";
+    if (data.slot === 2 && (data.kind === "badge" || data.kind === "emblem")) {
+      col = `${data.kind}_id_2`;
+    }
     const payload: Record<string, string | null> = { user_id: userId };
     payload[col] = data.itemId;
     const { error } = await supabase
@@ -144,6 +146,18 @@ export const purchaseBadgeSlot = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return data as { bimbucks: number; badge_slots_purchased: number };
+  });
+
+/** Spend 150 Bimbucks to unlock the second emblem slot. Returns updated wallet. */
+export const purchaseEmblemSlot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("purchase_emblem_slot", {
+      _user_id: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    return data as { bimbucks: number; emblem_slots_purchased: number };
   });
 
 
