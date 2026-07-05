@@ -43,6 +43,10 @@ export type Player = {
   /** Optional extra badge rendered to the right of `badgeUrl` (e.g. founding member icon). */
 
   specialBadgeUrl?: string | null;
+  /** Equipped emblem image URLs. Rendered in-game on either side of the
+   *  player's hand, above the background layer. Up to 2 slots. */
+  emblemUrl?: string | null;
+  emblemUrl2?: string | null;
   victoryUrl?: string | null;
   /** Optional preset key for an animated victory effect (e.g. "fireworks",
    *  "falling_stars"). When set, supersedes `victoryUrl` overlay. */
