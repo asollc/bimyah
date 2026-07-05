@@ -268,6 +268,7 @@ export const adminCreateTestDecor = createServerFn({ method: "POST" })
       victory: "victory",
       background: "backgrounds",
       tabletop: "tabletops",
+      emblem: "emblems",
     };
     const { error: prodErr } = await supabaseAdmin.from("bmart_products").insert({
       id,
