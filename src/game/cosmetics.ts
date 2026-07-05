@@ -93,6 +93,8 @@ export function applyDecorOverrides<
     titleUrl: string | null;
     badgeUrl: string | null;
     badgeUrl2?: string | null;
+    emblemUrl?: string | null;
+    emblemUrl2?: string | null;
     victoryUrl: string | null;
     victoryEffectType?: string | null;
     backgroundUrl: string | null;
@@ -107,6 +109,8 @@ export function applyDecorOverrides<
     titleUrl: overrides.title ?? cosmetics.titleUrl,
     badgeUrl: overrides.badge ?? cosmetics.badgeUrl,
     badgeUrl2: overrides.badge2 ?? cosmetics.badgeUrl2 ?? null,
+    emblemUrl: overrides.emblem ?? cosmetics.emblemUrl ?? null,
+    emblemUrl2: overrides.emblem2 ?? cosmetics.emblemUrl2 ?? null,
     victoryUrl: overrides.victory ?? cosmetics.victoryUrl,
     victoryEffectType: cosmetics.victoryEffectType ?? null,
     backgroundUrl: overrides.background ?? cosmetics.backgroundUrl,
