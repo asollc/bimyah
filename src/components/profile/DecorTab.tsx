@@ -1085,6 +1085,7 @@ export function DecorTab() {
   // Apply admin overrides to default items.
   const dTitle = NONE_RECT;
   const dBadge = NONE_SQUARE;
+  const dEmblem = { ...NONE_SQUARE, kind: "emblem" as DecorKind };
   const dVictory = withOverride(DEFAULT_VICTORY, defaultOverrides);
   const dBg = withOverride(DEFAULT_BACKGROUND, defaultOverrides);
   const dTabletop = withOverride(DEFAULT_TABLETOP, defaultOverrides);
@@ -1093,6 +1094,12 @@ export function DecorTab() {
   const slotState: BadgeSlotState = {
     count: badgeSlotCount,
     canPurchase: badgeSlotCount < 2 && !isPlus && badgeSlotsPurchased === 0,
+    isPlus,
+  };
+
+  const emblemSlotState: BadgeSlotState = {
+    count: emblemSlotCount,
+    canPurchase: emblemSlotCount < 2 && !isPlus && emblemSlotsPurchased === 0,
     isPlus,
   };
 
