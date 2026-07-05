@@ -702,11 +702,14 @@ export function DecorTab() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [badgeSlotCount, setBadgeSlotCount] = useState(1);
   const [badgeSlotsPurchased, setBadgeSlotsPurchased] = useState(0);
+  const [emblemSlotCount, setEmblemSlotCount] = useState(1);
+  const [emblemSlotsPurchased, setEmblemSlotsPurchased] = useState(0);
   const [isPlus, setIsPlus] = useState(false);
   const [defaultOverrides, setDefaultOverrides] = useState<
     Map<string, DecorDefaultOverride>
   >(new Map());
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
+  const [selectedEmblemId, setSelectedEmblemId] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     kind: DecorKind;
     itemId: string | null;
