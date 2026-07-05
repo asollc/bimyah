@@ -46,6 +46,8 @@ export type DecorKindKey =
   | "title"
   | "badge"
   | "badge2"
+  | "emblem"
+  | "emblem2"
   | "victory"
   | "background"
   | "tabletop"
