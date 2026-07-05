@@ -756,6 +756,8 @@ export function DecorTab() {
         setEquippedState(res.equipped);
         setBadgeSlotCount(res.badgeSlotCount);
         setBadgeSlotsPurchased(res.badgeSlotsPurchased);
+        setEmblemSlotCount(res.emblemSlotCount);
+        setEmblemSlotsPurchased(res.emblemSlotsPurchased);
         setIsPlus(res.isPlus);
         setIsAdmin(!!admin.is_admin);
         const m = new Map<string, DecorDefaultOverride>();
