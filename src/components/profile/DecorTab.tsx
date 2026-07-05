@@ -969,6 +969,87 @@ export function DecorTab() {
     }
   }
 
+  /* ---- Emblems (mirrors badge logic) ---- */
+  async function handleEmblemTap(itemId: string | null, label: string) {
+    if (emblemSlotCount === 1) {
+      const cur = equipped?.emblem_id ?? null;
+      if (itemId === null) {
+        await applyEmblem(1, null, "No emblem");
+        return;
+      }
+      if (cur === itemId) {
+        await applyEmblem(1, null, label);
+        return;
+      }
+      await applyEmblem(1, itemId, label);
+      return;
+    }
+    if (itemId === null) {
+      await applyEmblem(1, null, "Cleared");
+      await applyEmblem(2, null, "Cleared");
+      setSelectedEmblemId(null);
+      return;
+    }
+    const a = equipped?.emblem_id ?? null;
+    const b = equipped?.emblem_id_2 ?? null;
+    if (a === itemId) {
+      await applyEmblem(1, null, label);
+      return;
+    }
+    if (b === itemId) {
+      await applyEmblem(2, null, label);
+      return;
+    }
+    setSelectedEmblemId((prev) => (prev === itemId ? null : itemId));
+  }
+
+  async function applyEmblem(slot: 1 | 2, itemId: string | null, label: string) {
+    try {
+      await setEquipped({ data: { kind: "emblem", itemId, slot } });
+      setEquippedState((prev) => {
+        const next = { ...(prev ?? {}) } as Record<string, string | null>;
+        if (slot === 1) next.emblem_id = itemId;
+        else next.emblem_id_2 = itemId;
+        return next;
+      });
+      if (itemId) toast.success(`${label} equipped in slot ${slot}.`);
+      else toast.success(`Slot ${slot} cleared.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleEmblemSlotTap(slot: 1 | 2) {
+    if (selectedEmblemId) {
+      const label =
+        inventory.find((r) => r.item_id === selectedEmblemId)?.name ?? selectedEmblemId;
+      await applyEmblem(slot, selectedEmblemId, label);
+      setSelectedEmblemId(null);
+      return;
+    }
+    const cur = slot === 1 ? equipped?.emblem_id : equipped?.emblem_id_2;
+    if (cur) {
+      await applyEmblem(slot, null, "Cleared");
+    }
+  }
+
+  async function handleEmblemClearSlot(slot: 1 | 2) {
+    await applyEmblem(slot, null, "Cleared");
+  }
+
+  async function handlePurchaseEmblemSlot() {
+    try {
+      const res = await purchaseEmblemSlot();
+      setEmblemSlotsPurchased(res.emblem_slots_purchased);
+      setEmblemSlotCount(
+        Math.min(2, 1 + res.emblem_slots_purchased + (isPlus ? 1 : 0)),
+      );
+      toast.success("Second emblem slot unlocked!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   function handleDefaultSaved(
     base: DefaultItem,
     next: { name: string; imageUrl: string | null },
