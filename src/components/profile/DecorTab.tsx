@@ -1173,6 +1173,50 @@ export function DecorTab() {
           {isAdmin && <AdminTestUploader kind="badge" onCreated={handleTestCreated} />}
         </TabsContent>
 
+        <TabsContent value="emblems" className="mt-3">
+          <ActiveBadges
+            slotState={emblemSlotState}
+            slot1Id={equipped?.emblem_id ?? null}
+            slot2Id={equipped?.emblem_id_2 ?? null}
+            inventory={ownedByKind.emblem}
+            selectedId={selectedEmblemId}
+            onTapSlot={(s) => void handleEmblemSlotTap(s)}
+            onClearSlot={(s) => void handleEmblemClearSlot(s)}
+            onPurchaseSlot={() => void handlePurchaseEmblemSlot()}
+          />
+          <SectionLabel>Emblems</SectionLabel>
+          <HRow>
+            <DecorTile
+              item={dEmblem}
+              active={isActive("emblem", null) && !(equipped?.emblem_id) && !(equipped?.emblem_id_2)}
+              onClick={() => ask("emblem", "No emblem", null)}
+            />
+            {ownedByKind.emblem.map((r) => {
+              const label = r.name ?? r.item_id;
+              const selected = selectedEmblemId === r.item_id;
+              return (
+                <DecorTile
+                  key={r.item_id}
+                  item={{
+                    id: r.item_id,
+                    label,
+                    shape: "square",
+                    preview: <OwnedPreview imageUrl={r.image_url} />,
+                  }}
+                  active={isActive("emblem", r.item_id) || selected}
+                  onClick={() => ask("emblem", label, r.item_id)}
+                  onDelete={() => deleteFn("emblem", label, r.item_id)}
+                />
+              );
+            })}
+          </HRow>
+          {ownedByKind.emblem.length === 0 && (
+            <EmptyHint label="Purchased emblems will appear here." />
+          )}
+          {isAdmin && <AdminTestUploader kind="emblem" onCreated={handleTestCreated} />}
+        </TabsContent>
+
+
         <TabsContent value="victory" className="mt-3">
           <SectionLabel>Victory Effects</SectionLabel>
           <HRow>
