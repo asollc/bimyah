@@ -820,10 +820,13 @@ export function DecorTab() {
       if (res.wasActive) {
         setEquippedState((prev) => {
           const next = { ...(prev ?? {}) } as Record<string, string | null>;
-          // Clear whichever badge slot held it.
+          // Clear whichever badge/emblem slot held it.
           if (kind === "badge") {
             if (next.badge_id === itemId) next.badge_id = null;
             if (next.badge_id_2 === itemId) next.badge_id_2 = null;
+          } else if (kind === "emblem") {
+            if (next.emblem_id === itemId) next.emblem_id = null;
+            if (next.emblem_id_2 === itemId) next.emblem_id_2 = null;
           } else {
             next[`${kind}_id`] = null;
           }
@@ -844,15 +847,24 @@ export function DecorTab() {
       const b = equipped?.badge_id_2 ?? null;
       return a === itemId || b === itemId;
     }
+    if (kind === "emblem") {
+      const a = equipped?.emblem_id ?? null;
+      const b = equipped?.emblem_id_2 ?? null;
+      return a === itemId || b === itemId;
+    }
     const col = `${kind}_id`;
     const cur = equipped?.[col] ?? null;
     return cur === itemId;
   }
 
   function ask(kind: DecorKind, label: string, itemId: string | null) {
-    // Badges use tap-to-equip, not the confirm modal.
+    // Badges/Emblems use tap-to-equip, not the confirm modal.
     if (kind === "badge") {
       void handleBadgeTap(itemId, label);
+      return;
+    }
+    if (kind === "emblem") {
+      void handleEmblemTap(itemId, label);
       return;
     }
     setPending({ kind, label, itemId });
