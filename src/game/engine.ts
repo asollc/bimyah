@@ -52,6 +52,8 @@ export function createInitialGame(
     titleUrl?: string | null;
     badgeUrl?: string | null;
     badgeUrl2?: string | null;
+    emblemUrl?: string | null;
+    emblemUrl2?: string | null;
     specialBadgeUrl?: string | null;
     victoryUrl?: string | null;
     victoryEffectType?: string | null;
