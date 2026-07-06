@@ -2204,22 +2204,19 @@ function PlayerSeat({
       onPointerCancel={onWrapperPointerUp}
     >
 
-      {/* Emblems — sit on either side of this player's hand area,
-          above the background layer. Others' emblems can be hidden by tapping. */}
-      {(player.emblemUrl || player.emblemUrl2) && (
-        <PlayerEmblems
-          playerId={player.id}
-          isMe={isMe}
-          leftUrl={player.emblemUrl ?? null}
-          rightUrl={player.emblemUrl2 ?? null}
-        />
-      )}
-
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
         (!isMe && revealAll && player.hand.length > 0)) &&
         status === "playing" && (
         <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
+          {(player.emblemUrl || player.emblemUrl2) && (
+            <PlayerEmblems
+              playerId={player.id}
+              isMe={isMe}
+              leftUrl={player.emblemUrl ?? null}
+              rightUrl={player.emblemUrl2 ?? null}
+            />
+          )}
           {(isMe ? orderedHand : player.hand).map((c) => (
             <PlayingCard
               key={c.id}
@@ -2227,6 +2224,7 @@ function PlayerSeat({
               width={isMe ? 36 : 22}
               selected={selectedHandCardId === c.id}
               onClick={controllable && onHandCardTap ? () => onHandCardTap(c.id) : undefined}
+              className="relative z-10"
             />
           ))}
         </div>
@@ -2843,12 +2841,14 @@ function EmblemImg({
   };
   return (
     <div
-      className="pointer-events-auto absolute bottom-full mb-1 select-none"
+      className="pointer-events-auto absolute top-1/2 select-none"
       style={{
+        width: 56,
+        height: 56,
         [side === "left" ? "right" : "left"]: "100%",
         [side === "left" ? "marginRight" : "marginLeft"]: 8,
-        transform: `translate(${layout.dx}px, ${layout.dy}px) scale(${layout.s})`,
-        transformOrigin: "center bottom",
+        transform: `translate(${layout.dx}px, calc(-50% + ${layout.dy}px)) scale(${layout.s})`,
+        transformOrigin: "center center",
         touchAction: "none",
         zIndex: 1,
       }}
@@ -2864,7 +2864,7 @@ function EmblemImg({
         src={url}
         alt=""
         draggable={false}
-        className="h-14 w-14 object-contain drop-shadow-lg"
+        className="h-full w-full object-contain drop-shadow-lg"
       />
     </div>
   );

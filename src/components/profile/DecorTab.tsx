@@ -550,7 +550,7 @@ function EditDefaultModal({
   );
 }
 
-/* ---------- Active Badges section ---------- */
+/* ---------- Active slots section ---------- */
 
 type BadgeSlotState = {
   count: number; // 1 or 2 unlocked
@@ -564,6 +564,10 @@ function ActiveBadges({
   slot2Id,
   inventory,
   selectedId,
+  title,
+  noun,
+  article,
+  slotNoun,
   onTapSlot,
   onClearSlot,
   onPurchaseSlot,
@@ -573,10 +577,18 @@ function ActiveBadges({
   slot2Id: string | null;
   inventory: InventoryRow[];
   selectedId: string | null;
+  title?: string;
+  noun?: string;
+  article?: string;
+  slotNoun?: string;
   onTapSlot: (slot: 1 | 2) => void;
   onClearSlot: (slot: 1 | 2) => void;
   onPurchaseSlot: () => void;
 }) {
+  const displayTitle = title ?? "Active Badges";
+  const itemNoun = noun ?? "badge";
+  const itemArticle = article ?? "a";
+  const itemSlotNoun = slotNoun ?? itemNoun;
   const urlForId = (id: string | null) =>
     id ? inventory.find((r) => r.item_id === id)?.image_url ?? null : null;
   const slot1Url = urlForId(slot1Id);
@@ -585,7 +597,7 @@ function ActiveBadges({
     <section className="mb-3 rounded-lg border border-white/10 bg-black/30 p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-[10px] uppercase tracking-widest text-white/60">
-          Active Badges
+          {displayTitle}
         </div>
         <div className="text-[9px] uppercase tracking-widest text-white/40">
           {slotState.count}/2 slots
@@ -617,7 +629,7 @@ function ActiveBadges({
             type="button"
             onClick={onPurchaseSlot}
             className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-dashed border-[var(--gold)]/60 bg-[var(--gold)]/10 text-[var(--gold)] hover:bg-[var(--gold)]/20"
-            title="Unlock a second badge slot · 150 Bimbucks"
+            title={`Unlock a second ${itemNoun} slot · 150 Bimbucks`}
           >
             <Plus className="h-5 w-5" />
             <span className="sr-only">Unlock second slot</span>
@@ -629,15 +641,15 @@ function ActiveBadges({
         )}
         <div className="ml-1 flex-1 text-[10px] text-white/40">
           {slotState.count === 1
-            ? "Tap a badge below to equip it. Tap the slot to clear."
+            ? `Tap ${itemArticle} ${itemNoun} below to equip it. Tap the slot to clear.`
             : selectedId
-              ? "Tap a slot to place the selected badge."
-              : "Tap a badge below, then tap a slot to place it. Tap an equipped badge to clear it."}
+              ? `Tap a slot to place the selected ${itemNoun}.`
+              : `Tap ${itemArticle} ${itemNoun} below, then tap a slot to place it. Tap an equipped ${itemNoun} to clear it.`}
         </div>
       </div>
       {slotState.canPurchase && (
         <p className="mt-2 text-[9px] text-white/40">
-          Unlock 2 badge slots for 150 Bimbucks. B+ members get the 2nd slot free.
+          Unlock 2 {itemSlotNoun} slots for 150 Bimbucks. B+ members get the 2nd slot free.
         </p>
       )}
     </section>
@@ -1180,6 +1192,10 @@ export function DecorTab() {
             slot2Id={equipped?.emblem_id_2 ?? null}
             inventory={ownedByKind.emblem}
             selectedId={selectedEmblemId}
+            title="Active Emblems"
+            noun="emblem"
+            article="an"
+            slotNoun="emblem"
             onTapSlot={(s) => void handleEmblemSlotTap(s)}
             onClearSlot={(s) => void handleEmblemClearSlot(s)}
             onPurchaseSlot={() => void handlePurchaseEmblemSlot()}
