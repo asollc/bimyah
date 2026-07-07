@@ -1464,6 +1464,27 @@ export function GameTable({
         );
       })}
 
+      {/* Emblems layer — rendered as its own element per seat, independent
+          of PlayerSeat's zoom/pinch. Visible in lobby too so players can
+          adjust before the match starts. */}
+      {seatOrder.map((player, seatIdx) => {
+        if (!player.emblemUrl && !player.emblemUrl2) return null;
+        const isMe = player.id === meId;
+        const pos = basePositions[seatIdx];
+        const offset = seatOffsets[seatIdx];
+        return (
+          <SeatEmblemsLayer
+            key={`emblems-${player.id}`}
+            playerId={player.id}
+            isMe={isMe}
+            position={pos}
+            offset={offset}
+            leftUrl={player.emblemUrl ?? null}
+            rightUrl={player.emblemUrl2 ?? null}
+          />
+        );
+      })}
+
       {/* Win overlay */}
       {state.status === "won" && (() => {
         const winner = state.players.find((p) => p.id === state.winnerId);
