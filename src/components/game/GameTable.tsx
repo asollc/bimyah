@@ -2203,15 +2203,11 @@ function PlayerSeat({
       onPointerUp={onWrapperPointerUp}
       onPointerCancel={onWrapperPointerUp}
     >
-      {/* Emblems: always render on either side of the seat, layered above bg. */}
-      {(player.emblemUrl || player.emblemUrl2) && status === "playing" && (
-        <PlayerEmblems
-          playerId={player.id}
-          isMe={isMe}
-          leftUrl={player.emblemUrl ?? null}
-          rightUrl={player.emblemUrl2 ?? null}
-        />
-      )}
+      {/* Emblems are rendered outside PlayerSeat as their own layer
+          (see SeatEmblemsLayer in the seat map) so they don't inherit
+          seat pinch/zoom and remain independently movable. */}
+
+
 
       {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
       {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
