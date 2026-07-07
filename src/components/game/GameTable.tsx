@@ -2719,18 +2719,24 @@ function InactivityBadge({
   return null;
 }
 
-/** Renders equipped emblems on either side of a player's hand. For other
- *  players, tapping an emblem hides it from the local viewer (persisted).
- *  Local player's own emblems are draggable via one-finger touch/mouse and
- *  resizable via pinch or wheel. Layered just above the background. */
-function PlayerEmblems({
+/** Renders equipped emblems as independent, movable elements anchored to a
+ *  seat's screen position — but NOT inheriting the seat's zoom/pinch scale
+ *  or transform. For other players, tapping an emblem hides it from the
+ *  local viewer (persisted). The local player's own emblems are draggable
+ *  via one-finger touch/mouse and resizable via pinch (second finger can
+ *  land anywhere on the screen, like InShot) or mouse wheel. */
+function SeatEmblemsLayer({
   playerId,
   isMe,
+  position,
+  offset,
   leftUrl,
   rightUrl,
 }: {
   playerId: string;
   isMe: boolean;
+  position: SeatPos;
+  offset?: { dx: number; dy: number };
   leftUrl: string | null;
   rightUrl: string | null;
 }) {
@@ -2753,29 +2759,58 @@ function PlayerEmblems({
       return next;
     });
   };
+  const dx = offset?.dx ?? 0;
+  const dy = offset?.dy ?? 0;
+  // Zero-size anchor at the seat's screen position (no scaling — emblems
+  // are independent of PlayerSeat's zoom/pinch).
   return (
-    <>
+    <div
+      className="pointer-events-none absolute"
+      style={{
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        transform: `translate(${dx}px, ${dy}px)`,
+        width: 0,
+        height: 0,
+        zIndex: 1,
+      }}
+    >
       {leftUrl && !hidden.has(`${playerId}:1`) && (
-        <EmblemImg url={leftUrl} side="left" movable={isMe} onTap={() => toggleHide(1)} storageId={`emblem-${playerId}-1`} />
+        <EmblemImg
+          url={leftUrl}
+          defaultOffsetX={-70}
+          movable={isMe}
+          onTap={() => toggleHide(1)}
+          storageId={`emblem-${playerId}-1`}
+        />
       )}
       {rightUrl && !hidden.has(`${playerId}:2`) && (
-        <EmblemImg url={rightUrl} side="right" movable={isMe} onTap={() => toggleHide(2)} storageId={`emblem-${playerId}-2`} />
+        <EmblemImg
+          url={rightUrl}
+          defaultOffsetX={70}
+          movable={isMe}
+          onTap={() => toggleHide(2)}
+          storageId={`emblem-${playerId}-2`}
+        />
       )}
-    </>
+    </div>
   );
 }
 
 /** A single emblem image. For the local player, drag/resize is enabled with
- *  per-emblem layout persisted to localStorage. */
+ *  per-emblem layout persisted to localStorage. Pinch-to-resize is handled
+ *  at the window level: as long as this emblem owns the first finger, a
+ *  second finger placed *anywhere on the screen* resizes it (InShot-style).
+ */
 function EmblemImg({
   url,
-  side,
+  defaultOffsetX,
   movable,
   onTap,
   storageId,
 }: {
   url: string;
-  side: "left" | "right";
+  defaultOffsetX: number;
   movable: boolean;
   onTap?: () => void;
   storageId: string;
@@ -2803,16 +2838,66 @@ function EmblemImg({
     dragging: boolean; pinching: boolean; movedFar: boolean;
   }>({ startDx: 0, startDy: 0, startScale: 1, startDist: 0, dragging: false, pinching: false, movedFar: false });
   const clamp = (s: number) => Math.max(0.4, Math.min(3, s));
+
+  // Window-level second-finger pinch (InShot style): once this emblem owns
+  // the primary pointer, any additional touch anywhere on the screen begins
+  // a pinch-resize scaled by the distance between the two fingers.
+  useEffect(() => {
+    if (!movable) return;
+    const onWinDown = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.a || st.b || st.pinching) return;
+      if (e.pointerType !== "touch") return;
+      if (e.pointerId === st.a.id) return;
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dxp = st.b.x - st.a.x;
+      const dyp = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dxp, dyp) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true;
+      st.dragging = false;
+      e.preventDefault();
+    };
+    const onWinMove = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.pinching || !st.a || !st.b) return;
+      if (e.pointerId === st.a.id) { st.a.x = e.clientX; st.a.y = e.clientY; }
+      else if (e.pointerId === st.b.id) { st.b.x = e.clientX; st.b.y = e.clientY; }
+      else return;
+      const dxp = st.b.x - st.a.x;
+      const dyp = st.b.y - st.a.y;
+      const dist = Math.hypot(dxp, dyp) || 1;
+      save({ ...layoutRef.current, s: clamp(st.startScale * (dist / st.startDist)) });
+      e.preventDefault();
+    };
+    const onWinUp = (e: PointerEvent) => {
+      const st = stateRef.current;
+      const wasA = st.a?.id === e.pointerId;
+      const wasB = st.b?.id === e.pointerId;
+      if (!wasA && !wasB) return;
+      // Any finger lift ends the whole gesture (matches Movable behavior).
+      st.a = undefined; st.b = undefined; st.origin = undefined;
+      st.dragging = false; st.pinching = false; st.movedFar = false;
+    };
+    window.addEventListener("pointerdown", onWinDown, { passive: false });
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerdown", onWinDown);
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, [movable]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     const st = stateRef.current;
-    if (!movable) return;
-    if (st.a && !st.b && e.pointerId !== st.a.id && e.pointerType === "touch") {
-      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      const dx = st.b.x - st.a.x, dy = st.b.y - st.a.y;
-      st.startDist = Math.hypot(dx, dy) || 1;
-      st.startScale = layoutRef.current.s;
-      st.pinching = true; st.dragging = false;
-      (e.target as Element).setPointerCapture?.(e.pointerId);
+    if (!movable) {
+      // Non-movable (other players): register a tap to toggle hide.
+      st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      st.origin = { x: e.clientX, y: e.clientY };
+      st.movedFar = false;
       return;
     }
     if (st.a) return;
@@ -2826,16 +2911,7 @@ function EmblemImg({
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const st = stateRef.current;
-    if (!st.a) return;
-    if (st.pinching && st.b) {
-      if (e.pointerId === st.a.id) st.a = { ...st.a, x: e.clientX, y: e.clientY };
-      else if (e.pointerId === st.b.id) st.b = { ...st.b, x: e.clientX, y: e.clientY };
-      else return;
-      const dx = st.b.x - st.a.x, dy = st.b.y - st.a.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      save({ ...layoutRef.current, s: clamp(st.startScale * (dist / st.startDist)) });
-      return;
-    }
+    if (!movable || !st.a || st.pinching) return;
     if (e.pointerId !== st.a.id || !st.origin) return;
     const ddx = e.clientX - st.origin.x, ddy = e.clientY - st.origin.y;
     if (!st.dragging && Math.hypot(ddx, ddy) < 6) return;
@@ -2857,26 +2933,27 @@ function EmblemImg({
     e.preventDefault();
     save({ ...layoutRef.current, s: clamp(layoutRef.current.s + (e.deltaY < 0 ? 0.08 : -0.08)) });
   };
+  const size = 56;
   return (
     <div
-      className="pointer-events-auto absolute top-1/2 select-none"
+      className="pointer-events-auto absolute select-none"
       style={{
-        width: 56,
-        height: 56,
-        [side === "left" ? "right" : "left"]: "100%",
-        [side === "left" ? "marginRight" : "marginLeft"]: 8,
-        transform: `translate(${layout.dx}px, calc(-50% + ${layout.dy}px)) scale(${layout.s})`,
+        width: size,
+        height: size,
+        left: 0,
+        top: 0,
+        // Center on the seat anchor, then apply the default side offset
+        // plus the user's saved drag offset and pinch scale.
+        transform: `translate(calc(-50% + ${defaultOffsetX + layout.dx}px), calc(-50% + ${layout.dy}px)) scale(${layout.s})`,
         transformOrigin: "center center",
         touchAction: "none",
-        zIndex: 1,
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onWheel={onWheel}
-      onClick={!movable && onTap ? (e) => { e.stopPropagation(); } : undefined}
-      title={movable ? "Drag to move · pinch or scroll to resize" : "Tap to hide"}
+      title={movable ? "Drag to move · pinch anywhere with a second finger to resize" : "Tap to hide"}
     >
       <img
         src={url}
@@ -2887,5 +2964,6 @@ function EmblemImg({
     </div>
   );
 }
+
 
 
