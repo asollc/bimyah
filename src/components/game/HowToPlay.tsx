@@ -143,6 +143,16 @@ export function HowToPlayButton({
                 <li>Sizes are remembered locally per mode and player count.</li>
               </ul>
             </Section>
+            <Section title="Emblems">
+              <ul className="list-disc space-y-1 pl-5">
+                <li>Equip emblems from the <b>Decor → Emblems</b> tab in your Profile. Equipped emblems appear on either side of your seat.</li>
+                <li>Emblems are visible in the <b>lobby</b> before a match so you can pre-arrange them.</li>
+                <li><b>Drag</b> your own emblems anywhere on screen with one finger (or mouse) — they move independently of your hand and seat.</li>
+                <li><b>Pinch to resize:</b> InShot-style — keep one finger on the emblem and place a second finger anywhere on the screen; move them apart/together to grow/shrink it.</li>
+                <li><b>Tap another player's emblem</b> to hide it from your screen. Hidden emblems stay hidden across sessions on this device.</li>
+                <li>Position and size are remembered locally per emblem.</li>
+              </ul>
+            </Section>
             <Section title="Default Center Cards">
               <ul className="list-disc space-y-1 pl-5">
                 <li><b>1 – 4</b>: top row of center cards (left → right). With 4 or fewer center cards, these are the only row.</li>
