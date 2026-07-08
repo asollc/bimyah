@@ -18,6 +18,7 @@ import {
   Confetti,
   Countdown,
   HomeButton,
+  LeaveGameDialog,
   MatchBadge,
   ScoreDisplay,
   Scoreboard,
@@ -91,6 +92,7 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const spectators = state.spectators ?? [];
@@ -128,6 +130,30 @@ export function GameTable({
       window.removeEventListener("storage", refresh);
     };
   }, []);
+
+  // Treat browser back button as the Home button: intercept popstate and
+  // show the leave-game confirmation. Push a sentinel state on mount so the
+  // first back press has something to pop, and re-push after each intercept.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SENTINEL = "bimyah:in-game";
+    try {
+      window.history.pushState({ [SENTINEL]: true }, "");
+    } catch {
+      /* ignore */
+    }
+    const onPop = () => {
+      setShowLeaveConfirm(true);
+      try {
+        window.history.pushState({ [SENTINEL]: true }, "");
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in the selecting
@@ -1700,6 +1726,24 @@ export function GameTable({
         state={state}
         open={showScoreboard}
         onClose={() => setShowScoreboard(false)}
+      />
+
+      {/* Back-button leave confirmation (mirrors HomeButton behavior). */}
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        isHost={isHost}
+        onEndMatch={
+          isHost
+            ? () => {
+                try {
+                  setState((s) => ({ ...s, roomClosed: true }));
+                } catch {
+                  /* ignore */
+                }
+              }
+            : undefined
+        }
       />
 
       {/* Settings popup */}

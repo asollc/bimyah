@@ -5,12 +5,13 @@ import {
   DialogTrigger,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "./KeybindEditor";
 import { listHowToVideos } from "@/lib/rpc/howToVideos.functions";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, X } from "lucide-react";
 
 function BPlus() {
   return (
@@ -55,8 +56,14 @@ export function HowToPlayButton({
       </DialogTrigger>
       <DialogContent
         ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
-        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white"
+        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.absolute]:hidden"
       >
+        <DialogClose
+          className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" strokeWidth={3} />
+        </DialogClose>
         <Tabs
           value={activeTab}
           onValueChange={(v) => {

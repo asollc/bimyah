@@ -129,6 +129,66 @@ export function RotationIcon({ className }: { className?: string }) {
  * the home screen. Hosts get an "End Match" prompt that closes the room for
  * everyone via `onEndMatch` before navigating away.
  */
+export function LeaveGameDialog({
+  open,
+  onOpenChange,
+  isHost = false,
+  onEndMatch,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isHost?: boolean;
+  onEndMatch?: () => void;
+}) {
+  const navigate = useNavigate();
+  const title = isHost ? "End match?" : "Leave the game?";
+  const description = isHost
+    ? "Ending the match will completely close the room for everyone inside and kill the game instance. This cannot be undone."
+    : "Returning to the home screen will leave your current game behind. You can rejoin if it's still in the lobby, but in-progress games will keep going without you.";
+  const action = isHost ? "End Match" : "Go Home";
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-display text-xl text-[var(--mint)]">
+            {title}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-white/70">
+            {description}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-white/10 bg-black/30 text-white hover:bg-black/50 hover:text-white">
+            {isHost ? "Keep Playing" : "Stay"}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              onOpenChange(false);
+              if (isHost && onEndMatch) {
+                onEndMatch();
+                return;
+              }
+              void navigate({ to: "/" });
+            }}
+            className={
+              isHost
+                ? "bg-[var(--player-red)] text-white hover:bg-[var(--player-red)]/90"
+                : "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] hover:bg-[var(--mint)]/90"
+            }
+          >
+            {action}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/**
+ * Round home button. Tapping prompts the user to confirm before returning to
+ * the home screen. Hosts get an "End Match" prompt that closes the room for
+ * everyone via `onEndMatch` before navigating away.
+ */
 export function HomeButton({
   className,
   isHost = false,
@@ -139,12 +199,6 @@ export function HomeButton({
   onEndMatch?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-  const title = isHost ? "End match?" : "Leave the game?";
-  const description = isHost
-    ? "Ending the match will completely close the room for everyone inside and kill the game instance. This cannot be undone."
-    : "Returning to the home screen will leave your current game behind. You can rejoin if it's still in the lobby, but in-progress games will keep going without you.";
-  const action = isHost ? "End Match" : "Go Home";
   return (
     <>
       <button
@@ -158,48 +212,16 @@ export function HomeButton({
       >
         <Home className="h-4 w-4" />
       </button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-display text-xl text-[var(--mint)]">
-              {title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-white/70">
-              {description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/10 bg-black/30 text-white hover:bg-black/50 hover:text-white">
-              {isHost ? "Keep Playing" : "Stay"}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setOpen(false);
-                if (isHost && onEndMatch) {
-                  // Host: only flag the room as closed here. The route
-                  // effect rebroadcasts the close to peers, then tears
-                  // down the session and navigates home. Navigating now
-                  // would unmount the route and cancel that rebroadcast,
-                  // leaving joiners stranded in the game.
-                  onEndMatch();
-                  return;
-                }
-                void navigate({ to: "/" });
-              }}
-              className={
-                isHost
-                  ? "bg-[var(--player-red)] text-white hover:bg-[var(--player-red)]/90"
-                  : "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] hover:bg-[var(--mint)]/90"
-              }
-            >
-              {action}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <LeaveGameDialog
+        open={open}
+        onOpenChange={setOpen}
+        isHost={isHost}
+        onEndMatch={onEndMatch}
+      />
     </>
   );
 }
+
 
 /* ============================ Tournament UI ============================ */
 
