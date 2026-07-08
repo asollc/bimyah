@@ -1471,14 +1471,15 @@ export function GameTable({
         if (!player.emblemUrl && !player.emblemUrl2) return null;
         const isMe = player.id === meId;
         const pos = basePositions[seatIdx];
-        const offset = seatOffsets[seatIdx];
+        // Intentionally do NOT pass seatOffsets — emblems are independent of
+        // the player hand's drag. The seat base position is only a starting
+        // anchor; per-emblem drag offsets are persisted separately.
         return (
           <SeatEmblemsLayer
             key={`emblems-${player.id}`}
             playerId={player.id}
             isMe={isMe}
             position={pos}
-            offset={offset}
             leftUrl={player.emblemUrl ?? null}
             rightUrl={player.emblemUrl2 ?? null}
           />
