@@ -1471,14 +1471,15 @@ export function GameTable({
         if (!player.emblemUrl && !player.emblemUrl2) return null;
         const isMe = player.id === meId;
         const pos = basePositions[seatIdx];
-        const offset = seatOffsets[seatIdx];
+        // Intentionally do NOT pass seatOffsets — emblems are independent of
+        // the player hand's drag. The seat base position is only a starting
+        // anchor; per-emblem drag offsets are persisted separately.
         return (
           <SeatEmblemsLayer
             key={`emblems-${player.id}`}
             playerId={player.id}
             isMe={isMe}
             position={pos}
-            offset={offset}
             leftUrl={player.emblemUrl ?? null}
             rightUrl={player.emblemUrl2 ?? null}
           />
@@ -2729,14 +2730,12 @@ function SeatEmblemsLayer({
   playerId,
   isMe,
   position,
-  offset,
   leftUrl,
   rightUrl,
 }: {
   playerId: string;
   isMe: boolean;
   position: SeatPos;
-  offset?: { dx: number; dy: number };
   leftUrl: string | null;
   rightUrl: string | null;
 }) {
@@ -2759,17 +2758,15 @@ function SeatEmblemsLayer({
       return next;
     });
   };
-  const dx = offset?.dx ?? 0;
-  const dy = offset?.dy ?? 0;
-  // Zero-size anchor at the seat's screen position (no scaling — emblems
-  // are independent of PlayerSeat's zoom/pinch).
+  // Zero-size anchor at the seat's base screen position. Emblems do NOT
+  // inherit the player hand's drag offset — they move independently via
+  // per-emblem persisted layout.
   return (
     <div
       className="pointer-events-none absolute"
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
-        transform: `translate(${dx}px, ${dy}px)`,
         width: 0,
         height: 0,
         zIndex: 1,
