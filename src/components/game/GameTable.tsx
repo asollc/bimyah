@@ -91,6 +91,7 @@ export function GameTable({
   const [copied, setCopied] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const spectators = state.spectators ?? [];
