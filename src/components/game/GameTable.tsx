@@ -2730,14 +2730,12 @@ function SeatEmblemsLayer({
   playerId,
   isMe,
   position,
-  offset,
   leftUrl,
   rightUrl,
 }: {
   playerId: string;
   isMe: boolean;
   position: SeatPos;
-  offset?: { dx: number; dy: number };
   leftUrl: string | null;
   rightUrl: string | null;
 }) {
@@ -2760,17 +2758,15 @@ function SeatEmblemsLayer({
       return next;
     });
   };
-  const dx = offset?.dx ?? 0;
-  const dy = offset?.dy ?? 0;
-  // Zero-size anchor at the seat's screen position (no scaling — emblems
-  // are independent of PlayerSeat's zoom/pinch).
+  // Zero-size anchor at the seat's base screen position. Emblems do NOT
+  // inherit the player hand's drag offset — they move independently via
+  // per-emblem persisted layout.
   return (
     <div
       className="pointer-events-none absolute"
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
-        transform: `translate(${dx}px, ${dy}px)`,
         width: 0,
         height: 0,
         zIndex: 1,
