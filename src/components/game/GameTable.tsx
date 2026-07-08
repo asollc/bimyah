@@ -18,6 +18,7 @@ import {
   Confetti,
   Countdown,
   HomeButton,
+  LeaveGameDialog,
   MatchBadge,
   ScoreDisplay,
   Scoreboard,
