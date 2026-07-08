@@ -1728,6 +1728,24 @@ export function GameTable({
         onClose={() => setShowScoreboard(false)}
       />
 
+      {/* Back-button leave confirmation (mirrors HomeButton behavior). */}
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        isHost={isHost}
+        onEndMatch={
+          isHost
+            ? () => {
+                try {
+                  setState((s) => ({ ...s, roomClosed: true }));
+                } catch {
+                  /* ignore */
+                }
+              }
+            : undefined
+        }
+      />
+
       {/* Settings popup */}
       {showSettings && (
         <div
