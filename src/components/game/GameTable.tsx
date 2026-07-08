@@ -130,6 +130,30 @@ export function GameTable({
       window.removeEventListener("storage", refresh);
     };
   }, []);
+
+  // Treat browser back button as the Home button: intercept popstate and
+  // show the leave-game confirmation. Push a sentinel state on mount so the
+  // first back press has something to pop, and re-push after each intercept.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SENTINEL = "bimyah:in-game";
+    try {
+      window.history.pushState({ [SENTINEL]: true }, "");
+    } catch {
+      /* ignore */
+    }
+    const onPop = () => {
+      setShowLeaveConfirm(true);
+      try {
+        window.history.pushState({ [SENTINEL]: true }, "");
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const isTournament = state.mode === "tournament";
 
   // Clear selection if the selected card is no longer in the selecting
