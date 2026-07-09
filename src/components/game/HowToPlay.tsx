@@ -56,7 +56,7 @@ export function HowToPlayButton({
       </DialogTrigger>
       <DialogContent
         ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
-        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.absolute]:hidden"
+        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.right-4]:hidden"
       >
         <DialogClose
           className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
