@@ -26,13 +26,17 @@ export function HowToPlayButton({
   floating = true,
   variant = "default",
   autoOpenTab = null,
+  minimizable = false,
 }: {
   floating?: boolean;
   variant?: "default" | "lime";
   /** When set to a tab id (e.g. "videos"), opens the dialog on that tab on mount, once. */
   autoOpenTab?: string | null;
+  /** In-game: show a "-" button that shrinks the menu into a movable floating panel. */
+  minimizable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(autoOpenTab ?? "standard");
   const autoOpenedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
