@@ -18,8 +18,10 @@ import { getGuestName } from "@/game/guest";
 import { GuestNamePrompt } from "@/components/GuestNamePrompt";
 
 export const Route = createFileRoute("/join/$gameId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    mode: (search.mode === "spectate" ? "spectate" : "play") as "play" | "spectate",
+  validateSearch: (
+    search: Record<string, unknown> | undefined
+  ): { mode?: "play" | "spectate" } => ({
+    mode: search?.mode === "spectate" ? "spectate" : "play",
   }),
   head: () => {
     const title = "Join a Bimyah! game";

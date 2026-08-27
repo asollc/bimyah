@@ -1094,6 +1094,7 @@ export function GameTable({
       <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
         <Movable id="how-to-play" {...movables}>
           <HowToPlayButton
+            minimizable
             autoOpenTab={
               state.mode === "training" && state.status === "lobby" ? "videos" : null
             }

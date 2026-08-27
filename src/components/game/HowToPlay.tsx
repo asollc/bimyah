@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "./KeybindEditor";
 import { listHowToVideos } from "@/lib/rpc/howToVideos.functions";
-import { Maximize2, X } from "lucide-react";
+import { Maximize2, Minus, X } from "lucide-react";
 
 function BPlus() {
   return (
@@ -26,13 +26,17 @@ export function HowToPlayButton({
   floating = true,
   variant = "default",
   autoOpenTab = null,
+  minimizable = false,
 }: {
   floating?: boolean;
   variant?: "default" | "lime";
   /** When set to a tab id (e.g. "videos"), opens the dialog on that tab on mount, once. */
   autoOpenTab?: string | null;
+  /** In-game: show a "-" button that shrinks the menu into a movable floating panel. */
+  minimizable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(autoOpenTab ?? "standard");
   const autoOpenedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -47,23 +51,7 @@ export function HowToPlayButton({
     variant === "lime"
       ? "flex h-9 items-center gap-1 rounded-full bg-lime-400 px-3 font-display text-[10px] font-black uppercase tracking-widest text-black ring-1 ring-lime-300 transition hover:scale-105"
       : "inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90";
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className={className} aria-label="How to play">
-          How to Play
-        </button>
-      </DialogTrigger>
-      <DialogContent
-        ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
-        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.right-4]:hidden"
-      >
-        <DialogClose
-          className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" strokeWidth={3} />
-        </DialogClose>
+  const body = (
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -275,8 +263,202 @@ export function HowToPlayButton({
           </TabsContent>
           </div>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+  );
+
+  return (
+    <>
+      <Dialog open={open && !minimized} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button
+            className={className}
+            aria-label="How to play"
+            onClick={() => setMinimized(false)}
+          >
+            How to Play
+          </button>
+        </DialogTrigger>
+        <DialogContent
+          ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
+          className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.right-4]:hidden"
+        >
+          <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
+            {minimizable && (
+              <button
+                type="button"
+                onClick={() => setMinimized(true)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
+                aria-label="Minimize"
+              >
+                <Minus className="h-5 w-5" strokeWidth={3} />
+              </button>
+            )}
+            <DialogClose
+              className="grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" strokeWidth={3} />
+            </DialogClose>
+          </div>
+          {body}
+        </DialogContent>
+      </Dialog>
+      {minimizable && minimized && (
+        <MiniPanel
+          onClose={() => {
+            setMinimized(false);
+            setOpen(false);
+          }}
+          onExpand={() => {
+            setMinimized(false);
+            setOpen(true);
+          }}
+        >
+          {body}
+        </MiniPanel>
+      )}
+    </>
+  );
+}
+
+const MINI_KEY = "bimyah_htp_mini";
+type MiniRect = { x: number; y: number; w: number; h: number };
+
+function loadMiniRect(): MiniRect {
+  const fallback: MiniRect = {
+    x: typeof window === "undefined" ? 0 : Math.max(8, window.innerWidth - 288),
+    y: typeof window === "undefined" ? 0 : Math.max(8, window.innerHeight - 328),
+    w: 280,
+    h: 320,
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(MINI_KEY);
+    if (!raw) return fallback;
+    const p = JSON.parse(raw) as Partial<MiniRect>;
+    if (
+      typeof p.x === "number" &&
+      typeof p.y === "number" &&
+      typeof p.w === "number" &&
+      typeof p.h === "number"
+    ) {
+      return {
+        x: Math.min(Math.max(0, p.x), Math.max(0, window.innerWidth - 80)),
+        y: Math.min(Math.max(0, p.y), Math.max(0, window.innerHeight - 60)),
+        w: Math.max(180, Math.min(p.w, window.innerWidth)),
+        h: Math.max(140, Math.min(p.h, window.innerHeight)),
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
+function MiniPanel({
+  children,
+  onClose,
+  onExpand,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+  onExpand: () => void;
+}) {
+  const [rect, setRect] = useState<MiniRect>(() => loadMiniRect());
+  const rectRef = useRef(rect);
+  rectRef.current = rect;
+
+  const persist = (r: MiniRect) => {
+    try {
+      window.localStorage.setItem(MINI_KEY, JSON.stringify(r));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const base = rectRef.current;
+    const move = (ev: PointerEvent) => {
+      const next = {
+        ...rectRef.current,
+        x: Math.max(0, Math.min(base.x + (ev.clientX - startX), window.innerWidth - 60)),
+        y: Math.max(0, Math.min(base.y + (ev.clientY - startY), window.innerHeight - 40)),
+      };
+      setRect(next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      persist(rectRef.current);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const base = rectRef.current;
+    const move = (ev: PointerEvent) => {
+      setRect({
+        ...rectRef.current,
+        w: Math.max(180, Math.min(base.w + (ev.clientX - startX), window.innerWidth)),
+        h: Math.max(140, Math.min(base.h + (ev.clientY - startY), window.innerHeight)),
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      persist(rectRef.current);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  return (
+    <div
+      className="fixed z-[150] flex flex-col overflow-hidden rounded-xl border border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white shadow-2xl"
+      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+    >
+      <div
+        onPointerDown={startDrag}
+        className="flex shrink-0 cursor-move touch-none items-center justify-between gap-2 border-b border-white/10 bg-black/40 px-2 py-1"
+      >
+        <span className="font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)]">
+          How to Play
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onExpand}
+            className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-90"
+            aria-label="Expand"
+          >
+            <Maximize2 className="h-3.5 w-3.5" strokeWidth={3} />
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onClose}
+            className="grid h-6 w-6 place-items-center rounded-full bg-orange-500 text-white transition hover:bg-orange-400 active:scale-90"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto text-[11px]">{children}</div>
+      <div
+        onPointerDown={startResize}
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize touch-none rounded-tl-md bg-[var(--mint)]/40"
+        aria-label="Resize"
+      />
+    </div>
   );
 }
 
