@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 type Status = "loading" | "ready" | "already" | "invalid" | "success" | "error";
 
 export const Route = createFileRoute("/unsubscribe")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    token: typeof s.token === "string" ? s.token : "",
+  validateSearch: (s: Record<string, unknown> | undefined) => ({
+    token: typeof s?.token === "string" ? s.token : "",
   }),
   component: UnsubscribePage,
 });

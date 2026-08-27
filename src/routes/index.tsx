@@ -99,8 +99,8 @@ export const Route = createFileRoute("/")({
     };
   },
   component: HomePage,
-  validateSearch: (s: Record<string, unknown>) => ({
-    ref: typeof s.ref === "string" ? s.ref : undefined,
+  validateSearch: (s: Record<string, unknown> | undefined) => ({
+    ref: typeof s?.ref === "string" ? s.ref : undefined,
   }),
 });
 
