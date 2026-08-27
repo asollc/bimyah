@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BplusIcon } from "@/components/BplusIcon";
 import { KeybindEditor } from "./KeybindEditor";
 import { listHowToVideos } from "@/lib/rpc/howToVideos.functions";
-import { Maximize2, X } from "lucide-react";
+import { Maximize2, Minus, X } from "lucide-react";
 
 function BPlus() {
   return (
