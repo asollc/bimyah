@@ -47,23 +47,7 @@ export function HowToPlayButton({
     variant === "lime"
       ? "flex h-9 items-center gap-1 rounded-full bg-lime-400 px-3 font-display text-[10px] font-black uppercase tracking-widest text-black ring-1 ring-lime-300 transition hover:scale-105"
       : "inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur transition active:scale-90";
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className={className} aria-label="How to play">
-          How to Play
-        </button>
-      </DialogTrigger>
-      <DialogContent
-        ref={scrollRef as unknown as React.Ref<HTMLDivElement>}
-        className="top-[calc(50%+25px)] max-h-[calc(88vh-50px)] max-w-md overflow-y-auto border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] p-0 text-white [&>button.right-4]:hidden"
-      >
-        <DialogClose
-          className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/60 transition hover:bg-orange-400 active:scale-90"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" strokeWidth={3} />
-        </DialogClose>
+  const body = (
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
