@@ -40,9 +40,8 @@ export const Route = createFileRoute("/profile")({
       links: [{ rel: "canonical", href: url }],
     };
   },
-  validateSearch: (s: Record<string, unknown> | undefined) => ({
-    bimbucks: typeof s?.bimbucks === "string" ? s.bimbucks : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown> | undefined): { bimbucks?: string } =>
+    typeof s?.bimbucks === "string" ? { bimbucks: s.bimbucks } : {},
   component: ProfilePage,
 });
 
