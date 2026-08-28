@@ -297,7 +297,8 @@ export function HowToPlayButton({
               <X className="h-5 w-5" strokeWidth={3} />
             </DialogClose>
           </div>
-          {body}
+          <DialogTitle className="sr-only">How to Play BIMYAH!</DialogTitle>
+          {content}
         </DialogContent>
       </Dialog>
       {minimizable && minimized && (
@@ -311,7 +312,7 @@ export function HowToPlayButton({
             setOpen(true);
           }}
         >
-          {body}
+          {content}
         </MiniPanel>
       )}
     </>
