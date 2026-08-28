@@ -310,9 +310,7 @@ export function HowToPlayButton({
             setMinimized(false);
             setOpen(true);
           }}
-        >
-          {content}
-        </MiniPanel>
+        />
       )}
     </>
   );
