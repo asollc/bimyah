@@ -310,8 +310,11 @@ export function HowToPlayButton({
             setMinimized(false);
             setOpen(true);
           }}
-        />
+        >
+          {content}
+        </MiniPanel>
       )}
+
     </>
   );
 }
@@ -353,27 +356,19 @@ function loadMiniRect(): MiniRect {
 function MiniPanel({
   onClose,
   onExpand,
+  children,
 }: {
   onClose: () => void;
   onExpand: () => void;
+  children: React.ReactNode;
 }) {
-  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
-    const r = loadMiniRect();
-    return {
-      x: Math.min(Math.max(8, r.x), Math.max(8, window.innerWidth - 180)),
-      y: Math.min(Math.max(8, r.y), Math.max(8, window.innerHeight - 48)),
-    };
-  });
-  const posRef = useRef(pos);
-  posRef.current = pos;
+  const [rect, setRect] = useState<MiniRect>(() => loadMiniRect());
+  const rectRef = useRef(rect);
+  rectRef.current = rect;
 
-  const persistPos = (p: { x: number; y: number }) => {
+  const persist = (r: MiniRect) => {
     try {
-      const existing = loadMiniRect();
-      window.localStorage.setItem(
-        MINI_KEY,
-        JSON.stringify({ ...existing, x: p.x, y: p.y })
-      );
+      window.localStorage.setItem(MINI_KEY, JSON.stringify(r));
     } catch {
       /* ignore */
     }
@@ -383,53 +378,102 @@ function MiniPanel({
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
-    const base = posRef.current;
+    const base = rectRef.current;
     const move = (ev: PointerEvent) => {
-      const next = {
-        x: Math.max(8, Math.min(base.x + (ev.clientX - startX), window.innerWidth - 160)),
-        y: Math.max(8, Math.min(base.y + (ev.clientY - startY), window.innerHeight - 44)),
-      };
-      setPos(next);
+      setRect({
+        ...rectRef.current,
+        x: Math.max(0, Math.min(base.x + (ev.clientX - startX), window.innerWidth - 80)),
+        y: Math.max(0, Math.min(base.y + (ev.clientY - startY), window.innerHeight - 44)),
+      });
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      persistPos(posRef.current);
+      persist(rectRef.current);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
 
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const base = rectRef.current;
+    const move = (ev: PointerEvent) => {
+      setRect({
+        ...rectRef.current,
+        w: Math.max(200, Math.min(base.w + (ev.clientX - startX), window.innerWidth)),
+        h: Math.max(160, Math.min(base.h + (ev.clientY - startY), window.innerHeight)),
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      persist(rectRef.current);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  // Scale the full menu down to fit the mini window while keeping it usable.
+  const BASE_W = 448; // matches max-w-md of the full dialog
+  const scale = Math.min(1, rect.w / BASE_W);
+
   return (
     <div
-      className="fixed z-[150] flex touch-none items-center gap-1 rounded-full border border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] py-1 pl-3 pr-1 text-white shadow-2xl"
-      style={{ left: pos.x, top: pos.y }}
-      onPointerDown={startDrag}
+      className="fixed z-[150] flex touch-none flex-col overflow-hidden rounded-xl border border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white shadow-2xl"
+      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
     >
-      <span className="cursor-move font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)] whitespace-nowrap">
-        How to Play
-      </span>
-      <button
-        type="button"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={onExpand}
-        className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-90"
-        aria-label="Expand"
+      <div
+        className="flex shrink-0 cursor-move items-center justify-between gap-1 border-b border-white/10 bg-black/30 px-2 py-1"
+        onPointerDown={startDrag}
       >
-        <Maximize2 className="h-3.5 w-3.5" strokeWidth={3} />
-      </button>
-      <button
-        type="button"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={onClose}
-        className="grid h-7 w-7 place-items-center rounded-full bg-orange-500 text-white transition hover:bg-orange-400 active:scale-90"
-        aria-label="Close"
-      >
-        <X className="h-3.5 w-3.5" strokeWidth={3} />
-      </button>
+        <span className="font-display text-[10px] font-black uppercase tracking-widest text-[var(--mint)]">
+          How to Play
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onExpand}
+            className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-90"
+            aria-label="Expand"
+          >
+            <Maximize2 className="h-3 w-3" strokeWidth={3} />
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onClose}
+            className="grid h-6 w-6 place-items-center rounded-full bg-orange-500 text-white transition hover:bg-orange-400 active:scale-90"
+            aria-label="Close"
+          >
+            <X className="h-3 w-3" strokeWidth={3} />
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div
+          style={{
+            width: BASE_W,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          {children}
+        </div>
+      </div>
+      <div
+        onPointerDown={startResize}
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize touch-none rounded-tl-md bg-[var(--mint)]/40"
+        aria-label="Resize"
+      />
     </div>
   );
 }
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
