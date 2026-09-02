@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Dialog,
   DialogContent,
@@ -323,11 +324,15 @@ const MINI_KEY = "bimyah_htp_mini";
 type MiniRect = { x: number; y: number; w: number; h: number };
 
 function loadMiniRect(): MiniRect {
+  const viewportWidth = typeof window === "undefined" ? 411 : window.innerWidth;
+  const viewportHeight = typeof window === "undefined" ? 691 : window.innerHeight;
+  const fallbackWidth = Math.min(280, viewportWidth - 16);
+  const fallbackHeight = Math.min(320, viewportHeight - 16);
   const fallback: MiniRect = {
-    x: typeof window === "undefined" ? 0 : Math.max(8, window.innerWidth - 288),
-    y: typeof window === "undefined" ? 0 : Math.max(8, window.innerHeight - 328),
-    w: 280,
-    h: 320,
+    x: Math.max(8, viewportWidth - fallbackWidth - 8),
+    y: Math.max(8, viewportHeight - fallbackHeight - 8),
+    w: fallbackWidth,
+    h: fallbackHeight,
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -340,11 +345,13 @@ function loadMiniRect(): MiniRect {
       typeof p.w === "number" &&
       typeof p.h === "number"
     ) {
+      const w = Math.max(200, Math.min(p.w, window.innerWidth - 16));
+      const h = Math.max(180, Math.min(p.h, window.innerHeight - 16));
       return {
-        x: Math.min(Math.max(0, p.x), Math.max(0, window.innerWidth - 80)),
-        y: Math.min(Math.max(0, p.y), Math.max(0, window.innerHeight - 60)),
-        w: Math.max(180, Math.min(p.w, window.innerWidth)),
-        h: Math.max(140, Math.min(p.h, window.innerHeight)),
+        x: Math.min(Math.max(8, p.x), Math.max(8, window.innerWidth - w - 8)),
+        y: Math.min(Math.max(8, p.y), Math.max(8, window.innerHeight - h - 8)),
+        w,
+        h,
       };
     }
   } catch {
@@ -374,6 +381,23 @@ function MiniPanel({
     }
   };
 
+  useEffect(() => {
+    const keepOnScreen = () => {
+      setRect((current) => {
+        const w = Math.max(200, Math.min(current.w, window.innerWidth - 16));
+        const h = Math.max(180, Math.min(current.h, window.innerHeight - 16));
+        return {
+          x: Math.min(Math.max(8, current.x), Math.max(8, window.innerWidth - w - 8)),
+          y: Math.min(Math.max(8, current.y), Math.max(8, window.innerHeight - h - 8)),
+          w,
+          h,
+        };
+      });
+    };
+    window.addEventListener("resize", keepOnScreen);
+    return () => window.removeEventListener("resize", keepOnScreen);
+  }, []);
+
   const startDrag = (e: React.PointerEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -382,8 +406,8 @@ function MiniPanel({
     const move = (ev: PointerEvent) => {
       setRect({
         ...rectRef.current,
-        x: Math.max(0, Math.min(base.x + (ev.clientX - startX), window.innerWidth - 80)),
-        y: Math.max(0, Math.min(base.y + (ev.clientY - startY), window.innerHeight - 44)),
+        x: Math.max(8, Math.min(base.x + (ev.clientX - startX), window.innerWidth - base.w - 8)),
+        y: Math.max(8, Math.min(base.y + (ev.clientY - startY), window.innerHeight - base.h - 8)),
       });
     };
     const up = () => {
@@ -421,9 +445,12 @@ function MiniPanel({
   const BASE_W = 448; // matches max-w-md of the full dialog
   const scale = Math.min(1, rect.w / BASE_W);
 
-  return (
+  return createPortal(
     <div
-      className="fixed z-[150] flex touch-none flex-col overflow-hidden rounded-xl border border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white shadow-2xl"
+      role="dialog"
+      aria-label="How to Play BIMYAH! minimized"
+      data-how-to-play-mini
+      className="fixed z-[9999] flex touch-none flex-col overflow-hidden rounded-xl border border-[var(--mint)]/30 bg-[oklch(0.18_0.04_165)] text-white shadow-2xl"
       style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
     >
       <div
@@ -470,7 +497,8 @@ function MiniPanel({
         className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize touch-none rounded-tl-md bg-[var(--mint)]/40"
         aria-label="Resize"
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
 
