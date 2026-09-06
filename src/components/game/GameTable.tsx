@@ -234,11 +234,12 @@ export function GameTable({
   useEffect(() => {
     if (!isHost) return;
     const t = setInterval(() => {
-      setState((s) => tickCountdown(s));
-      setState((s) => tickHolds(s));
-      setState((s) => tickIdle(s));
-      setState((s) => tickInactive(s));
-      setState((s) => tickFreeCardHolds(s));
+      // Single composed pass: each separate setState used to trigger its own
+      // full-state broadcast to every peer, so one tick could send 5+ large
+      // snapshots per player. Compose them so a tick costs one update.
+      setState((s) =>
+        tickFreeCardHolds(tickInactive(tickIdle(tickHolds(tickCountdown(s))))),
+      );
       // Training: pause bot actions while the player is driving every seat.
       if (!controlAllRef.current) {
         stepBots(stateRef.current, botMemory.current, (m) => setState(m));
@@ -246,6 +247,7 @@ export function GameTable({
     }, 250);
     return () => clearInterval(t);
   }, [setState, isHost]);
+
 
   // Win announce
   useEffect(() => {
