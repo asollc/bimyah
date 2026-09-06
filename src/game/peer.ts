@@ -226,6 +226,13 @@ type Message =
 const PING_INTERVAL_MS = 2500;
 const PING_TIMEOUT_MS = 6000;
 
+/** Minimum gap between host→peers full-state snapshots (ms). Mutations that
+ *  land inside the window are merged into the next flush. ~20 updates/sec is
+ *  well above what the UI needs and cuts uplink traffic dramatically with
+ *  7 connected peers. */
+const BROADCAST_MIN_INTERVAL_MS = 50;
+
+
 function fourDigitCode(): string {
   return secureNumericCode(4);
 }
