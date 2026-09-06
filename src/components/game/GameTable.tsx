@@ -1511,6 +1511,11 @@ export function GameTable({
             position={pos}
             leftUrl={player.emblemUrl ?? null}
             rightUrl={player.emblemUrl2 ?? null}
+            leftLayout={player.emblemLayout ?? null}
+            rightLayout={player.emblemLayout2 ?? null}
+            onLayout={(slot, layout) =>
+              dispatch({ kind: "emblemLayout", playerId: player.id, slot, layout })
+            }
           />
         );
       })}
@@ -2779,12 +2784,18 @@ function SeatEmblemsLayer({
   position,
   leftUrl,
   rightUrl,
+  leftLayout,
+  rightLayout,
+  onLayout,
 }: {
   playerId: string;
   isMe: boolean;
   position: SeatPos;
   leftUrl: string | null;
   rightUrl: string | null;
+  leftLayout: { dx: number; dy: number; s: number } | null;
+  rightLayout: { dx: number; dy: number; s: number } | null;
+  onLayout: (slot: 1 | 2, layout: { dx: number; dy: number; s: number }) => void;
 }) {
   const storageKey = "bimyah_hidden_emblems";
   const [hidden, setHidden] = useState<Set<string>>(() => {
@@ -2826,6 +2837,8 @@ function SeatEmblemsLayer({
           movable={isMe}
           onTap={() => toggleHide(1)}
           storageId={`emblem-${playerId}-1`}
+          layout={leftLayout}
+          onChange={(l) => onLayout(1, l)}
         />
       )}
       {rightUrl && !hidden.has(`${playerId}:2`) && (
@@ -2835,6 +2848,8 @@ function SeatEmblemsLayer({
           movable={isMe}
           onTap={() => toggleHide(2)}
           storageId={`emblem-${playerId}-2`}
+          layout={rightLayout}
+          onChange={(l) => onLayout(2, l)}
         />
       )}
     </div>
@@ -2852,16 +2867,23 @@ function EmblemImg({
   movable,
   onTap,
   storageId,
+  layout: sharedLayout,
+  onChange,
 }: {
   url: string;
   defaultOffsetX: number;
   movable: boolean;
   onTap?: () => void;
   storageId: string;
+  /** Owner-chosen layout coming from shared game state (authoritative). */
+  layout: { dx: number; dy: number; s: number } | null;
+  /** Publish a new layout to the shared game state. */
+  onChange: (l: { dx: number; dy: number; s: number }) => void;
 }) {
   type L = { dx: number; dy: number; s: number };
   const key = `bimyah_emblem_layout_${storageId}`;
   const [layout, setLayout] = useState<L>(() => {
+    if (sharedLayout) return sharedLayout;
     if (typeof window === "undefined") return { dx: 0, dy: 0, s: 1 };
     try {
       const raw = window.localStorage.getItem(key);
@@ -2870,9 +2892,43 @@ function EmblemImg({
   });
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+  const gestureRef = useRef(false);
+  // Followers (and re-renders) track the owner's shared layout.
+  useEffect(() => {
+    if (!sharedLayout) return;
+    if (gestureRef.current) return;
+    const cur = layoutRef.current;
+    if (cur.dx === sharedLayout.dx && cur.dy === sharedLayout.dy && cur.s === sharedLayout.s) return;
+    setLayout(sharedLayout);
+  }, [sharedLayout]);
+  // On mount, publish a locally-remembered layout so peers see it too.
+  const publishedRef = useRef(false);
+  useEffect(() => {
+    if (!movable || publishedRef.current) return;
+    publishedRef.current = true;
+    const cur = layoutRef.current;
+    if (cur.dx !== 0 || cur.dy !== 0 || cur.s !== 1) onChange(cur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movable]);
+  // Throttle network updates while dragging/pinching, always send the last one.
+  const sendRef = useRef<{ last: number; timer: ReturnType<typeof setTimeout> | null }>({ last: 0, timer: null });
+  useEffect(() => () => { if (sendRef.current.timer) clearTimeout(sendRef.current.timer); }, []);
+  const publish = (next: L) => {
+    const st = sendRef.current;
+    const now = Date.now();
+    if (st.timer) { clearTimeout(st.timer); st.timer = null; }
+    if (now - st.last >= 100) { st.last = now; onChange(next); return; }
+    st.timer = setTimeout(() => {
+      st.timer = null;
+      st.last = Date.now();
+      onChange(layoutRef.current);
+    }, 100);
+  };
   const save = (next: L) => {
     setLayout(next);
+    layoutRef.current = next;
     try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+    publish(next);
   };
   const stateRef = useRef<{
     a?: { id: number; x: number; y: number };
@@ -2899,6 +2955,7 @@ function EmblemImg({
       st.startDist = Math.hypot(dxp, dyp) || 1;
       st.startScale = layoutRef.current.s;
       st.pinching = true;
+      gestureRef.current = true;
       st.dragging = false;
       e.preventDefault();
     };
@@ -2922,6 +2979,8 @@ function EmblemImg({
       // Any finger lift ends the whole gesture (matches Movable behavior).
       st.a = undefined; st.b = undefined; st.origin = undefined;
       st.dragging = false; st.pinching = false; st.movedFar = false;
+      gestureRef.current = false;
+      onChange(layoutRef.current);
     };
     window.addEventListener("pointerdown", onWinDown, { passive: false });
     window.addEventListener("pointermove", onWinMove, { passive: false });
@@ -2960,6 +3019,7 @@ function EmblemImg({
     const ddx = e.clientX - st.origin.x, ddy = e.clientY - st.origin.y;
     if (!st.dragging && Math.hypot(ddx, ddy) < 6) return;
     st.dragging = true; st.movedFar = true;
+    gestureRef.current = true;
     save({ ...layoutRef.current, dx: st.startDx + ddx, dy: st.startDy + ddy });
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -2970,6 +3030,10 @@ function EmblemImg({
     const wasTap = wasA && !st.movedFar && !st.pinching;
     st.a = undefined; st.b = undefined; st.origin = undefined;
     st.dragging = false; st.pinching = false; st.movedFar = false;
+    if (gestureRef.current) {
+      gestureRef.current = false;
+      onChange(layoutRef.current);
+    }
     if (wasTap && !movable && onTap) onTap();
   };
   const onWheel = (e: React.WheelEvent) => {
