@@ -47,6 +47,11 @@ export type Player = {
    *  player's hand, above the background layer. Up to 2 slots. */
   emblemUrl?: string | null;
   emblemUrl2?: string | null;
+  /** Player-chosen on-screen layout of each emblem, shared with all peers so
+   *  everyone sees an emblem where its owner placed it. Offsets are in px
+   *  relative to the seat's base anchor; `s` is the scale factor. */
+  emblemLayout?: { dx: number; dy: number; s: number } | null;
+  emblemLayout2?: { dx: number; dy: number; s: number } | null;
   victoryUrl?: string | null;
   /** Optional preset key for an animated victory effect (e.g. "fireworks",
    *  "falling_stars"). When set, supersedes `victoryUrl` overlay. */
