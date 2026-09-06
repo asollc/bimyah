@@ -226,6 +226,13 @@ type Message =
 const PING_INTERVAL_MS = 2500;
 const PING_TIMEOUT_MS = 6000;
 
+/** Minimum gap between host→peers full-state snapshots (ms). Mutations that
+ *  land inside the window are merged into the next flush. ~20 updates/sec is
+ *  well above what the UI needs and cuts uplink traffic dramatically with
+ *  7 connected peers. */
+const BROADCAST_MIN_INTERVAL_MS = 50;
+
+
 function fourDigitCode(): string {
   return secureNumericCode(4);
 }
@@ -310,11 +317,43 @@ function tryHost(
       }
     }, 1000);
 
-    function broadcast() {
+    /**
+     * Broadcast coalescing.
+     *
+     * The host mutates state many times per 250ms tick (countdown, holds,
+     * idle, inactive, free-card holds, bot steps) plus once per received
+     * intent. Sending a full-state snapshot for every mutation meant up to
+     * ~10 large messages per tick multiplied by every connected peer, which
+     * saturated the host's uplink and showed up as input lag for everyone.
+     *
+     * Instead we mark the state dirty and flush at most once every
+     * BROADCAST_MIN_INTERVAL_MS, always sending the newest state.
+     */
+    let dirty = false;
+    let lastBroadcastAt = 0;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function sendStateNow() {
+      dirty = false;
+      lastBroadcastAt = Date.now();
       const msg: Message = { type: "state", state };
       for (const c of conns.values()) {
         if (c.open) c.send(msg);
       }
+    }
+
+    function broadcast() {
+      dirty = true;
+      if (flushTimer) return;
+      const since = Date.now() - lastBroadcastAt;
+      if (since >= BROADCAST_MIN_INTERVAL_MS) {
+        sendStateNow();
+        return;
+      }
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        if (dirty) sendStateNow();
+      }, BROADCAST_MIN_INTERVAL_MS - since);
     }
 
     function notifyLocal() {
@@ -328,6 +367,7 @@ function tryHost(
       notifyLocal();
       broadcast();
     }
+
 
     peer.on("open", () => {
       const session: PeerSession = {
@@ -349,6 +389,11 @@ function tryHost(
         isConnected: () => !peer.disconnected && !peer.destroyed,
         destroy: () => {
           clearInterval(livenessTimer);
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+
           for (const c of conns.values()) {
             try {
               c.close();
