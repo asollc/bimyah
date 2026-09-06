@@ -389,6 +389,11 @@ function tryHost(
         isConnected: () => !peer.disconnected && !peer.destroyed,
         destroy: () => {
           clearInterval(livenessTimer);
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+
           for (const c of conns.values()) {
             try {
               c.close();
