@@ -59,6 +59,13 @@ export type Intent =
   | { kind: "readyForNext"; playerId: string; ready: boolean }
   /** Activity heartbeat: any screen touch/click resets idle timers. */
   | { kind: "ping"; playerId: string }
+  /** Emblem placement (position + scale) chosen by its owner. */
+  | {
+      kind: "emblemLayout";
+      playerId: string;
+      slot: 1 | 2;
+      layout: { dx: number; dy: number; s: number };
+    }
   /** Host-only: connection lifecycle. Never accept from remote. */
   | { kind: "markDisconnected"; playerId: string }
   | { kind: "markReconnected"; playerId: string }
@@ -136,6 +143,17 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       return markActive(openPile(state, intent.playerId, intent.stackIndex), intent.playerId);
     case "ping":
       return markActive(state, intent.playerId);
+    case "emblemLayout":
+      return {
+        ...state,
+        players: state.players.map((p) =>
+          p.id === intent.playerId
+            ? intent.slot === 1
+              ? { ...p, emblemLayout: intent.layout }
+              : { ...p, emblemLayout2: intent.layout }
+            : p,
+        ),
+      };
     case "closePile":
       return markActive(closePile(state, intent.playerId), intent.playerId);
     case "holdCenter":
