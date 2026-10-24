@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>scroll test harness</title>
+<style>
+  body { margin: 0; background: #222; color: #0f0; font-family: monospace; }
+  .bar { padding: 8px 12px; font-size: 14px; color: #fff; }
+  iframe { display: block; margin: 0 auto; border: 3px solid #0f0; background: #fff; }
+  pre { font-size: 15px; line-height: 1.5; padding: 10px 16px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <div class="bar">SCROLL TEST v2: iframe is 900x520. Readings from inside the framed home screen:</div>
+  <iframe id="t" src="/" width="900" height="520" title="bimyah home"></iframe>
+  <pre id="out">loading...</pre>
+  <script>
+    var f = document.getElementById('t');
+    f.addEventListener('load', function () {
+      setTimeout(function () {
+        var w = f.contentWindow, d = w.document;
+        var L = [];
+        function cs(el, prop) { return el ? w.getComputedStyle(el)[prop] : 'n/a'; }
+        var shell = d.getElementById('app-shell');
+        L.push('docEl clientHeight: ' + d.documentElement.clientHeight);
+        L.push('docEl scrollHeight: ' + d.documentElement.scrollHeight);
+        L.push('docEl overflowY: ' + cs(d.documentElement, 'overflowY'));
+        L.push('body scrollHeight: ' + d.body.scrollHeight);
+        L.push('body overflowY: ' + cs(d.body, 'overflowY'));
+        L.push('shell position: ' + cs(shell, 'position'));
+        L.push('shell overflowY: ' + cs(shell, 'overflowY'));
+        L.push('shell clientHeight: ' + (shell ? shell.clientHeight : 'n/a'));
+        L.push('shell scrollHeight: ' + (shell ? shell.scrollHeight : 'n/a'));
+        L.push('window scrollY before: ' + w.scrollY);
+        w.scrollTo(0, 400);
+        L.push('window scrollY after scrollTo(0,400): ' + w.scrollY);
+        d.documentElement.scrollTop = 400;
+        L.push('docEl scrollTop after set 400: ' + d.documentElement.scrollTop);
+        if (shell) { shell.scrollTop = 400; L.push('shell scrollTop after set 400: ' + shell.scrollTop); }
+        var root = shell ? shell.querySelector('div') : null;
+        L.push('first child tag/class len: ' + (root ? (root.tagName + ' ' + String(root.className).length) : 'n/a'));
+        document.getElementById('out').textContent = L.join('\n');
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
