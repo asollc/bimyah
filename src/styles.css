@@ -1,0 +1,921 @@
+/* Google Fonts are loaded via <link> in src/routes/__root.tsx (lightningcss cannot resolve remote @imports). */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-mint: var(--mint);
+  --color-gold: var(--gold);
+  --color-emerald-deep: var(--emerald-deep);
+  --color-emerald-mid: var(--emerald-mid);
+  --color-player-red: var(--player-red);
+  --color-player-blue: var(--player-blue);
+  --color-player-yellow: var(--player-yellow);
+  --color-player-green: var(--player-green);
+  --font-display: "Sora", sans-serif;
+  --font-body: "Manrope", sans-serif;
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Dark crimson base */
+  --background: oklch(0.16 0.06 20);
+  --foreground: oklch(0.97 0.02 20);
+  --card: oklch(0.22 0.08 22);
+  --card-foreground: oklch(0.97 0.02 20);
+  --popover: oklch(0.22 0.08 22);
+  --popover-foreground: oklch(0.97 0.02 20);
+  --primary: oklch(0.62 0.24 25);
+  --primary-foreground: oklch(0.98 0.02 20);
+  --secondary: oklch(0.28 0.08 22);
+  --secondary-foreground: oklch(0.97 0.02 20);
+  --muted: oklch(0.28 0.08 22);
+  --muted-foreground: oklch(0.72 0.06 22);
+  --accent: oklch(0.85 0.16 90);
+  --accent-foreground: oklch(0.18 0.06 20);
+  --destructive: oklch(0.62 0.24 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.35 0.08 22 / 50%);
+  --input: oklch(0.3 0.08 22);
+  --ring: oklch(0.62 0.24 25);
+
+  /* Theme accents */
+  --emerald-deep: oklch(0.16 0.06 20);
+  --emerald-mid: oklch(0.28 0.1 22);
+  --mint: oklch(0.7 0.22 28);
+  --gold: oklch(0.85 0.16 90);
+
+  /* Player colors */
+  --player-red: oklch(0.7 0.24 25);
+  --player-blue: oklch(0.65 0.18 245);
+  --player-yellow: oklch(0.85 0.18 95);
+  --player-green: oklch(0.72 0.2 145);
+
+  /* Gradients */
+  --gradient-bg: radial-gradient(
+      ellipse at center,
+      oklch(0.5 0.22 25) 0%,
+      oklch(0.38 0.2 22) 40%,
+      oklch(0.22 0.12 20) 85%,
+      oklch(0.14 0.07 20) 100%
+    );
+  --gradient-mint: linear-gradient(135deg, oklch(0.7 0.24 28), oklch(0.5 0.22 22));
+  --gradient-gold: linear-gradient(135deg, oklch(0.97 0.18 105), oklch(0.85 0.21 95));
+  --gradient-lime: linear-gradient(135deg, oklch(0.9 0.23 128), oklch(0.64 0.22 138));
+  --gradient-blue: linear-gradient(135deg, oklch(0.72 0.15 222), oklch(0.47 0.2 256));
+  --gradient-red: linear-gradient(135deg, oklch(0.7 0.25 25), oklch(0.4 0.2 18));
+  --gradient-table: radial-gradient(
+      ellipse at center,
+      #6b1a1a 0%,
+      #4a1010 55%,
+      #2d0808 100%
+    );
+
+  /* Shadows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-3d: 0 6px 0 rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.45);
+  --shadow-glow-mint: 0 0 24px oklch(0.7 0.24 28 / 0.5);
+  --shadow-glow-gold: 0 0 24px oklch(0.85 0.16 90 / 0.5);
+}
+
+.dark {
+  /* same crimson theme — app is always dark */
+  --background: oklch(0.16 0.06 20);
+  --foreground: oklch(0.97 0.02 20);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  /* Plain document scrolling at every size. The old fixed #app-shell scroll
+     container trapped mouse-wheel scrolling in the narrow layout (the
+     document had no scroll range; only the shell could scroll, and wheel
+     events over the home screen's animated background never reached it,
+     while keyboard scrolling still worked). Never reintroduce a fixed
+     scroll container or an overflow lock here: "fit on screen" must not
+     disable scrolling. */
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  #app-shell {
+    min-height: 100dvh;
+  }
+
+  body {
+    background: var(--gradient-bg);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    /* Disable text selection / highlighting on all devices */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow selection only inside inputs / textareas */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* ===== Card visuals ===== */
+.card-face {
+  background: linear-gradient(160deg, #ffffff 0%, #f5f7f6 100%);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-back {
+  background:
+    radial-gradient(circle at 50% 50%, oklch(0.5 0.22 25) 0%, oklch(0.18 0.08 20) 70%),
+    var(--emerald-deep);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Pile stack illusion */
+.pile-stack {
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.3)) drop-shadow(0 6px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* Wooden table — default table art is rendered as an <img> child so an
+   equipped custom art (or the explicit "None" option) cleanly replaces it. */
+.wood-table {
+  background-color: transparent;
+  background-image:
+    repeating-radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0,
+      transparent 6px,
+      rgba(0, 0, 0, 0.07) 6px,
+      rgba(0, 0, 0, 0.07) 8px
+    ),
+    var(--gradient-table);
+  background-repeat: repeat, no-repeat;
+  background-position: center center, center center;
+  background-size: auto, auto;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* 3D button */
+.btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: white;
+  border-radius: 14px;
+  padding: 14px 22px;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.4),
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  user-select: none;
+}
+.btn-3d:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-3d:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-3d-mint {
+  background: var(--gradient-mint);
+}
+.btn-3d-gold {
+  background: var(--gradient-gold);
+  color: oklch(0.18 0.04 165);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn-3d-red {
+  background: var(--gradient-red);
+}
+.btn-3d-lime {
+  background: var(--gradient-lime);
+  color: oklch(0.18 0.04 165);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn-3d-blue {
+  background: var(--gradient-blue);
+}
+
+/* Glowing blue button: the original neon Odin site primary CTA, revived for
+   the Download App button. Cyan gradient, outer glow, animated sheen sweep. */
+.btn-glow-blue {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #00e5ff, #0090ff);
+  color: #02131a;
+  font-weight: 700;
+  padding: 0.9rem 1.9rem;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  box-shadow:
+    0 0 28px rgba(0, 245, 255, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+  cursor: pointer;
+  user-select: none;
+}
+.btn-glow-blue:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 0 44px rgba(0, 245, 255, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.btn-glow-blue::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: btn-glow-sheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes btn-glow-sheen {
+  0%,
+  60% {
+    left: -80%;
+  }
+  100% {
+    left: 180%;
+  }
+}
+.btn-3d-dark {
+  background: linear-gradient(135deg, oklch(0.32 0.05 165), oklch(0.2 0.04 165));
+  border: 1px solid oklch(0.4 0.06 165);
+}
+
+/* Black border matching the home page's main btn-3d buttons (Ronya
+   2026-10-23): solid black outline ring plus the family's hard black
+   bottom edge and drop shadow. Applied to the home header buttons
+   (avatar, share, bell, Admin, How to Play, Shop Bmart). Defined after
+   .btn-3d so it wins over the base shadow on buttons that carry both. */
+.btn-black-border {
+  box-shadow:
+    0 0 0 2px #000,
+    0 6px 0 rgba(0, 0, 0, 0.4),
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Header icon buttons in the Training button's red (Ronya 2026-10-24):
+   share, bulletin bell and the Admin pill use the same red gradient
+   as .btn-3d-mint (the Training button). */
+/* Admin back office remodel (Ronya 2026-10-25): CS-admin-style dark glass
+   panels and stat cards, themed with the homepage red gradient. The scope
+   class re-points the shadcn theme variables for everything inside it. */
+.admin-scope {
+  --background: oklch(0.4 0.18 24);
+  --foreground: #ffffff;
+  --card: rgba(12, 4, 6, 0.55);
+  --card-foreground: #ffffff;
+  --popover: #22090d;
+  --popover-foreground: #ffffff;
+  --primary: oklch(0.55 0.22 26);
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: #ffffff;
+  --muted: rgba(0, 0, 0, 0.42);
+  --muted-foreground: rgba(255, 255, 255, 0.62);
+  --accent: rgba(255, 255, 255, 0.12);
+  --accent-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.2);
+  --ring: oklch(0.62 0.2 26 / 0.55);
+}
+.admin-scope .admin-stat {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+.admin-scope .admin-stat::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, oklch(0.62 0.22 28), oklch(0.78 0.16 70));
+  opacity: 0.85;
+}
+
+/* Segmented option buttons (Visibility, Your seat, and same-style groups):
+   popped out when unselected, pushed in when selected (Ronya 2026-10-25). */
+.seg-3d {
+  border-width: 2px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+  transform: translateY(0);
+}
+.seg-3d-pressed {
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  transform: translateY(3px);
+}
+
+.btn-header-red {
+  background: var(--gradient-mint);
+}
+
+/* Odin-site shine sweep (the same sheen .btn-glow-blue carries): a skewed
+   white gloss band crosses the button every 3.2s, idle for the first 60%. */
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.btn-sheen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: btn-glow-sheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Liquid metal button: the default button treatment.
+   Rendered by <LiquidMetalButton>:
+     <button class="btn-3d btn-3d-gold lm-btn">
+       <span class="lm-css-ring" />  (CSS conic fallback, always rendered)
+       <canvas class="lm-metal" />   (WebGL liquid metal; covers the fallback when live)
+       <span class="lm-fill" />      (variant fill color, inset 3px to reveal the rim)
+       <span class="lm-content" />   (children, laid out like the button's own flexbox)
+   The original btn-3d classes stay on the button; only the background is moved
+   to .lm-fill so the animated metal rim shows at the edge. */
+.lm-btn {
+  position: relative;
+  isolation: isolate;
+}
+/* The fill moves to .lm-fill; the button itself stays transparent. */
+.lm-btn.btn-3d-mint,
+.lm-btn.btn-3d-gold,
+.lm-btn.btn-3d-red,
+.lm-btn.btn-3d-dark,
+.lm-btn.btn-3d-lime,
+.lm-btn.btn-3d-blue {
+  background: transparent;
+}
+.lm-btn.btn-3d-mint:hover,
+.lm-btn.btn-3d-gold:hover,
+.lm-btn.btn-3d-red:hover,
+.lm-btn.btn-3d-dark:hover,
+.lm-btn.btn-3d-lime:hover,
+.lm-btn.btn-3d-blue:hover {
+  background: transparent;
+}
+/* WebGL metal canvas: full-bleed behind everything. */
+.lm-btn .lm-metal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  display: block;
+}
+/* CSS fallback ring (visible only when WebGL is unavailable: the canvas stays transparent). */
+@property --lm-a {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.lm-btn .lm-css-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(
+    from var(--lm-a),
+    #e8fdff 0deg,
+    #22d3ff 45deg,
+    #0a4a6e 95deg,
+    #a5f3fc 140deg,
+    #f2feff 180deg,
+    #0e7490 230deg,
+    #164e63 280deg,
+    #cffafe 330deg,
+    #e8fdff 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: lm-ring-spin 3.2s linear infinite;
+  pointer-events: none;
+}
+@keyframes lm-ring-spin {
+  to {
+    --lm-a: 360deg;
+  }
+}
+/* Fill: the variant's fill color, inset 3px so the metal rim shows at the edge. */
+.lm-btn .lm-fill {
+  position: absolute;
+  inset: 3px;
+  border-radius: 11px;
+  pointer-events: none;
+}
+.lm-btn[class*="btn-3d-mint"] .lm-fill {
+  background: var(--gradient-mint);
+}
+.lm-btn[class*="btn-3d-gold"] .lm-fill {
+  background: var(--gradient-gold);
+}
+.lm-btn[class*="btn-3d-red"] .lm-fill {
+  background: var(--gradient-red);
+}
+.lm-btn[class*="btn-3d-dark"] .lm-fill {
+  background: linear-gradient(135deg, oklch(0.32 0.05 165), oklch(0.2 0.04 165));
+}
+.lm-btn[class*="btn-3d-lime"] .lm-fill {
+  background: var(--gradient-lime);
+}
+.lm-btn[class*="btn-3d-blue"] .lm-fill {
+  background: var(--gradient-blue);
+}
+/* Content: lays out exactly like the button's own flexbox did. */
+/* Home main buttons: let the content span the full button width so an
+   absolutely-positioned icon can sit at the far left while the label
+   centers across the whole button (Ronya 2026-10-25). */
+.lm-content-wide .lm-content {
+  width: 100%;
+}
+
+.lm-btn .lm-content {
+  position: relative;
+  z-index: 1;
+  display: inherit;
+  flex-direction: inherit;
+  align-items: inherit;
+  justify-content: inherit;
+  gap: inherit;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-btn .lm-css-ring {
+    animation: none;
+  }
+}
+
+/* Pow burst */
+.pow-burst {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pow-burst::before {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  background: var(--gradient-gold);
+  clip-path: polygon(
+    50% 0%,
+    61% 12%,
+    78% 5%,
+    78% 23%,
+    98% 28%,
+    85% 42%,
+    100% 55%,
+    82% 62%,
+    90% 80%,
+    72% 75%,
+    65% 95%,
+    50% 82%,
+    35% 95%,
+    28% 75%,
+    10% 80%,
+    18% 62%,
+    0% 55%,
+    15% 42%,
+    2% 28%,
+    22% 23%,
+    22% 5%,
+    39% 12%
+  );
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+}
+.pow-burst > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Animations */
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+    opacity: 0.6;
+  }
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+@keyframes flip-in {
+  0% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+@keyframes countdown-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up 0.4s ease-out;
+}
+
+/* === Win popup (BIMYAH! card) =================================== */
+.win-popup {
+  position: relative;
+  width: min(86vw, 380px);
+  border-radius: 22px;
+  border: 4px solid #ef4444;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 100%),
+    oklch(0.18 0.04 165);
+  padding: 28px 24px 22px;
+  overflow: hidden;
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.win-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.06) 0%, transparent 40%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 8px);
+  pointer-events: none;
+}
+.win-popup-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.win-popup-title {
+  font-family: var(--font-display, "Bangers", system-ui, sans-serif);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(48px, 12vw, 72px);
+  line-height: 0.95;
+  color: #fbbf24;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 2px 0 #b45309,
+    0 4px 0 #78350f,
+    0 6px 14px rgba(0,0,0,0.7);
+  transform: skewX(-6deg);
+}
+.win-popup-sub {
+  font-family: var(--font-display, "Bangers", system-ui, sans-serif);
+  font-weight: 800;
+  font-size: clamp(22px, 6vw, 32px);
+  color: #ef4444;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 1px 0 #7f1d1d,
+    0 3px 0 rgba(0,0,0,0.5),
+    0 4px 10px rgba(0,0,0,0.6);
+}
+.win-popup-tag {
+  margin-top: 4px;
+  font-family: var(--font-display, "Bangers", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.2s ease-in-out infinite;
+}
+.animate-flip-in {
+  animation: flip-in 0.4s ease-out;
+}
+.animate-countdown {
+  animation: countdown-pop 1s ease-out;
+}
+
+/* Floating background cards */
+@keyframes float-card {
+  0% {
+    transform: translate(0, 0) rotate(var(--rot, 0deg));
+  }
+  50% {
+    transform: translate(var(--dx, 10px), var(--dy, -14px)) rotate(calc(var(--rot, 0deg) + 6deg));
+  }
+  100% {
+    transform: translate(0, 0) rotate(var(--rot, 0deg));
+  }
+}
+.animate-float-card {
+  animation: float-card var(--dur, 8s) ease-in-out infinite;
+}
+
+/* 3D yellow text */
+.text-3d-yellow {
+  color: #fde047;
+  text-shadow:
+    0 1px 0 #ca8a04,
+    0 2px 0 #a16207,
+    0 3px 0 #854d0e,
+    0 4px 0 #713f12,
+    0 5px 6px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(253, 224, 71, 0.35);
+}
+
+/* 3D mint text (smaller variant for in-game labels like SCORE) */
+.text-3d-mint {
+  color: #6ee7b7;
+  text-shadow:
+    0 1px 0 #10b981,
+    0 2px 0 #047857,
+    0 3px 0 #064e3b,
+    0 3px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Continuous flash (used for "Tap Ready" lobby prompt) */
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+.animate-flash {
+  animation: flash 0.9s ease-in-out infinite;
+}
+
+/* Utility — mobile lock */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Bmart logo — mirrors Bimyah! win-popup logo treatment (italic, skewed, gold tri-stroke) */
+.bmart-logo {
+  display: inline-block;
+  font-family: var(--font-display, "Sora", system-ui, sans-serif);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(64px, 16vw, 128px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: #fbbf24;
+  text-shadow:
+    0 2px 0 #b45309,
+    0 4px 0 #78350f,
+    0 6px 0 #451a03,
+    0 8px 18px rgba(0, 0, 0, 0.75),
+    0 0 32px rgba(251, 191, 36, 0.35);
+  transform: skewX(-6deg);
+  text-transform: uppercase;
+}
+
+/* Bmart shop — glass case surfaces */
+.shop-card {
+  position: relative;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%);
+  border: 1px solid rgba(255, 220, 170, 0.28);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    0 18px 40px -18px rgba(0, 0, 0, 0.85),
+    0 0 24px -2px rgba(251, 191, 36, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 220, 170, 0.10);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease;
+}
+.shop-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 28px 56px -18px rgba(0, 0, 0, 0.95),
+    0 0 36px -2px rgba(251, 191, 36, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 220, 170, 0.35);
+}
+.shop-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, transparent 35%),
+    linear-gradient(20deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%);
+  mix-blend-mode: screen;
+  opacity: 0.75;
+}
+
+/* Static glow halo behind glass cases */
+.shop-glow {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.22), transparent 70%);
+  filter: blur(18px);
+  pointer-events: none;
+  opacity: 0.7;
+  z-index: 0;
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float-y { animation: float-y 3.6s ease-in-out infinite; }
+
+/* ============================ Victory FX ============================ */
+@keyframes vfx-fall-spin {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes vfx-fall-sway {
+  0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 1; }
+  50% { transform: translateY(50vh) translateX(30px) rotate(180deg); }
+  100% { transform: translateY(110vh) translateX(-20px) rotate(360deg); opacity: 0; }
+}
+@keyframes vfx-float-up {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(-110vh) translateX(20px); opacity: 0; }
+}
+@keyframes vfx-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+}
+@keyframes vfx-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes vfx-flash {
+  0%, 100% { opacity: 0; }
+  20% { opacity: 0.85; }
+}
+
+
+
+
+
+/* Arcade flashing text */
+@keyframes arcade-flash {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(251,191,36,0.9));
+  }
+  50% {
+    opacity: 0.55;
+    filter: brightness(0.85) drop-shadow(0 0 2px rgba(251,191,36,0.3));
+  }
+}
+.animate-arcade-flash {
+  animation: arcade-flash 0.7s steps(2, end) infinite;
+}
+
+/* Force all faded/grey text to bright white across the app.
+   Preserves placeholder opacity so empty inputs remain distinguishable. */
+[class*="text-white/"]:not(input):not(textarea) {
+  color: rgb(255 255 255) !important;
+}
+.text-muted-foreground,
+[class*="text-gray-"],
+[class*="text-slate-"],
+[class*="text-neutral-"],
+[class*="text-zinc-"],
+[class*="text-stone-"] {
+  color: rgb(255 255 255) !important;
+}
