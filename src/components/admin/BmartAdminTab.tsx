@@ -1,0 +1,1774 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Trash2, Upload, Plus, Eye, EyeOff, Save, FileUp } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  listBmartProducts,
+  upsertBmartProduct,
+  deleteBmartProduct,
+  listBmartCategoryImages,
+  upsertBmartCategoryImage,
+  listBmartText,
+  upsertBmartText,
+} from "@/lib/rpc/bmart.functions";
+import {
+  listBmartCustomCategories,
+  upsertBmartCustomCategory,
+  deleteBmartCustomCategory,
+} from "@/lib/rpc/bmartCategories.functions";
+import { BMART_TEXT_DEFAULTS, CATEGORIES as BMART_CATEGORIES } from "@/routes/bmart";
+import {
+  VICTORY_EFFECT_KEYS,
+  VICTORY_EFFECT_LABELS,
+  VICTORY_EFFECTS,
+  isVictoryEffectKey,
+  type VictoryEffectKey,
+} from "@/components/game/VictoryEffects";
+import { ImageCropModal } from "@/components/admin/ImageCropModal";
+
+/** Aspect ratio of the category cards rendered in Bmart (aspect-[4/5]). */
+const CATEGORY_CARD_ASPECT = 4 / 5;
+
+const CURRENCIES = ["bimbucks", "bimbits"] as const;
+const CATEGORIES = ["cards", "victory", "titles", "backgrounds", "tabletops"] as const;
+const DISPLAYED_CATEGORIES = ["cards", "victory", "backgrounds", "tabletops"] as const;
+type Currency = (typeof CURRENCIES)[number];
+type Category = (typeof CATEGORIES)[number];
+
+/** Decor sub-categories for custom-category products. Maps to the
+ *  `inventory_kind` enum so purchased items land in the correct Decor
+ *  section on the player's profile. */
+const DECOR_KINDS = [
+  "card_back",
+  "title",
+  "badge",
+  "victory",
+  "background",
+  "tabletop",
+  "table_art",
+] as const;
+type DecorKind = (typeof DECOR_KINDS)[number];
+const DECOR_KIND_LABELS: Record<DecorKind, string> = {
+  card_back: "Card Back",
+  title: "Title",
+  badge: "Badge",
+  victory: "Victory Effect",
+  background: "Background",
+  tabletop: "Table Top",
+  table_art: "Table Art",
+};
+const BUILTIN_CATEGORY_IDS = new Set<string>(CATEGORIES);
+
+/** Extract storage object path from a Supabase public URL for a given bucket. */
+function pathFromPublicUrl(url: string, bucket: string): string | null {
+  try {
+    const u = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const i = u.pathname.indexOf(marker);
+    if (i === -1) return null;
+    return decodeURIComponent(u.pathname.slice(i + marker.length));
+  } catch {
+    return null;
+  }
+}
+
+/** Re-encode an image to WebP at reduced size for faster loads. Falls back to original on failure. */
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+    return file;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/webp", quality));
+    if (!blob || blob.size >= file.size) return file;
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.webp`, { type: "image/webp" });
+  } catch {
+    return file;
+  }
+}
+
+// Mirror of bmart.tsx PRODUCTS list (id + default metadata only).
+const BUILTIN: Array<{ id: string; name: string; category: Category; price: number; currency: Currency }> = [
+  { id: "card_back_crimson", name: "Bimyah! Card Back — Crimson", category: "cards", price: 0, currency: "bimbucks" },
+  { id: "card_back_emerald", name: "Bimyah! Card Back — Emerald", category: "cards", price: 750, currency: "bimbucks" },
+  { id: "card_back_sapphire", name: "Bimyah! Card Back — Sapphire", category: "cards", price: 1000, currency: "bimbits" },
+  { id: "card_back_amethyst", name: "Bimyah! Card Back — Amethyst", category: "cards", price: 1250, currency: "bimbucks" },
+  { id: "card_back_gold", name: "Bimyah! Card Back — Royal Gold", category: "cards", price: 1500, currency: "bimbucks" },
+  { id: "card_back_obsidian", name: "Bimyah! Card Back — Obsidian", category: "cards", price: 1750, currency: "bimbits" },
+  { id: "victory_fireworks", name: "Fireworks Victory", category: "victory", price: 1500, currency: "bimbucks" },
+  { id: "victory_confetti", name: "Confetti Cannon", category: "victory", price: 750, currency: "bimbucks" },
+  { id: "victory_stars", name: "Starlight Shower", category: "victory", price: 600, currency: "bimbits" },
+  { id: "title_champion_3d", name: "3D Gold Champion Title", category: "titles", price: 2500, currency: "bimbucks" },
+  { id: "title_legend", name: "Legend Title", category: "titles", price: 1200, currency: "bimbucks" },
+  { id: "title_rookie", name: "Rookie Title", category: "titles", price: 300, currency: "bimbits" },
+  { id: "bg_green", name: "Emerald Felt Background", category: "backgrounds", price: 1000, currency: "bimbucks" },
+  { id: "bg_blue", name: "Sapphire Lounge Background", category: "backgrounds", price: 1000, currency: "bimbucks" },
+  { id: "bg_pink", name: "Rose Boudoir Background", category: "backgrounds", price: 1000, currency: "bimbucks" },
+  { id: "tabletop_gold", name: "Gold Metallic Table Top", category: "tabletops", price: 2000, currency: "bimbucks" },
+  { id: "tabletop_silver", name: "Silver Metallic Table Top", category: "tabletops", price: 1500, currency: "bimbucks" },
+];
+
+type Override = {
+  id: string;
+  name: string | null;
+  price: number | null;
+  alt_price: number | null;
+  currency: Currency | null;
+  category: Category | null;
+  hidden: boolean;
+  image_url: string | null;
+  is_custom: boolean;
+  sort_order: number;
+  effect_type: string | null;
+  kind: DecorKind | null;
+};
+
+type Row = {
+  id: string;
+  name: string;
+  category: Category;
+  price: number;
+  altPrice: number | null;
+  currency: Currency;
+  hidden: boolean;
+  image_url: string | null;
+  is_custom: boolean;
+  isBuiltin: boolean;
+  hasOverride: boolean;
+  effect_type: string | null;
+  kind: DecorKind | null;
+};
+
+function mergeRows(overrides: Override[]): Row[] {
+  const byId = new Map(overrides.map((o) => [o.id, o]));
+  const rows: Row[] = [];
+  for (const b of BUILTIN) {
+    const o = byId.get(b.id);
+    rows.push({
+      id: b.id,
+      name: o?.name ?? b.name,
+      category: (o?.category as Category) ?? b.category,
+      price: o?.price ?? b.price,
+      altPrice: o?.alt_price ?? null,
+      currency: (o?.currency as Currency) ?? b.currency,
+      hidden: o?.hidden ?? false,
+      image_url: o?.image_url ?? null,
+      effect_type: o?.effect_type ?? null,
+      kind: o?.kind ?? null,
+      is_custom: false,
+      isBuiltin: true,
+      hasOverride: !!o,
+    });
+    byId.delete(b.id);
+  }
+  for (const o of byId.values()) {
+    rows.push({
+      id: o.id,
+      name: o.name ?? o.id,
+      category: (o.category as Category) ?? "cards",
+      price: o.price ?? 0,
+      altPrice: o.alt_price ?? null,
+      currency: (o.currency as Currency) ?? "bimbucks",
+      hidden: o.hidden,
+      image_url: o.image_url,
+      effect_type: o.effect_type ?? null,
+      kind: o.kind ?? null,
+      is_custom: true,
+      isBuiltin: false,
+      hasOverride: true,
+    });
+  }
+  return rows;
+}
+
+export function BmartAdminTab() {
+  return (
+    <Tabs defaultValue="products" className="w-full">
+      <TabsList className="sticky top-[97px] z-20 bg-muted">
+        <TabsTrigger value="products">Products</TabsTrigger>
+        <TabsTrigger value="elements">Store Elements</TabsTrigger>
+      </TabsList>
+      <TabsContent value="products" className="mt-4">
+        <ProductsTab />
+      </TabsContent>
+      <TabsContent value="elements" className="mt-4">
+        <StoreElementsTab />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function ProductsTab() {
+  const [overrides, setOverrides] = useState<Override[]>([]);
+  const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [adding, setAdding] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+  const saversRef = useRef<Map<string, () => Promise<void>>>(new Map());
+
+  const registerSaver = useCallback((id: string, fn: () => Promise<void>) => {
+    saversRef.current.set(id, fn);
+  }, []);
+  const unregisterSaver = useCallback((id: string) => {
+    saversRef.current.delete(id);
+  }, []);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const [res, customRes] = await Promise.all([
+        listBmartProducts(),
+        listBmartCustomCategories(),
+      ]);
+      setOverrides(res.rows as Override[]);
+      setCustomCats(
+        (customRes.rows as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name })),
+      );
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  const categoryOptions = useMemo(
+    () => [
+      ...CATEGORIES.map((c) => ({ id: c as string, name: c as string })),
+      ...customCats,
+    ],
+    [customCats],
+  );
+
+  const allRows = useMemo(() => mergeRows(overrides), [overrides]);
+  const deletedCount = useMemo(
+    () => allRows.filter((r) => !r.is_custom && r.hidden).length,
+    [allRows],
+  );
+  const rows = useMemo(
+    () =>
+      allRows
+        .filter((r) => showDeleted || r.is_custom || !r.hidden)
+        .filter((r) => filter === "all" || r.category === filter),
+    [allRows, filter, showDeleted],
+  );
+
+  async function handleSaveAll() {
+    setSavingAll(true);
+    const visibleIds = new Set(rows.map((r) => r.id));
+    const entries = Array.from(saversRef.current.entries()).filter(([id]) => visibleIds.has(id));
+    let ok = 0;
+    let fail = 0;
+    for (const [, fn] of entries) {
+      try {
+        await fn();
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSavingAll(false);
+    if (fail) toast.error(`Saved ${ok}, ${fail} failed`);
+    else toast.success(`Saved ${ok} item${ok === 1 ? "" : "s"}`);
+    await refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="sticky top-[105px] z-20 -mx-1 flex flex-wrap items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
+        <Select value={filter} onValueChange={(v) => setFilter(v)}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={() => void refresh()} disabled={loading || savingAll}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+        </Button>
+        {deletedCount > 0 && (
+          <Button variant="outline" onClick={() => setShowDeleted((v) => !v)}>
+            {showDeleted ? "Hide deleted" : `Show deleted (${deletedCount})`}
+          </Button>
+        )}
+        <Button
+          variant="default"
+          disabled={savingAll || loading || rows.length === 0}
+          onClick={() => void handleSaveAll()}
+        >
+          {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save all changes
+        </Button>
+        <div className="flex-1" />
+        <Button onClick={() => setAdding(true)}>
+          <Plus className="mr-1 h-4 w-4" /> New custom product
+        </Button>
+      </div>
+
+      {adding && (
+        <NewProductForm
+          existingIds={rows.map((r) => r.id)}
+          categoryOptions={categoryOptions}
+          onCancel={() => setAdding(false)}
+          onSaved={async () => {
+            setAdding(false);
+            await refresh();
+          }}
+        />
+      )}
+
+      {loading && !rows.length ? (
+        <Loader2 className="h-5 w-5 animate-spin" />
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 text-xs [&_input]:h-7 [&_input]:text-xs [&_button]:text-xs [&_[role=combobox]]:h-7 [&_[role=combobox]]:text-xs">
+          {rows.map((r) => (
+            <ProductEditor
+              key={r.id}
+              row={r}
+              categoryOptions={categoryOptions}
+              onChanged={refresh}
+              registerSaver={registerSaver}
+              unregisterSaver={unregisterSaver}
+            />
+          ))}
+          {!rows.length && (
+            <div className="col-span-full p-6 text-center text-sm text-muted-foreground">
+              No products
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StoreElementsTab() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [initial, setInitial] = useState<Record<string, string>>({});
+  const [customCats, setCustomCats] = useState<{ id: string; name: string; tag: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const [textRes, customRes] = await Promise.all([
+        listBmartText(),
+        listBmartCustomCategories(),
+      ]);
+      const map: Record<string, string> = {};
+      for (const r of textRes.rows) map[r.key] = r.value;
+      const customRows = customRes.rows as { id: string; name: string; tag: string }[];
+      setCustomCats(customRows);
+      // Seed defaults for built-in keys and seed custom-category text overrides
+      // from their stored name/tag so admins always see populated inputs.
+      const customDefaults: Record<string, string> = {};
+      for (const c of customRows) {
+        customDefaults[`cat.${c.id}.name`] = c.name;
+        customDefaults[`cat.${c.id}.tag`] = c.tag ?? "";
+      }
+      const merged: Record<string, string> = { ...BMART_TEXT_DEFAULTS, ...customDefaults, ...map };
+      setValues(merged);
+      setInitial(merged);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  function setKey(k: string, v: string) {
+    setValues((prev) => ({ ...prev, [k]: v }));
+  }
+
+  async function saveAll() {
+    setSaving(true);
+    try {
+      const changed = Object.keys(values).filter((k) => values[k] !== initial[k]);
+      for (const k of changed) {
+        await upsertBmartText({ data: { key: k, value: values[k] } });
+      }
+      toast.success(changed.length ? `Saved ${changed.length} change${changed.length === 1 ? "" : "s"}` : "No changes");
+      setInitial({ ...values });
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const keyDefaults = useMemo(() => {
+    const d: Record<string, string> = { ...BMART_TEXT_DEFAULTS };
+    for (const c of customCats) {
+      d[`cat.${c.id}.name`] = c.name;
+      d[`cat.${c.id}.tag`] = c.tag ?? "";
+    }
+    return d;
+  }, [customCats]);
+
+  function resetKey(k: string) {
+    setKey(k, keyDefaults[k] ?? "");
+  }
+
+  const groups: { label: string; keys: string[] }[] = [
+    { label: "Hero", keys: ["hero.title", "hero.subtitle"] },
+    {
+      label: "Categories",
+      keys: [
+        ...BMART_CATEGORIES.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+        ...customCats.flatMap((c) => [`cat.${c.id}.name`, `cat.${c.id}.tag`]),
+      ],
+    },
+    {
+      label: "Buttons & labels",
+      keys: [
+        "ui.buyBimbucks",
+        "ui.buyBimbucksShort",
+        "ui.home",
+        "ui.allCategories",
+        "ui.buyNow",
+        "ui.addToCart",
+        "ui.cart",
+        "ui.checkout",
+        "ui.clear",
+        "ui.confirmTitle",
+        "ui.confirmBuy",
+        "ui.confirmCancel",
+      ],
+    },
+  ];
+
+  const dirty = Object.keys(values).some((k) => values[k] !== initial[k]);
+
+  return (
+    <div className="space-y-4">
+      <div className="sticky top-[137px] z-10 -mx-1 flex items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
+        <p className="flex-1 text-sm text-muted-foreground">
+          Edit the text and category images shown in Bmart. Changes apply to the live store after saving.
+        </p>
+        <Button variant="outline" onClick={() => void refresh()} disabled={loading || saving}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+        </Button>
+        <Button disabled={!dirty || saving} onClick={() => void saveAll()}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save changes
+        </Button>
+      </div>
+
+      <CategoryImagesSection />
+      <CustomCategoriesSection />
+
+      {groups.map((g) => (
+        <Card key={g.label} className="p-3 space-y-2">
+          <h3 className="text-sm font-semibold">{g.label}</h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {g.keys.map((k) => {
+              const isLong = k === "hero.subtitle";
+              return (
+                <div key={k} className={`space-y-1 ${isLong ? "sm:col-span-2" : ""}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{k}</label>
+                    {values[k] !== (keyDefaults[k] ?? "") && (
+                      <button
+                        type="button"
+                        onClick={() => resetKey(k)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={values[k] ?? ""}
+                    onChange={(e) => setKey(k, e.target.value)}
+                    placeholder={keyDefaults[k] ?? ""}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+
+function ProductEditor({
+  row,
+  categoryOptions,
+  onChanged,
+  registerSaver,
+  unregisterSaver,
+}: {
+  row: Row;
+  categoryOptions: { id: string; name: string }[];
+  onChanged: () => void | Promise<void>;
+  registerSaver?: (id: string, fn: () => Promise<void>) => void;
+  unregisterSaver?: (id: string) => void;
+}) {
+  const [name, setName] = useState(row.name);
+  const [price, setPrice] = useState(row.price);
+  const [altPrice, setAltPrice] = useState<number | null>(row.altPrice);
+  const [currency, setCurrency] = useState<Currency>(row.currency);
+  const [category, setCategory] = useState<string>(row.category);
+  const [hidden, setHidden] = useState(row.hidden);
+  const [imageUrl, setImageUrl] = useState<string | null>(row.image_url);
+  const [effectType, setEffectType] = useState<string | null>(row.effect_type);
+  const [kind, setKind] = useState<DecorKind | null>(row.kind);
+  const [previewKey, setPreviewKey] = useState<VictoryEffectKey | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const isTestItem = /test/i.test(row.id) || /test/i.test(name);
+
+  useEffect(() => {
+    setName(row.name);
+    setPrice(row.price);
+    setAltPrice(row.altPrice);
+    setCurrency(row.currency);
+    setCategory(row.category);
+    setHidden(row.hidden);
+    setImageUrl(row.image_url);
+    setEffectType(row.effect_type);
+    setKind(row.kind);
+  }, [row]);
+
+  // Register a silent saver so the parent's "Save all" can persist this card.
+  useEffect(() => {
+    if (!registerSaver || !unregisterSaver) return;
+    const id = row.id;
+    registerSaver(id, async () => {
+      await upsertBmartProduct({
+        data: {
+          id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: imageUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
+        },
+      });
+    });
+    return () => unregisterSaver(id);
+  }, [
+    registerSaver,
+    unregisterSaver,
+    row.id,
+    row.is_custom,
+    name,
+    price,
+    altPrice,
+    currency,
+    category,
+    hidden,
+    imageUrl,
+    effectType,
+    kind,
+  ]);
+
+  const otherCurrency: Currency = currency === "bimbucks" ? "bimbits" : "bimbucks";
+
+  async function handleSave() {
+    setBusy(true);
+    try {
+      await upsertBmartProduct({
+        data: {
+          id: row.id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: imageUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
+        },
+      });
+      toast.success("Saved");
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    const label = row.is_custom
+      ? "Delete this custom product?"
+      : "Delete this built-in product? It will be hidden from the Bmart store.";
+    if (!confirm(label)) return;
+    setBusy(true);
+    try {
+      if (row.is_custom) {
+        await deleteBmartProduct({ data: { id: row.id } });
+      } else {
+        // Built-ins can't be removed from code, so mark as hidden via override
+        await upsertBmartProduct({
+          data: {
+            id: row.id,
+            name,
+            price,
+            alt_price: altPrice,
+            currency,
+            category,
+            hidden: true,
+            image_url: imageUrl,
+            is_custom: false,
+            effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
+          },
+        });
+        setHidden(true);
+      }
+      toast.success("Deleted");
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function slugifyName(s: string) {
+    return s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 60) || "item";
+  }
+
+  async function handleImport() {
+    if (!imageUrl) {
+      toast.error("Upload an image first");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch(imageUrl);
+      if (!res.ok) throw new Error("Failed to fetch current image");
+      const blob = await res.blob();
+      const urlExt = imageUrl.split("?")[0].split(".").pop()?.toLowerCase();
+      const ext = (urlExt && /^[a-z0-9]{2,5}$/.test(urlExt) ? urlExt : (blob.type.split("/")[1] || "png"));
+      const filename = `${category}_${slugifyName(name)}.${ext}`;
+      const path = `bmart/${filename}`;
+      const { error: upErr } = await supabase.storage.from("public-assets").upload(path, blob, {
+        upsert: true,
+        contentType: blob.type || `image/${ext}`,
+      });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      const newUrl = data.publicUrl;
+      setImageUrl(newUrl);
+      await upsertBmartProduct({
+        data: {
+          id: row.id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          hidden,
+          image_url: newUrl,
+          is_custom: row.is_custom,
+          effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
+        },
+      });
+      toast.success(`Imported as ${filename}`);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setImporting(false);
+    }
+  }
+
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `bmart/${row.id}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+      toast.success("Image uploaded — click Save to persist");
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <Card className="p-2 space-y-1.5">
+      <div className="flex items-start gap-2">
+        <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted/50">
+          {imageUrl ? (
+            <img src={imageUrl} alt={name} className="h-full w-full object-contain" />
+          ) : (
+            <span className="text-[8px] text-muted-foreground text-center px-1">Built-in</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-1">
+            <Badge variant={row.is_custom ? "default" : "outline"} className="text-[10px]">
+              {row.is_custom ? "Custom" : "Built-in"}
+            </Badge>
+            {row.hasOverride && !row.is_custom && (
+              <Badge variant="secondary" className="text-[10px]">Overridden</Badge>
+            )}
+            {hidden && <Badge variant="destructive" className="text-[10px]">Hidden</Badge>}
+          </div>
+          <div className="font-mono text-[10px] text-muted-foreground truncate">{row.id}</div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Name</label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Price</label>
+          <Input
+            type="number"
+            min={0}
+            value={price}
+            onChange={(e) => setPrice(parseInt(e.target.value || "0", 10))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Currency</label>
+          <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Alt price ({otherCurrency}) — optional, lets players choose currency
+        </label>
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
+          {altPrice != null && (
+            <Button size="sm" variant="ghost" onClick={() => setAltPrice(null)} title="Remove alt price">
+              ×
+            </Button>
+          )}
+        </div>
+      </div>
+
+
+
+      <div className="space-y-1.5">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</label>
+        <Select value={category} onValueChange={(v) => setCategory(v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {categoryOptions.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!BUILTIN_CATEGORY_IDS.has(category) && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Decor sub-category
+          </label>
+          <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+            <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+            <SelectContent>
+              {DECOR_KINDS.map((k) => (
+                <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {category === "victory" && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Victory Effect
+          </label>
+          <Select
+            value={effectType ?? "__image__"}
+            onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+              {VICTORY_EFFECT_KEYS.map((k) => (
+                <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {effectType && isVictoryEffectKey(effectType) && (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setPreviewKey(effectType as VictoryEffectKey);
+                window.setTimeout(() => setPreviewKey(null), 3500);
+              }}
+            >
+              Preview effect
+            </Button>
+          )}
+        </div>
+      )}
+
+      {previewKey && (() => {
+        const EffectComp = VICTORY_EFFECTS[previewKey];
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            onClick={() => setPreviewKey(null)}
+          >
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Victory preview"
+                  className="max-h-[70vh] max-w-[80vw] rounded-lg shadow-2xl"
+                />
+              ) : (
+                <div className="flex h-[50vh] w-[60vw] items-center justify-center rounded-lg border border-white/10 bg-black/40 text-sm text-white/70">
+                  {VICTORY_EFFECT_LABELS[previewKey]}
+                </div>
+              )}
+            </div>
+            <EffectComp />
+          </div>
+        );
+      })()}
+
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleUpload(f);
+            e.target.value = "";
+          }}
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={uploading}
+          onClick={() => fileInput.current?.click()}
+        >
+          {uploading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Upload className="h-3 w-3 mr-1" />
+          )}
+          Image
+        </Button>
+        {imageUrl && (
+          <Button size="sm" variant="ghost" onClick={() => setImageUrl(null)}>
+            Clear image
+          </Button>
+        )}
+        <div className="flex-1" />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setHidden((h) => !h)}
+          title={hidden ? "Show in Bmart" : "Hide from Bmart"}
+        >
+          {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
+        <Button size="sm" disabled={busy} onClick={() => void handleSave()}>
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        <Button size="sm" variant="destructive" disabled={busy} onClick={() => void handleDelete()}>
+          <Trash2 className="h-3 w-3 mr-1" />
+          Delete
+        </Button>
+        {isTestItem && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={importing || busy || !imageUrl}
+            onClick={() => void handleImport()}
+            title="Import: rename image to {category}_{name} and persist"
+          >
+            {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileUp className="h-3 w-3 mr-1" />}
+            Import
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function NewProductForm({
+  existingIds,
+  categoryOptions,
+  onCancel,
+  onSaved,
+}: {
+  existingIds: string[];
+  categoryOptions: { id: string; name: string }[];
+  onCancel: () => void;
+  onSaved: () => void | Promise<void>;
+}) {
+  const [id, setId] = useState("");
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState(100);
+  const [altPrice, setAltPrice] = useState<number | null>(null);
+  const [currency, setCurrency] = useState<Currency>("bimbucks");
+  const [category, setCategory] = useState<string>("cards");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [effectType, setEffectType] = useState<string | null>(null);
+  const [kind, setKind] = useState<DecorKind | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const slug = id || `custom_${Date.now()}`;
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `bmart/${slug}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!id.match(/^[a-zA-Z0-9_-]+$/)) {
+      toast.error("ID must be alphanumeric/underscore/dash");
+      return;
+    }
+    if (existingIds.includes(id)) {
+      toast.error("ID already exists");
+      return;
+    }
+    if (!name) {
+      toast.error("Name required");
+      return;
+    }
+    if (!BUILTIN_CATEGORY_IDS.has(category) && !kind) {
+      toast.error("Pick a Decor sub-category so purchased items land in the right place");
+      return;
+    }
+    setBusy(true);
+    try {
+      await upsertBmartProduct({
+        data: {
+          id,
+          name,
+          price,
+          alt_price: altPrice,
+          currency,
+          category,
+          image_url: imageUrl,
+          is_custom: true,
+          hidden: false,
+          effect_type: category === "victory" ? effectType : null,
+          kind: BUILTIN_CATEGORY_IDS.has(category) ? null : kind,
+        },
+      });
+      toast.success("Product created");
+      await onSaved();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="p-4 space-y-3 border-primary">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm">New custom product</h3>
+        <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase text-muted-foreground">ID (slug, no spaces)</label>
+          <Input value={id} onChange={(e) => setId(e.target.value)} placeholder="custom_my_item" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase text-muted-foreground">Name</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase text-muted-foreground">Price</label>
+          <Input
+            type="number"
+            min={0}
+            value={price}
+            onChange={(e) => setPrice(parseInt(e.target.value || "0", 10))}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase text-muted-foreground">Currency</label>
+          <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-[10px] uppercase text-muted-foreground">
+            Alt price (in {currency === "bimbucks" ? "bimbits" : "bimbucks"}) — optional, lets players choose currency
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={altPrice ?? ""}
+            placeholder="none"
+            onChange={(e) => {
+              const v = e.target.value;
+              setAltPrice(v === "" ? null : Math.max(0, parseInt(v, 10) || 0));
+            }}
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-[10px] uppercase text-muted-foreground">Category</label>
+          <Select value={category} onValueChange={(v) => setCategory(v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        {!BUILTIN_CATEGORY_IDS.has(category) && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">
+              Decor sub-category — where purchased items appear on the player's profile
+            </label>
+            <Select value={kind ?? ""} onValueChange={(v) => setKind(v as DecorKind)}>
+              <SelectTrigger><SelectValue placeholder="Select Decor section" /></SelectTrigger>
+              <SelectContent>
+                {DECOR_KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>{DECOR_KIND_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {category === "victory" && (
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-[10px] uppercase text-muted-foreground">Victory Effect</label>
+            <Select
+              value={effectType ?? "__image__"}
+              onValueChange={(v) => setEffectType(v === "__image__" ? null : v)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__image__">Image overlay (use uploaded image)</SelectItem>
+                {VICTORY_EFFECT_KEYS.map((k) => (
+                  <SelectItem key={k} value={k}>{VICTORY_EFFECT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleUpload(f);
+            e.target.value = "";
+          }}
+        />
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()}>
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload image
+        </Button>
+        {imageUrl && (
+          <img src={imageUrl} alt="" className="h-12 w-12 object-contain rounded border" />
+        )}
+      </div>
+      <Button disabled={busy} onClick={() => void handleSave()}>
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create product"}
+      </Button>
+    </Card>
+  );
+}
+
+function CategoryImagesSection() {
+  const [images, setImages] = useState<Record<string, string | null>>({});
+  const [custom, setCustom] = useState<CustomCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const [imgRes, customRes] = await Promise.all([
+        listBmartCategoryImages(),
+        listBmartCustomCategories(),
+      ]);
+      const map: Record<string, string | null> = {};
+      for (const r of imgRes.rows) map[r.id] = r.image_url;
+      setImages(map);
+      setCustom(customRes.rows as CustomCategory[]);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return (
+    <Card className="p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Category card images</h3>
+        {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {DISPLAYED_CATEGORIES.map((c) => (
+          <CategoryImageEditor
+            key={c}
+            category={c}
+            imageUrl={images[c] ?? null}
+            onChanged={refresh}
+          />
+        ))}
+        {custom.map((c) => (
+          <CustomCategoryImageEditor key={c.id} row={c} onChanged={refresh} />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function CategoryImageEditor({
+  category,
+  imageUrl,
+  onChanged,
+}: {
+  category: Category;
+  imageUrl: string | null;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(imageUrl);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrl(imageUrl);
+  }, [imageUrl]);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
+      const path = `bmart/category-${category}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      if (url && url !== imageUrl) {
+        const prev = pathFromPublicUrl(url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      setUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await upsertBmartCategoryImage({ data: { id: category, image_url: next } });
+      if (imageUrl && imageUrl !== next) {
+        const prev = pathFromPublicUrl(imageUrl, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      toast.success("Category image saved");
+      setUrl(next);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border p-2 space-y-1.5">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{category}</div>
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {url ? (
+          <img src={url} alt={category} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">Default icon</span>
+        )}
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) {
+            setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
+          }
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload
+        </Button>
+        <Button
+          size="sm"
+          disabled={saving || url === imageUrl}
+          onClick={() => void save(url)}
+          className="h-7 text-xs"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        {imageUrl && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={saving}
+            onClick={() => void save(null)}
+            className="h-7 text-xs"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+          }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Edit the image of an admin-created custom category from the Category card
+ *  images section. Saves the image URL back onto the custom category row so
+ *  the Bmart category grid picks it up automatically. */
+function CustomCategoryImageEditor({
+  row,
+  onChanged,
+}: {
+  row: CustomCategory;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(row.image_url);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrl(row.image_url);
+  }, [row.image_url]);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
+      const path = `bmart/custom-cat-${row.id}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      if (url && url !== row.image_url) {
+        const prev = pathFromPublicUrl(url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      setUrl(data.publicUrl);
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save(next: string | null) {
+    setSaving(true);
+    try {
+      await upsertBmartCustomCategory({
+        data: {
+          id: row.id,
+          name: row.name,
+          tag: row.tag,
+          image_url: next,
+          sort_order: row.sort_order,
+          hidden: row.hidden,
+        },
+      });
+      if (row.image_url && row.image_url !== next) {
+        const prev = pathFromPublicUrl(row.image_url, "public-assets");
+        if (prev) await supabase.storage.from("public-assets").remove([prev]).catch(() => {});
+      }
+      toast.success("Category image saved");
+      setUrl(next);
+      await onChanged();
+    } catch (e: unknown) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-[var(--gold)]/30 p-2 space-y-1.5">
+      <div className="flex items-center justify-between gap-1">
+        <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{row.name}</div>
+        <span className="rounded bg-[var(--gold)]/20 px-1 text-[8px] uppercase tracking-wider text-[var(--gold)]">custom</span>
+      </div>
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {url ? (
+          <img src={url} alt={row.name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">No image</span>
+        )}
+      </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
+          e.target.value = "";
+        }}
+      />
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Upload
+        </Button>
+        <Button size="sm" disabled={saving || url === row.image_url} onClick={() => void save(url)} className="h-7 text-xs">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+        {row.image_url && (
+          <Button size="sm" variant="ghost" disabled={saving} onClick={() => void save(null)} className="h-7 text-xs">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => { URL.revokeObjectURL(pending.url); setPending(null); }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+
+
+/* ---------------- Custom categories (admin-created) ---------------- */
+
+type CustomCategory = {
+  id: string;
+  name: string;
+  tag: string;
+  image_url: string | null;
+  sort_order: number;
+  hidden: boolean;
+  requires_plus?: boolean;
+};
+
+
+function CustomCategoriesSection() {
+  const [rows, setRows] = useState<CustomCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const res = await listBmartCustomCategories();
+      setRows(res.rows as CustomCategory[]);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void refresh(); }, []);
+
+  return (
+    <Card className="p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Custom categories</h3>
+        <div className="flex items-center gap-2">
+          {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+          <Button size="sm" onClick={() => setAdding(true)} disabled={adding}>
+            <Plus className="h-3 w-3 mr-1" /> New category
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Create your own Bmart categories. The id is a slug (lowercase letters, digits, dashes or underscores) and must be unique.
+      </p>
+
+      {adding && (
+        <CustomCategoryEditor
+          mode="create"
+          existingIds={rows.map((r) => r.id)}
+          onCancel={() => setAdding(false)}
+          onSaved={async () => { setAdding(false); await refresh(); }}
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((c) => (
+          <CustomCategoryEditor
+            key={c.id}
+            mode="edit"
+            row={c}
+            onSaved={refresh}
+          />
+        ))}
+        {!rows.length && !adding && (
+          <div className="col-span-full p-4 text-center text-xs text-muted-foreground">
+            No custom categories yet.
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function CustomCategoryEditor({
+  mode,
+  row,
+  existingIds,
+  onSaved,
+  onCancel,
+}: {
+  mode: "create" | "edit";
+  row?: CustomCategory;
+  existingIds?: string[];
+  onSaved: () => void | Promise<void>;
+  onCancel?: () => void;
+}) {
+  const [id, setId] = useState(row?.id ?? "");
+  const [name, setName] = useState(row?.name ?? "");
+  const [tag, setTag] = useState(row?.tag ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(row?.image_url ?? null);
+  const [sortOrder, setSortOrder] = useState<number>(row?.sort_order ?? 0);
+  const [hidden, setHidden] = useState<boolean>(row?.hidden ?? false);
+  const [requiresPlus, setRequiresPlus] = useState<boolean>(row?.requires_plus ?? false);
+
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<{ url: string; name: string; type: string } | null>(null);
+
+  const idTaken = mode === "create" && existingIds?.includes(id.trim());
+  const idValid = /^[a-z0-9_-]+$/.test(id.trim());
+  const canSave = id.trim().length > 0 && name.trim().length > 0 && idValid && !idTaken;
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "webp";
+      const path = `bmart/custom-cat-${id || "new"}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("public-assets").upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+        cacheControl: "31536000",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save() {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      await upsertBmartCustomCategory({
+        data: {
+          id: id.trim(),
+          name: name.trim(),
+          tag: tag.trim(),
+          image_url: imageUrl,
+          sort_order: sortOrder,
+          hidden,
+          requires_plus: requiresPlus,
+        },
+      });
+
+      toast.success(mode === "create" ? "Category created" : "Category saved");
+      await onSaved();
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!row) return;
+    if (!confirm(`Delete category "${row.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteBmartCustomCategory({ data: { id: row.id } });
+      toast.success("Category deleted");
+      await onSaved();
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border p-2 space-y-2">
+      <div className="grid aspect-[4/5] w-full place-items-center overflow-hidden rounded bg-muted/50">
+        {imageUrl ? (
+          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground">No image</span>
+        )}
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Id (slug)</label>
+        <Input
+          value={id}
+          onChange={(e) => setId(e.target.value.toLowerCase())}
+          disabled={mode === "edit"}
+          placeholder="my-category"
+        />
+        {id && !idValid && <p className="text-[10px] text-destructive">Use lowercase letters, digits, _ or -</p>}
+        {idTaken && <p className="text-[10px] text-destructive">Id already in use</p>}
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Name</label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Category" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Tag / subtitle</label>
+        <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="Short tagline" />
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 space-y-1">
+          <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Sort</label>
+          <Input
+            type="number"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number.parseInt(e.target.value || "0", 10))}
+          />
+        </div>
+        <label className="flex items-center gap-1 pt-4 text-xs">
+          <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+          Hidden
+        </label>
+      </div>
+      <label className="flex items-center gap-2 rounded border border-[var(--gold)]/40 bg-[var(--gold)]/5 px-2 py-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={requiresPlus}
+          onChange={(e) => setRequiresPlus(e.target.checked)}
+        />
+        <span>
+          <span className="font-semibold text-[var(--gold)]">Requires Bimyah!+</span>
+          <span className="ml-1 text-muted-foreground">
+            (only B+ members can browse or purchase from this category)
+          </span>
+        </span>
+      </label>
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setPending({ url: URL.createObjectURL(f), name: f.name, type: f.type });
+          e.target.value = "";
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-1">
+        <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()} className="h-7 text-xs">
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+          Image
+        </Button>
+        {imageUrl && (
+          <Button size="sm" variant="ghost" onClick={() => setImageUrl(null)} className="h-7 text-xs">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
+        <div className="flex-1" />
+        {onCancel && (
+          <Button size="sm" variant="ghost" onClick={onCancel} className="h-7 text-xs">
+            Cancel
+          </Button>
+        )}
+        {mode === "edit" && (
+          <Button size="sm" variant="destructive" onClick={() => void remove()} disabled={deleting} className="h-7 text-xs">
+            {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          </Button>
+        )}
+        <Button size="sm" onClick={() => void save()} disabled={!canSave || saving} className="h-7 text-xs">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+          Save
+        </Button>
+      </div>
+      {pending && (
+        <ImageCropModal
+          imageUrl={pending.url}
+          fileName={pending.name}
+          mimeType={pending.type}
+          aspect={CATEGORY_CARD_ASPECT}
+          label="category card"
+          onCancel={() => { URL.revokeObjectURL(pending.url); setPending(null); }}
+          onConfirm={(file) => {
+            URL.revokeObjectURL(pending.url);
+            setPending(null);
+            void handleUpload(file);
+          }}
+        />
+      )}
+    </div>
+  );
+}
