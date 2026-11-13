@@ -1,0 +1,4202 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import type { GameState, GameStatus, Player, PlayerColor } from "@/game/types";
+import { CardBack, CascadeSet, EmptySlot, PlayingCard } from "./Card";
+import {
+  tickCountdown,
+  tickHolds,
+  tickIdle,
+  tickInactive,
+  tickFreeCardHolds,
+  canDeclareBimyah,
+  COUNTDOWN_MS,
+  IDLE_BEFORE_DISCONNECT_MS,
+  INACTIVE_GRACE_MS,
+} from "@/game/engine";
+import { isFourOfAKind } from "@/game/deck";
+import { VICTORY_EFFECTS } from "@/components/game/VictoryEffects";
+import {
+  Confetti,
+  Countdown,
+  HomeButton,
+  LeaveGameDialog,
+  MatchBadge,
+  ScoreDisplay,
+  Scoreboard,
+  ScoreboardButton,
+} from "./Visuals";
+import { HowToPlayButton } from "./HowToPlay";
+import { createBotMemory, stepBots, botBuildRanks } from "@/game/bot";
+import { useAuth } from "@/auth/AuthProvider";
+import { recordShareEvent } from "@/lib/rpc/admin.functions";
+import { sfx, recordWin } from "@/game/sfx";
+import { Copy, Check, ArrowDownUp, ArrowDown, X, UserPlus, Timer, Camera, Share2 } from "lucide-react";
+import iconGear from "@/assets/icons3d/gear-gold.webp";
+import iconEye from "@/assets/icons3d/eye.webp";
+import iconCrownLeader from "@/assets/icons3d/crown-leader.webp";
+import iconChat from "@/assets/icons3d/chat.webp";
+import tabletopMahogany from "@/assets/tabletop-mahogany.webp";
+import iconSpeaker from "@/assets/icons3d/speaker-3d-v2.webp";
+import iconSpeakerMuted from "@/assets/icons3d/speaker-muted-3d-v2.webp";
+import { InviteFriendsOverlay } from "@/components/InviteFriendsOverlay";
+import { GuestNamePrompt } from "@/components/GuestNamePrompt";
+import { InRoomAuthModal } from "@/components/game/InRoomAuthModal";
+import { getGuestName } from "@/game/guest";
+import { getMyCosmetics } from "@/lib/rpc/cosmetics.functions";
+import { getActiveCardSlotImages, applyDecorOverrides } from "@/game/cosmetics";
+import { cn } from "@/lib/utils";
+import { applyIntent, type Intent } from "@/game/realtime";
+import { DEFAULT_KEYBINDS, loadLocal as loadKeybindsLocal, type Keybinds, type ActionId } from "@/game/keybinds";
+import { KeybindEditor } from "./KeybindEditor";
+import { Movable, useMovableLayouts, type MovableLayout } from "./Movable";
+import { ToggleSwitch } from "./ToggleSwitch";
+import { ChatPanel } from "./ChatPanel";
+import { PublicProfileDialog } from "@/components/profile/PublicProfileDialog";
+import type { ChatChannel } from "@/game/types";
+import { toast } from "sonner";
+
+
+export const PLAYER_COLOR_HEX: Record<PlayerColor, string> = {
+  green: "#22c55e",
+  red: "#ef4444",
+  blue: "#3b82f6",
+  yellow: "#eab308",
+  purple: "#a855f7",
+  orange: "#fb923c",
+  cyan: "#22d3ee",
+  pink: "#ec4899",
+};
+
+/**
+ * Stopwatch for the current match (Ronya 2026-11-01), shown in the
+ * top-right cluster. The clock starts only once the countdown has
+ * finished and play begins (Ronya 2026-11-02), freezes the moment the
+ * match is won so the final time stays on screen for screenshots, and
+ * holds that final time through the lobby: the clock resets the moment
+ * the next match is started (Start Next Match clicked, which puts the
+ * room into countdown), sits at zero through the countdown, and runs
+ * once play begins (Ronya 2026-11-02). Shows milliseconds. Self-ticking
+ * so the table itself does not re-render on a timer.
+ */
+function MatchClock({ status }: { status: GameStatus }) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const startRef = useRef<number | null>(null);
+  const frozenRef = useRef<number | null>(null);
+  const prevStatusRef = useRef<GameStatus | null>(null);
+
+  // Reset/start are driven by STATUS TRANSITIONS, not by a match key:
+  // the old key was `${state.id}:${state.matchNumber}`, and in standard
+  // mode Start Next Match runs playAgain -> resetToLobby, which puts
+  // matchNumber back to 1, so the key never changed and the clock never
+  // reset (Ronya 2026-11-07). Transitions fire exactly once per match in
+  // every mode: into countdown = a new match was started (reset), into
+  // playing = play begins (start), into won = freeze the final time,
+  // lobby = hold it.
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (status === "countdown") {
+      if (prev !== "countdown") {
+        startRef.current = null;
+        frozenRef.current = null;
+        setElapsedMs(0);
+      }
+      return;
+    }
+    if (status === "playing") {
+      if (prev !== "playing" && startRef.current === null) {
+        startRef.current = Date.now();
+        frozenRef.current = null;
+        setElapsedMs(0);
+      }
+      const tick = () => {
+        if (startRef.current !== null) setElapsedMs(Date.now() - startRef.current);
+      };
+      tick();
+      const t = setInterval(tick, 31);
+      return () => clearInterval(t);
+    }
+    if (status === "won") {
+      if (startRef.current !== null && frozenRef.current === null) {
+        frozenRef.current = Date.now() - startRef.current;
+      }
+      if (frozenRef.current !== null) setElapsedMs(frozenRef.current);
+      return;
+    }
+    // lobby: hold whatever is on the clock (the previous match's final
+    // time, or zero before the first match of the room).
+  }, [status]);
+
+  const minutes = Math.floor(elapsedMs / 60000);
+  const seconds = Math.floor((elapsedMs % 60000) / 1000);
+  const millis = Math.floor(elapsedMs % 1000);
+  const label = `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+  return (
+    <div
+      className="flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-white/85 backdrop-blur"
+      aria-label={`Match time ${label}`}
+    >
+      <Timer className="h-3 w-3" aria-hidden />
+      <span className="font-display text-[10px] font-bold tabular-nums tracking-wider">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Champion celebration loop (Ronya 2026-11-02): while the Game
+ * Champion popup is up, the winner's victory effect replays on a
+ * cycle instead of playing once. Remounting the child restarts its
+ * CSS animations from the top.
+ */
+function LoopingVictoryEffect({ children }: { children: React.ReactNode }) {
+  const [cycle, setCycle] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setCycle((c) => c + 1), 4000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div key={cycle} style={{ display: "contents" }}>
+      {children}
+    </div>
+  );
+}
+
+/** Round avatar for the viewers list: the player's avatar image when
+ *  they have one (falling back to their initial if it fails to load),
+ *  otherwise just the initial (Ronya 2026-11-02). */
+function ViewerAvatar({ url, name }: { url?: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-6 w-6 shrink-0 rounded-full object-cover"
+        onError={() => setFailed(true)}
+        draggable={false}
+      />
+    );
+  }
+  return (
+    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] font-bold uppercase">
+      {name.slice(0, 1)}
+    </span>
+  );
+}
+
+export function GameTable({
+  state,
+  setState,
+  sendIntent,
+  isHost = true,
+  meId,
+  inviteUrl,
+  spectator = false,
+  mapMode = false,
+}: {
+  state: GameState;
+  setState: (mutator: (s: GameState) => GameState) => void;
+  sendIntent?: (intent: Intent) => void;
+  isHost?: boolean;
+  meId: string;
+  inviteUrl?: string;
+  spectator?: boolean;
+  /** Map Game Screen mode: lets the player adjust HUD layouts with mock content. */
+  mapMode?: boolean;
+}) {
+  const [showMapTips, setShowMapTips] = useState<boolean>(() => {
+    if (!mapMode) return false;
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") !== "1";
+  });
+  const [hideMapTips, setHideMapTips] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("bimyah_map_tips_hidden") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hideMapTips) window.localStorage.setItem("bimyah_map_tips_hidden", "1");
+    else window.localStorage.removeItem("bimyah_map_tips_hidden");
+  }, [hideMapTips]);
+
+  const me = state.players.find((p) => p.id === meId);
+  const others = state.players.filter((p) => p.id !== meId);
+  const botMemory = useRef(createBotMemory());
+  const [muted, setMuted] = useState(sfx.isMuted());
+  const [copied, setCopied] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showViewers, setShowViewers] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // The chat badge counts only messages that arrive while the chat is
+  // closed (Ronya 2026-11-02): the history already in the room when
+  // this table mounted is the baseline, opening the chat clears the
+  // badge, and messages arriving while it is open never count. If the
+  // chat ever shrinks (a fresh room state), the baseline resyncs.
+  const totalChatMessages = (state.chat ?? []).length;
+  const [chatSeenCount, setChatSeenCount] = useState(totalChatMessages);
+  useEffect(() => {
+    if (showChat || totalChatMessages < chatSeenCount) {
+      setChatSeenCount(totalChatMessages);
+    }
+  }, [showChat, totalChatMessages, chatSeenCount]);
+  const chatUnreadCount = Math.max(0, totalChatMessages - chatSeenCount);
+  // Winner screenshot (Ronya 2026-11-02): the camera button beside the
+  // winner announcement captures the table for sharing. The
+  // announcement itself sits above the table at all times (Ronya
+  // 2026-11-03, after a screenshot-only move missed his ask), so the
+  // table stays in the picture with no ghosting and no exclusions
+  // beyond the share offer text; the earliest versions ghosted the
+  // announcement to 40% and left the table out entirely.
+  // The capture opens the share sheet with the player's referral
+  // link (Ronya 2026-11-03, reversing the same-day save-only call now
+  // that he wants sharing); where no share sheet exists the file is
+  // saved directly, as before.
+  const { user: authUser, profile: authProfile } = useAuth();
+  const tableRootRef = useRef<HTMLDivElement>(null);
+  const captureBusyRef = useRef(false);
+  const takeWinnerScreenshot = async () => {
+    const node = tableRootRef.current;
+    if (!node || captureBusyRef.current) return;
+    captureBusyRef.current = true;
+    let blob: Blob | null = null;
+    try {
+      // Brief settle so the announcement's float-up animation is done
+      // before the capture clones the layout.
+      await new Promise((r) => setTimeout(r, 380));
+      const { toBlob } = await import("html-to-image");
+      // The red backdrop lives on <body> (styles.css --gradient-bg),
+      // outside this captured node, so a plain capture comes out black
+      // (Ronya 2026-11-02). Stamp the body's backdrop onto the clone
+      // unless the table already carries an equipped background image
+      // of its own.
+      const rootCs = getComputedStyle(node);
+      const hasOwnBg = !!rootCs.backgroundImage && rootCs.backgroundImage !== "none";
+      const captureStyle = hasOwnBg
+        ? undefined
+        : {
+            backgroundImage: getComputedStyle(document.body).backgroundImage,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          };
+      // Only the elements tagged data-shot-hide (the Bimbit share
+      // offer text) are left out of the shot. The table, seats and
+      // hands all stay in (Ronya 2026-11-03).
+      const shotFilter = (node: Element) =>
+        typeof node.closest !== "function" || !node.closest("[data-shot-hide]");
+      try {
+        blob = await toBlob(node, { pixelRatio: 2, cacheBust: true, style: captureStyle, filter: shotFilter });
+      } catch {
+        blob = await toBlob(node, { pixelRatio: 2, cacheBust: true, skipFonts: true, style: captureStyle, filter: shotFilter });
+      }
+    } catch {
+      blob = null;
+    }
+    captureBusyRef.current = false;
+    if (!blob) return;
+    const fileName = `bimyah-win-${Date.now()}.png`;
+    // Share texts are Ronya's exact words (2026-11-03), one for the
+    // winner and one for everyone else in the room. The link carries
+    // the sharer's referral tag when they're signed in; guests share
+    // the plain site link.
+    const displayName = authProfile?.display_name ?? null;
+    const link = displayName
+      ? `https://playbimyah.com/?ref=${encodeURIComponent(displayName)}`
+      : "https://playbimyah.com";
+    const shareText =
+      state.winnerId === meId
+        ? `I just won a game of this Bimyah! card game. Join with my link to play with me ${link}!`
+        : `I just played this card game called Bimyah! and even though I didn't win, it was still pretty fun. Use my link to play, if you want to try it out ${link}.`;
+    const file = new File([blob], fileName, { type: "image/png" });
+    let shared = false;
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      const shareData: ShareData = { files: [file], text: shareText };
+      if (!navigator.canShare || navigator.canShare(shareData)) {
+        try {
+          await navigator.share(shareData);
+          shared = true;
+        } catch (e) {
+          // The player closed the share sheet themselves: no fallback
+          // download, no reward. Anything else falls through to save.
+          if ((e as Error)?.name === "AbortError") return;
+        }
+      }
+    }
+    if (shared) {
+      void recordShareEvent({
+        data: { method: "web_share", source: "winner-shot", user_id: authUser?.id ?? null },
+      }).catch(() => {});
+      // Screenshot share reward (Ronya 2026-11-03): 50 Bimbits, once
+      // a day, for sharing the screenshot publicly. The claim is
+      // server-capped; a capped claim stays silent.
+      if (authUser) {
+        try {
+          const { claimScreenshotShare } = await import("@/lib/rpc/referrals.functions");
+          const r = await claimScreenshotShare();
+          if (r.claimed) {
+            toast.success(
+              "+50 Bimbits for sharing your screenshot. Keep the post public: removing it means the Bimbits are taken back.",
+            );
+          }
+        } catch {
+          /* non-fatal: the reward never blocks the share */
+        }
+      }
+      return;
+    }
+    // No share sheet on this device (most desktop browsers): just save
+    // the file, the pre-share-sheet behavior.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  const spectators = state.spectators ?? [];
+  const [codeCopied, setCodeCopied] = useState(false);
+  const wonAnnouncedRef = useRef(false);
+  const [showPlayAgain, setShowPlayAgain] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const [showNewTournyPicker, setShowNewTournyPicker] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [newLimitInput, setNewLimitInput] = useState("");
+  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+  const [selectedActorId, setSelectedActorId] = useState<string>(meId);
+  const [sortEnabled, setSortEnabled] = useState(false);
+  /** Auto-sort (Settings checkbox): while on, the local hand stays sorted
+   *  permanently. Persisted in localStorage until the user unchecks it. */
+  const [autoSort, setAutoSort] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem("bimyah_auto_sort") === "1"; } catch { return false; }
+  });
+  const toggleAutoSort = (on: boolean) => {
+    setAutoSort(on);
+    try { window.localStorage.setItem("bimyah_auto_sort", on ? "1" : "0"); } catch { /* ignore */ }
+  };
+  const sortOn = sortEnabled || autoSort;
+  /** Training-only: when true, the local player can drive every seat
+   *  (including bots) as if they were their own. Bots are paused while on. */
+  const [controlAllHands, setControlAllHands] = useState(false);
+  // If toggle is ever active but mode changes away from training, force off.
+  useEffect(() => {
+    if (state.mode !== "training" && controlAllHands) setControlAllHands(false);
+  }, [state.mode, controlAllHands]);
+  const [showViewAll, setShowViewAll] = useState(false);
+  const [showKeybinds, setShowKeybinds] = useState(false);
+  /** Which inactive player's pile is currently expanded for me to view (one at a time). */
+  const [freeView, setFreeView] = useState<{ ownerId: string; pileIndex: number } | null>(null);
+  const [keybinds, setKeybinds] = useState<Keybinds>(() =>
+    typeof window !== "undefined" ? loadKeybindsLocal() : { ...DEFAULT_KEYBINDS }
+  );
+  useEffect(() => {
+    const refresh = () => setKeybinds(loadKeybindsLocal());
+    window.addEventListener("bimyah:keybinds-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("bimyah:keybinds-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  // Treat browser back button as the Home button: intercept popstate and
+  // show the leave-game confirmation. Push a sentinel state on mount so the
+  // first back press has something to pop, and re-push after each intercept.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SENTINEL = "bimyah:in-game";
+    try {
+      window.history.pushState({ [SENTINEL]: true }, "");
+    } catch {
+      /* ignore */
+    }
+    const onPop = () => {
+      setShowLeaveConfirm(true);
+      try {
+        window.history.pushState({ [SENTINEL]: true }, "");
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const isTournament = state.mode === "tournament";
+  // A tournament is "underway" once its first match has been played: from
+  // then on the roster is locked. New players cannot enter (the invite
+  // element stays hidden) and the bot count cannot change (the bot +/-
+  // control stays hidden) until a fresh tournament starts, which resets
+  // matchNumber to 1 and clears matchHistory (Ronya 2026-11-01).
+  const tournamentUnderway =
+    isTournament && (state.matchNumber > 1 || state.matchHistory.length > 0);
+  // Tournament leader crown (Ronya 2026-10-25): the player holding the
+  // outright lead (unique top score above zero) wears the 3D crown over
+  // their name plate. A tie for first means no crown until someone leads.
+  const tournamentLeaderId = (() => {
+    if (!isTournament) return null;
+    let bestId: string | null = null;
+    let best = 0;
+    let tied = false;
+    for (const p of state.players) {
+      const sc = state.scores[p.id] ?? 0;
+      if (sc > best) { best = sc; bestId = p.id; tied = false; }
+      else if (sc === best && sc > 0) tied = true;
+    }
+    return tied ? null : bestId;
+  })();
+
+  // Clear selection if the selected card is no longer in the selecting
+  // player's hand. With "Control All Hands" the selector may be any seat.
+  useEffect(() => {
+    if (!selectedHandCardId) return;
+    const actor = state.players.find((p) => p.id === selectedActorId);
+    if (!actor || !actor.hand.some((c) => c.id === selectedHandCardId)) {
+      setSelectedHandCardId(null);
+    }
+  }, [state.players, selectedHandCardId, selectedActorId]);
+
+  // Reset sort mode when the player closes their pile (no open pile).
+  useEffect(() => {
+    if (!me) return;
+    if (me.openPileIndex === null && sortEnabled) {
+      setSortEnabled(false);
+    }
+  }, [me, sortEnabled]);
+
+  // Keep the public match listing in sync: update seat count while in
+  // lobby; once the match starts, KEEP the listing and mark it 'playing'
+  // (Ronya, 2026-10-27) so a player who got kicked or dropped can find
+  // the room and rejoin with their seat. The listing comes down only when
+  // the room closes (or via last-human-out / inactivity expiry). Host-only.
+  useEffect(() => {
+    if (!isHost) return;
+    if (typeof window === "undefined") return;
+    if (!inviteUrl) return;
+    const code = inviteUrl;
+    const flag = sessionStorage.getItem(`bimyah_public_${code}`);
+    if (flag !== "1") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (state.roomClosed) {
+          const { removePublicMatch } = await import("@/lib/rpc/publicMatches.functions");
+          if (cancelled) return;
+          await removePublicMatch({ data: { game_id: code } });
+          sessionStorage.removeItem(`bimyah_public_${code}`);
+        } else {
+          const { updatePublicMatch } = await import("@/lib/rpc/publicMatches.functions");
+          if (cancelled) return;
+          await updatePublicMatch({
+            data: {
+              game_id: code,
+              seats_taken: Math.max(1, state.players.length),
+              status: state.status === "lobby" ? "lobby" : "playing",
+            },
+          });
+        }
+      } catch {
+        /* non-fatal */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isHost, inviteUrl, state.status, state.players.length, state.roomClosed]);
+
+  // Last-human-out cleanup (Ronya, 2026-10-23): a room whose only human
+  // leaves is dead — the host's browser runs the engine, and with no
+  // other human to take over there is nothing left to join — so its
+  // public listing must come down immediately instead of lingering
+  // until the inactivity timeout. Fires when this client is the host
+  // or a seated player AND no other human is seated. Best effort on
+  // pagehide (app close / tab kill) and on unmount (in-app navigation
+  // away, including End Match and Go Home). Safe for private games:
+  // the server delete matches no row there.
+  const leaveCleanupRef = useRef({ code: "", shouldRemove: false });
+  leaveCleanupRef.current = {
+    code: inviteUrl ?? "",
+    shouldRemove:
+      (isHost || state.players.some((p) => p.id === meId)) &&
+      state.players.filter((p) => !p.isBot && p.id !== meId).length === 0,
+  };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fire = () => {
+      const { code, shouldRemove } = leaveCleanupRef.current;
+      if (!code || !shouldRemove) return;
+      sessionStorage.removeItem(`bimyah_public_${code}`);
+      void (async () => {
+        try {
+          const { removePublicMatch } = await import("@/lib/rpc/publicMatches.functions");
+          await removePublicMatch({ data: { game_id: code } });
+        } catch {
+          /* non-fatal */
+        }
+      })();
+    };
+    // pagehide with persisted=true means the page entered the
+    // back/forward cache (e.g. app switch on a phone) and may resume —
+    // that is not leaving. Only a real unload counts here; in-app
+    // navigation is covered by the unmount cleanup below.
+    const onPageHide = (e: PageTransitionEvent) => {
+      if (!e.persisted) fire();
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      fire();
+    };
+  }, []);
+
+  // Listing liveness heartbeat: EVERY participant in the room (host,
+  // players, spectators) touches the public listing every 30s. A room can
+  // continue without its original host, so anyone's presence counts as
+  // activity; the listing only closes when the room is empty or has been
+  // inactive for 5 minutes. The server updates only rows that exist, so
+  // this is a no-op for private games.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!inviteUrl) return;
+    const code = inviteUrl;
+    let stopped = false;
+    const touch = async () => {
+      try {
+        const { touchPublicMatch } = await import("@/lib/rpc/publicMatches.functions");
+        if (stopped) return;
+        await touchPublicMatch({ data: { game_id: code } });
+      } catch {
+        /* non-fatal */
+      }
+    };
+    void touch();
+    const t = setInterval(() => void touch(), 30000);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
+  }, [inviteUrl]);
+
+  // Helper: route an action either through the structured intent (preferred,
+  // joiner→host) or fall back to local setState (host / solo).
+  const dispatch = (intent: Intent) => {
+    if (sendIntent && !isHost) {
+      sendIntent(intent);
+    } else {
+      setState((s) => applyIntent(s, intent));
+    }
+  };
+
+  // ===== Ready-intent retry (joiners) =====
+  // A joiner's ready / readyForNext intent is a single fire-and-forget
+  // broadcast with no ack and no resync: if that one packet is lost,
+  // the host never marks the seat and the player sits on "Waiting…"
+  // tapping a button that looks dead (Ronya hit this live on
+  // 2026-11-09: a joiner "couldn't ready up" even though their taps
+  // were firing). Remember what this client asked for and re-send it
+  // every 2s until a host state broadcast reflects it. The engine's
+  // setReady / setReadyForNext are idempotent, so a duplicate that
+  // lands after the original is a no-op. Capped at 20 attempts; the
+  // host path applies locally and never needs this.
+  const wantReadyRef = useRef<{ ready: number; readyForNext: number }>({
+    ready: 0,
+    readyForNext: 0,
+  });
+  useEffect(() => {
+    if (isHost || !sendIntent) return;
+    const t = setInterval(() => {
+      const s = stateRef.current;
+      const want = wantReadyRef.current;
+      const meNow = s.players.find((p) => p.id === meId);
+      if (!meNow || meNow.pendingIdentity) {
+        want.ready = 0;
+        want.readyForNext = 0;
+        return;
+      }
+      if (want.ready > 0) {
+        if (s.status !== "lobby" || meNow.ready) {
+          want.ready = 0;
+        } else {
+          want.ready -= 1;
+          sendIntent({ kind: "ready", playerId: meId, ready: true });
+        }
+      }
+      if (want.readyForNext > 0) {
+        if (s.status !== "won" || meNow.readyForNext) {
+          want.readyForNext = 0;
+        } else {
+          want.readyForNext -= 1;
+          sendIntent({ kind: "readyForNext", playerId: meId, ready: true });
+        }
+      }
+    }, 2000);
+    return () => clearInterval(t);
+  }, [isHost, sendIntent, meId]);
+
+  // ===== Pending invited seat: Login / Play as Guest (Ronya 2026-11-03) =====
+  // A signed-out visitor who arrived through a Share Invite link holds
+  // a pending seat ("Joining…") that blocks the match start. Choosing
+  // Login opens the in-room login modal; once the account session
+  // lands, the seat is refreshed with the account's real name and
+  // cosmetics. Choosing Play as Guest opens the guest name modal (or
+  // reuses the stored guest name) and resolves the seat as a guest.
+  const [showRoomLogin, setShowRoomLogin] = useState(false);
+  const [showRoomGuest, setShowRoomGuest] = useState(false);
+  const loginIdentifyRef = useRef(false);
+  const mePending = !!me?.pendingIdentity;
+
+  const identifyAsGuest = (guestName: string) => {
+    dispatch({
+      kind: "identifyPlayer",
+      playerId: meId,
+      identity: {
+        name: guestName.slice(0, 14),
+        accountId: null,
+        avatarUrl: null,
+        cardBackUrl: null,
+        cardBackUrls: getActiveCardSlotImages(null, null),
+        titleUrl: null,
+        badgeUrl: null,
+        badgeUrl2: null,
+        specialBadgeUrl: null,
+        emblemUrl: null,
+        emblemUrl2: null,
+        victoryUrl: null,
+        victoryEffectType: null,
+        backgroundUrl: null,
+        tabletopUrl: null,
+        tableArtUrl: null,
+      },
+    });
+    try {
+      if (inviteUrl) sessionStorage.setItem(`bimyah_name_${inviteUrl}`, guestName);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onGuestChoice = () => {
+    const existing = getGuestName();
+    if (existing) identifyAsGuest(existing);
+    else setShowRoomGuest(true);
+  };
+
+  useEffect(() => {
+    if (!loginIdentifyRef.current) return;
+    if (!authUser || !authProfile || !mePending) return;
+    loginIdentifyRef.current = false;
+    void (async () => {
+      try {
+        let cosmetics = await getMyCosmetics();
+        cosmetics = applyDecorOverrides(authUser.id, cosmetics);
+        const cardBackUrls = getActiveCardSlotImages(authUser.id, cosmetics.cardBackUrl);
+        const name = (authProfile.display_name ?? "Player").slice(0, 14);
+        dispatch({
+          kind: "identifyPlayer",
+          playerId: meId,
+          identity: { name, ...cosmetics, cardBackUrls, accountId: authUser.id },
+        });
+        try {
+          if (inviteUrl) sessionStorage.setItem(`bimyah_name_${inviteUrl}`, name);
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        /* the seat stays pending; the player can pick an option again */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser, authProfile, mePending]);
+
+  // ===== Random decor re-roll on EVERY match (Ronya 2026-11-07) =====
+  // The initial identify rolls once for the first match. After that, each
+  // match transition (nextMatch advancing the match number, or the room
+  // returning to the lobby from a finished match for Play Again / a new
+  // tournament) re-resolves the local player's cosmetics and pushes them
+  // with refreshCosmetics, so an equipped "__random__" decor item is a
+  // fresh roll for every single match.
+  const prevMatchRef = useRef<{ status: string; matchNumber: number } | null>(
+    null,
+  );
+  useEffect(() => {
+    const prev = prevMatchRef.current;
+    prevMatchRef.current = {
+      status: state.status,
+      matchNumber: state.matchNumber,
+    };
+    if (!prev) return;
+    const advanced = state.matchNumber !== prev.matchNumber;
+    const backToLobby = state.status === "lobby" && prev.status !== "lobby";
+    if (!advanced && !backToLobby) return;
+    if (!authUser || !me || me.pendingIdentity || me.isBot) return;
+    void (async () => {
+      try {
+        let cosmetics = await getMyCosmetics();
+        cosmetics = applyDecorOverrides(authUser.id, cosmetics);
+        const cardBackUrls = getActiveCardSlotImages(
+          authUser.id,
+          cosmetics.cardBackUrl,
+        );
+        dispatch({
+          kind: "refreshCosmetics",
+          playerId: meId,
+          cosmetics: { ...cosmetics, cardBackUrls },
+        });
+      } catch {
+        /* keep the current cosmetics for this match */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status, state.matchNumber]);
+
+  // ===== Game tick (HOST ONLY in multiplayer; always on in solo) =====
+  // Keep `state` in a ref so the interval below has a STABLE identity. If we
+  // depended on `state` directly, every remote intent (common with multiple
+  // humans) would clear-and-restart the 250ms interval before it ever fires,
+  // which meant tickIdle / tickInactive never ran on the host and the host
+  // never saw their own inactivity phase advance.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  // Keep `controlAllHands` in a ref so the tick interval below sees the
+  // latest value without restarting on every toggle.
+  const controlAllRef = useRef(controlAllHands);
+  useEffect(() => {
+    controlAllRef.current = controlAllHands;
+  }, [controlAllHands]);
+  useEffect(() => {
+    if (!isHost) return;
+    const t = setInterval(() => {
+      // Single composed pass: each separate setState used to trigger its own
+      // full-state broadcast to every peer, so one tick could send 5+ large
+      // snapshots per player. Compose them so a tick costs one update.
+      setState((s) =>
+        tickFreeCardHolds(tickInactive(tickIdle(tickHolds(tickCountdown(s))))),
+      );
+      // Training: pause bot actions while the player is driving every seat.
+      if (!controlAllRef.current) {
+        stepBots(stateRef.current, botMemory.current, (m) => setState(m));
+      }
+    }, 250);
+    return () => clearInterval(t);
+  }, [setState, isHost]);
+
+
+  // Win announce
+  useEffect(() => {
+    if (state.status === "won" && !wonAnnouncedRef.current) {
+      wonAnnouncedRef.current = true;
+      sfx.win();
+      const winner = state.players.find((p) => p.id === state.winnerId);
+      // Only record to history when the game is fully decided:
+      // standard mode = every win; tournament = only the champion.
+      const decided =
+        state.mode !== "tournament" || state.championId === state.winnerId;
+      if (winner && decided) recordWin(winner.name);
+      setTimeout(() => setShowPlayAgain(true), 2000);
+    }
+    if (state.status !== "won") {
+      wonAnnouncedRef.current = false;
+      setShowPlayAgain(false);
+    }
+  }, [state.status, state.winnerId, state.players]);
+
+  // Stats: match duration is measured on each client from the start
+  // of play (same transition the MatchClock uses), so the report
+  // below can carry it for fastest win / average length (Ronya
+  // 2026-11-09).
+  const playingStartRef = useRef<number | null>(null);
+  const prevStatusForStatsRef = useRef<GameStatus | null>(null);
+  useEffect(() => {
+    const prev = prevStatusForStatsRef.current;
+    prevStatusForStatsRef.current = state.status;
+    if (state.status === "countdown") playingStartRef.current = null;
+    if (state.status === "playing" && prev !== "playing") {
+      playingStartRef.current = Date.now();
+    }
+  }, [state.status]);
+
+  // Challenges: when a match is fully decided (the same rule recordWin
+  // uses), the local human reports their match context once per match.
+  // The server updates challenge progress and credits Bimbits for any
+  // newly completed challenges; guests and spectators do not report.
+  const challengeReportedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (state.status !== "won") return;
+    if (spectator) return;
+    const decided =
+      state.mode !== "tournament" || state.championId === state.winnerId;
+    if (!decided) return;
+    const key = `${state.id}:${state.matchNumber}`;
+    if (challengeReportedRef.current === key) return;
+    const me = state.players.find((p) => p.id === meId);
+    if (!me || me.isBot) return;
+    challengeReportedRef.current = key;
+    const total = state.players.length;
+    const payload = {
+      game_code: (inviteUrl ?? state.id).slice(0, 64),
+      match_number: state.matchNumber,
+      total_players: total,
+      human_opponents: state.players.filter((p) => p.id !== meId && !p.isBot).length,
+      // Guests play without an account; their display names always carry
+      // the leading "_" marker (see game/guest.ts). If any guest is in
+      // the match, it counts toward no challenges at all (server
+      // applies the rule).
+      guest_opponents: state.players.filter(
+        (p) => p.id !== meId && !p.isBot && p.name.startsWith("_"),
+      ).length,
+      bot_opponents: state.players.filter((p) => p.id !== meId && p.isBot).length,
+      full_room: total >= 8,
+      won: state.winnerId === meId,
+      hosted: isHost,
+      mode: state.mode,
+      duration_ms:
+        playingStartRef.current != null
+          ? Math.max(0, Date.now() - playingStartRef.current)
+          : null,
+      // Stats: piles this player had SET when the match ended.
+      sets_locked: me.pileLocked?.filter(Boolean).length ?? 0,
+    };
+    void (async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return;
+        const { reportMatchForChallenges } = await import(
+          "@/lib/rpc/challenges.functions"
+        );
+        const res = await reportMatchForChallenges({ data: payload });
+        for (const c of res.completed) {
+          toast.success(
+            `Challenge complete: ${c.name} (+${c.reward} Bimbit${c.reward === 1 ? "" : "s"})`,
+          );
+        }
+      } catch {
+        /* non-fatal: challenges never block the game */
+      }
+    })();
+  }, [
+    state.status,
+    state.winnerId,
+    state.championId,
+    state.matchNumber,
+    state.id,
+    state.mode,
+    state.players,
+    state.maxSeats,
+    meId,
+    isHost,
+    spectator,
+    inviteUrl,
+  ]);
+
+  // Tick "now" while the win overlay is up so the host's restart-cooldown
+  // countdown updates each second.
+  useEffect(() => {
+    if (state.status !== "won") return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [state.status]);
+
+  // NOTE: inactivity countdowns previously ticked `now` here every 500ms,
+  // which re-rendered the entire GameTable (and every seat) twice a second
+  // and caused visible frame/input lag during play. The badge is now a
+  // self-ticking subcomponent (<InactivityBadge />) that only re-renders
+  // itself, so no parent tick is needed while playing.
+
+  // Global activity heartbeat: any screen touch/click/keypress resets this
+  // player's idle timer. Throttled to once per 3s to avoid intent spam.
+  useEffect(() => {
+    if (state.status !== "playing") return;
+    if (!meId) return;
+    const me = state.players.find((p) => p.id === meId);
+    if (!me || me.isBot) return;
+    let lastSent = 0;
+    const ping = () => {
+      const now = Date.now();
+      if (now - lastSent < 3000) return;
+      lastSent = now;
+      dispatch({ kind: "ping", playerId: meId });
+    };
+    window.addEventListener("pointerdown", ping, { passive: true });
+    window.addEventListener("touchstart", ping, { passive: true });
+    window.addEventListener("keydown", ping);
+    return () => {
+      window.removeEventListener("pointerdown", ping);
+      window.removeEventListener("touchstart", ping);
+      window.removeEventListener("keydown", ping);
+    };
+  }, [state.status, meId, state.players]);
+
+  // Countdown SFX
+  const lastCountRef = useRef<number>(0);
+  useEffect(() => {
+    if (state.status !== "countdown" || !state.countdownEndsAt) return;
+    const t = setInterval(() => {
+      const left = Math.ceil((state.countdownEndsAt! - Date.now()) / 1000);
+      if (left !== lastCountRef.current && left > 0 && left <= 3) {
+        lastCountRef.current = left;
+        sfx.tick();
+      }
+      if (left <= 0) {
+        sfx.go();
+        clearInterval(t);
+      }
+    }, 100);
+    return () => clearInterval(t);
+  }, [state.status, state.countdownEndsAt]);
+
+  // ===== Layout positions around table =====
+  // Rotate the players array so the local player ("me") is always at index 0,
+  // which maps to the bottom seat. Other players keep their relative order.
+  const seatOrder = useMemo(() => {
+    const idx = state.players.findIndex((p) => p.id === meId);
+    if (idx <= 0) return state.players;
+    return [...state.players.slice(idx), ...state.players.slice(0, idx)];
+  }, [state.players, meId]);
+  const basePositions = useMemo(() => getSeatPositions(seatOrder.length), [seatOrder.length]);
+
+  // ===== Host-only lobby layout profile (Ronya 2026-11-07) =====
+  // While the host is the only human in a lobby, every layout store
+  // (HUD movables, seat offsets/scales, center zoom/offset, player zoom)
+  // reads and writes a dedicated "hostlobby" scope instead of the
+  // seat-count scope: elements arranged while alone in the room are
+  // saved for host-only lobbies, and the next time the host enters a
+  // room alone those elements are right where they were left. Bots do
+  // not count as company; the Map Game Screen keeps its per-seat-count
+  // scopes untouched.
+  const hostAloneLobby =
+    !mapMode &&
+    isHost &&
+    !spectator &&
+    state.status === "lobby" &&
+    state.players.some((p) => p.id === meId) &&
+    state.players.every((p) => p.isBot || p.id === meId);
+  const layoutScope = hostAloneLobby ? "hostlobby" : String(seatOrder.length);
+
+  // ===== In-game layout adjustments supersede the Map Game Screen saves =====
+  // Any positioning/sizing a player does during a real game (any seat
+  // count) becomes the saved game mapping for that seat count: 5 seconds
+  // after the last adjustment, the current layout bundle overwrites the
+  // Map Game Screen snapshot (bimyah_map_saved_*), so the in-game
+  // arrangement wins over whatever SET last saved (Ronya 2026-11-01).
+  // In map mode itself this stays off: the SET button owns the snapshot
+  // there. The individual layout stores keep persisting instantly as
+  // before; only the mapping snapshot write is debounced.
+  const mapSaveTimerRef = useRef<number | null>(null);
+  const mapBundleRef = useRef<{ key: string; read: () => string[] } | null>(null);
+  const noteLayoutAdjustment = useCallback(() => {
+    if (mapMode) return;
+    if (mapSaveTimerRef.current !== null) window.clearTimeout(mapSaveTimerRef.current);
+    mapSaveTimerRef.current = window.setTimeout(() => {
+      mapSaveTimerRef.current = null;
+      const bundle = mapBundleRef.current;
+      if (!bundle) return;
+      try {
+        localStorage.setItem(bundle.key, JSON.stringify(bundle.read()));
+      } catch {
+        /* ignore quota */
+      }
+    }, 5000);
+  }, [mapMode]);
+  useEffect(
+    () => () => {
+      if (mapSaveTimerRef.current !== null) window.clearTimeout(mapSaveTimerRef.current);
+    },
+    [],
+  );
+
+  // ===== Per-seat drag offsets, persisted locally per (mode, playerCount) =====
+  const layoutKey = `bimyah_seat_offsets_${state.mode}_${layoutScope}`;
+  const [seatOffsets, setSeatOffsets] = useState<Record<number, { dx: number; dy: number }>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(layoutKey);
+      setSeatOffsets(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatOffsets({});
+    }
+  }, [layoutKey]);
+  const updateSeatOffset = (seatIdx: number, dx: number, dy: number) => {
+    noteLayoutAdjustment();
+    setSeatOffsets((cur) => {
+      const next = { ...cur, [seatIdx]: { dx, dy } };
+      try { localStorage.setItem(layoutKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  // ===== Per-seat pinch scale (mobile pinch to enlarge/shrink each seat) =====
+  const seatScaleKey = `bimyah_seat_scale_${state.mode}_${layoutScope}`;
+  const [seatScales, setSeatScales] = useState<Record<number, number>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(seatScaleKey);
+      setSeatScales(raw ? JSON.parse(raw) : {});
+    } catch {
+      setSeatScales({});
+    }
+  }, [seatScaleKey]);
+  const updateSeatScale = (seatIdx: number, s: number) => {
+    noteLayoutAdjustment();
+    setSeatScales((cur) => {
+      const clamped = Math.max(0.5, Math.min(2.5, s));
+      const next = { ...cur, [seatIdx]: clamped };
+      try { localStorage.setItem(seatScaleKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+
+  // ===== Center zoom + drag offset (pinch to enlarge/shrink, drag to reposition table + center cards + Bimyah) =====
+  const zoomKey = `bimyah_center_zoom_${state.mode}_${layoutScope}`;
+  const offsetKey = `bimyah_center_offset_${state.mode}_${layoutScope}`;
+  const [centerZoom, setCenterZoom] = useState<number>(1);
+  const [centerOffset, setCenterOffset] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(zoomKey);
+      const n = raw ? parseFloat(raw) : 1;
+      setCenterZoom(Number.isFinite(n) && n > 0 ? n : 1);
+    } catch {
+      setCenterZoom(1);
+    }
+    try {
+      const raw = localStorage.getItem(offsetKey);
+      const parsed = raw ? (JSON.parse(raw) as { dx: number; dy: number }) : { dx: 0, dy: 0 };
+      setCenterOffset({
+        dx: Number.isFinite(parsed.dx) ? parsed.dx : 0,
+        dy: Number.isFinite(parsed.dy) ? parsed.dy : 0,
+      });
+    } catch {
+      setCenterOffset({ dx: 0, dy: 0 });
+    }
+  }, [zoomKey, offsetKey]);
+  const persistZoom = (z: number) => {
+    noteLayoutAdjustment();
+    try { localStorage.setItem(zoomKey, String(z)); } catch {}
+  };
+  const persistOffset = (o: { dx: number; dy: number }) => {
+    noteLayoutAdjustment();
+    try { localStorage.setItem(offsetKey, JSON.stringify(o)); } catch {}
+  };
+
+  // ===== Player zoom (hand + piles + SET/SORT, local player only) =====
+  const playerZoomKey = `bimyah_player_zoom_${state.mode}_${layoutScope}`;
+  const [playerZoom, setPlayerZoom] = useState<number>(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(playerZoomKey);
+      const n = raw ? parseFloat(raw) : 1;
+      setPlayerZoom(Number.isFinite(n) && n > 0 ? n : 1);
+    } catch {
+      setPlayerZoom(1);
+    }
+  }, [playerZoomKey]);
+  const persistPlayerZoom = (z: number) => {
+    noteLayoutAdjustment();
+    try { localStorage.setItem(playerZoomKey, String(z)); } catch {}
+  };
+  const bumpPlayerZoom = (delta: number) => {
+    setPlayerZoom((cur) => {
+      const next = Math.min(2, Math.max(0.6, cur + delta));
+      persistPlayerZoom(next);
+      return next;
+    });
+  };
+  const bumpCenterZoom = (delta: number) => {
+    setCenterZoom((cur) => {
+      const next = Math.min(2, Math.max(0.6, cur + delta));
+      persistZoom(next);
+      return next;
+    });
+  };
+
+  // ===== Movable HUD elements (drag + pinch-resize), persisted per (mode, seatCount) =====
+  const movablesBase = useMovableLayouts(state.mode, layoutScope);
+  // Wrapped so every HUD drag/resize also counts as an in-game layout
+  // adjustment for the supersede-the-map-save debounce above.
+  const movables = {
+    ...movablesBase,
+    update: (id: string, patch: Partial<MovableLayout>) => {
+      movablesBase.update(id, patch);
+      noteLayoutAdjustment();
+    },
+    bumpLastMovedScale: (delta: number) => {
+      const ok = movablesBase.bumpLastMovedScale(delta);
+      if (ok) noteLayoutAdjustment();
+      return ok;
+    },
+  };
+
+  // ===== Map Game Screen: per-seat-count SET workflow =====
+  // Snapshot the full layout bundle (all stores touched by drag/pinch/zoom)
+  // when the player clicks SET. Compare current to snapshot to detect "dirty".
+  const seatCount = seatOrder.length;
+  const mapBundleKeys = useMemo(
+    () => [
+      `bimyah_movables_${state.mode}_${layoutScope}`,
+      `bimyah_seat_offsets_${state.mode}_${layoutScope}`,
+      `bimyah_seat_scale_${state.mode}_${layoutScope}`,
+      `bimyah_center_zoom_${state.mode}_${layoutScope}`,
+      `bimyah_center_offset_${state.mode}_${layoutScope}`,
+      `bimyah_player_zoom_${state.mode}_${layoutScope}`,
+    ],
+
+    [state.mode, layoutScope],
+  );
+  const mapSavedKey = `bimyah_map_saved_${state.mode}_${layoutScope}`;
+  const readBundle = useCallback(() => {
+    try {
+      return mapBundleKeys.map((k) => localStorage.getItem(k) ?? "");
+    } catch {
+      return mapBundleKeys.map(() => "");
+    }
+  }, [mapBundleKeys]);
+  // Keep the debounced supersede writer pointed at the current seat
+  // count's mapping snapshot and bundle reader.
+  mapBundleRef.current = { key: mapSavedKey, read: readBundle };
+  const [mapIsSet, setMapIsSet] = useState<boolean>(false);
+  // Re-evaluate "is set" whenever the layout-affecting stores change.
+  useEffect(() => {
+    if (!mapMode) return;
+    const compute = () => {
+      try {
+        const saved = localStorage.getItem(mapSavedKey);
+        if (!saved) {
+          setMapIsSet(false);
+          return;
+        }
+        const current = JSON.stringify(readBundle());
+        setMapIsSet(saved === current);
+      } catch {
+        setMapIsSet(false);
+      }
+    };
+    compute();
+    // Poll lightly — Movable writes to localStorage but doesn't fire events
+    // within the same tab. 1s is plenty (the SET badge only needs to settle
+    // soon after a drag ends), and lighter than the gameplay tick.
+    const t = setInterval(compute, 1000);
+    return () => clearInterval(t);
+  }, [mapMode, mapSavedKey, readBundle, movables.layouts, seatOffsets, seatScales, centerZoom, centerOffset, playerZoom]);
+  const handleMapSet = () => {
+    try {
+      localStorage.setItem(mapSavedKey, JSON.stringify(readBundle()));
+      setMapIsSet(true);
+      toast.success(`${seatCount}-seat configuration saved.`);
+    } catch {
+      toast.error("Could not save configuration.");
+    }
+  };
+
+  // Center pinch + drag: 1 pointer = drag, 2 pointers = pinch-zoom.
+  const pinchRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    startDist: number;
+    startZoom: number;
+    startDx: number;
+    startDy: number;
+    dragging: boolean;
+    moved: boolean;
+  }>({ startDist: 0, startZoom: 1, startDx: 0, startDy: 0, dragging: false, moved: false });
+  const centerPointerDown = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (!p.a) {
+      p.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      p.startDx = centerOffset.dx;
+      p.startDy = centerOffset.dy;
+      p.dragging = true;
+      p.moved = false;
+    } else if (!p.b && e.pointerId !== p.a.id) {
+      p.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      p.startDist = Math.hypot(dx, dy) || 1;
+      p.startZoom = centerZoom;
+      p.dragging = false; // pinch takes over
+    }
+  };
+  const centerPointerMove = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (p.b && p.a) {
+      if (e.pointerId === p.a.id) { p.a.x = e.clientX; p.a.y = e.clientY; }
+      else if (e.pointerId === p.b.id) { p.b.x = e.clientX; p.b.y = e.clientY; }
+      else return;
+      const dx = p.b.x - p.a.x;
+      const dy = p.b.y - p.a.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const next = Math.min(2, Math.max(0.6, p.startZoom * (dist / p.startDist)));
+      setCenterZoom(next);
+      return;
+    }
+    if (p.dragging && p.a && e.pointerId === p.a.id) {
+      const ddx = e.clientX - p.a.x;
+      const ddy = e.clientY - p.a.y;
+      if (!p.moved && Math.hypot(ddx, ddy) < 4) return;
+      p.moved = true;
+      setCenterOffset({ dx: p.startDx + ddx, dy: p.startDy + ddy });
+    }
+  };
+  const centerPointerUp = (e: React.PointerEvent) => {
+    const p = pinchRef.current;
+    if (p.a?.id === e.pointerId) p.a = undefined;
+    if (p.b?.id === e.pointerId) p.b = undefined;
+    if (!p.a && !p.b) {
+      persistZoom(centerZoom);
+      persistOffset(centerOffset);
+      p.dragging = false;
+      p.moved = false;
+    } else if (!p.b && p.a) {
+      // Pinch ended but one finger still down — don't resume drag with stale origin.
+      p.dragging = false;
+    }
+  };
+
+  // helpers
+  // All seat-driven handlers accept an optional `actorId`. By default the
+  // local player acts on their own seat; when "Control All Hands" is on
+  // (training only) the parent passes the seat's player id so the user can
+  // operate other seats too.
+  const handlePileTap = (pileIndex: number, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || state.status !== "playing") return;
+    if (actor.pileLocked[pileIndex]) return;
+    sfx.flip();
+    dispatch({ kind: "openPile", playerId: actorId, stackIndex: pileIndex });
+  };
+
+  const handleCenterTap = (i: number) => {
+    if (state.status !== "playing") return;
+    const slot = state.center[i];
+    if (!slot.card) return;
+    // Determine which seat is acting on this center slot. Priority:
+    //   1) whoever already holds this slot,
+    //   2) whoever has a hand card currently selected,
+    //   3) the local player.
+    const actorId =
+      slot.heldBy ?? (selectedHandCardId ? selectedActorId : meId);
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // Complete an in-flight hold + selected swap.
+    if (
+      slot.heldBy === actorId &&
+      selectedHandCardId &&
+      selectedActorId === actorId
+    ) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: actorId, cardId: selectedHandCardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    if (slot.heldBy) return;
+    if (actor.openPileIndex === null) return;
+    if (actor.hand.length >= 5) return;
+    if (
+      selectedHandCardId &&
+      selectedActorId === actorId &&
+      actor.hand.some((c) => c.id === selectedHandCardId)
+    ) {
+      const cardId = selectedHandCardId;
+      sfx.swap();
+      dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
+      dispatch({ kind: "swap", playerId: actorId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    sfx.flip();
+    dispatch({ kind: "holdCenter", playerId: actorId, centerIndex: i });
+  };
+
+  // True when "I" am currently holding a card from an inactive player's pile.
+  const myFreeHold = useMemo(() => {
+    for (const p of state.players) {
+      if (!p.freePileHolds) continue;
+      const idx = p.freePileHolds.findIndex((h) => h?.heldBy === meId);
+      if (idx !== -1) {
+        const h = p.freePileHolds[idx]!;
+        return { ownerId: p.id, pileIndex: idx, cardId: h.cardId, heldUntil: h.heldUntil };
+      }
+    }
+    return null;
+  }, [state.players, meId]);
+
+  const handleHandCardTap = (cardId: string, actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    // "Me"-only: free-card hold path takes priority.
+    if (actorId === meId && myFreeHold) {
+      sfx.swap();
+      dispatch({ kind: "swapFreeCard", viewerId: meId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    const holding = state.center.some((sl) => sl.heldBy === actorId);
+    // If this actor is holding a center card, tapping a hand card completes
+    // the swap immediately (one-tap flow).
+    if (holding) {
+      sfx.swap();
+      dispatch({ kind: "swap", playerId: actorId, cardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    // Otherwise toggle selection on this actor's hand.
+    if (
+      selectedHandCardId === cardId &&
+      selectedActorId === actorId
+    ) {
+      setSelectedHandCardId(null);
+    } else {
+      setSelectedActorId(actorId);
+      setSelectedHandCardId(cardId);
+    }
+  };
+
+  // Tap a free-card pile to expand/collapse it (one open at a time).
+  const handleFreePileTap = (ownerId: string, pileIndex: number) => {
+    if (state.status !== "playing") return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner || !owner.freeCards) return;
+    if (owner.pileLocked[pileIndex]) return;
+    sfx.flip();
+    setFreeView((cur) =>
+      cur && cur.ownerId === ownerId && cur.pileIndex === pileIndex
+        ? null
+        : { ownerId, pileIndex },
+    );
+  };
+
+  // Tap a card inside an expanded free-card pile to hold it.
+  const handleFreeCardTap = (ownerId: string, pileIndex: number, cardId: string) => {
+    if (state.status !== "playing") return;
+    if (!me || me.openPileIndex === null || me.hand.length === 0) return;
+    if (myFreeHold) return;
+    if (state.center.some((s) => s.heldBy === meId)) return;
+    const owner = state.players.find((p) => p.id === ownerId);
+    if (!owner) return;
+    const existing = owner.freePileHolds?.[pileIndex];
+    if (existing) return;
+    // If the player has pre-selected a hand card, perform hold + swap in one tap.
+    if (
+      selectedHandCardId &&
+      selectedActorId === meId &&
+      me.hand.some((c) => c.id === selectedHandCardId)
+    ) {
+      const handCardId = selectedHandCardId;
+      sfx.swap();
+      dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
+      dispatch({ kind: "swapFreeCard", viewerId: meId, cardId: handCardId });
+      setSelectedHandCardId(null);
+      return;
+    }
+    sfx.flip();
+    dispatch({ kind: "holdFreeCard", viewerId: meId, ownerId, pileIndex, cardId });
+  };
+
+  const handleSet = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor) return;
+    if (actor.hand.length === 4 && isFourOfAKind(actor.hand)) {
+      sfx.set();
+      dispatch({ kind: "declareSet", playerId: actorId });
+    }
+  };
+
+  // Sort the local hand display so identical ranks cluster together,
+  // ordered by frequency desc then by rank. Purely cosmetic — engine state
+  // is unchanged, so this stays multiplayer-safe.
+  const handleSort = (actorId: string = meId) => {
+    const actor = state.players.find((p) => p.id === actorId);
+    if (!actor || actor.hand.length === 0) return;
+    setSortEnabled(true);
+    sfx.flip();
+  };
+
+  const handleBimyah = () => {
+    if (!me) return;
+    if (canDeclareBimyah(state, meId)) {
+      dispatch({ kind: "declareBimyah", playerId: meId });
+    }
+  };
+
+  const onReady = (actorId: string = meId) => {
+    // Block readying up when alone in the room — need at least 2 players to start.
+    if (state.players.length < 2) return;
+    // Joiners: arm the ready-intent retry (see wantReadyRef above).
+    if (actorId === meId && !isHost) wantReadyRef.current.ready = 20;
+    dispatch({ kind: "ready", playerId: actorId, ready: true });
+  };
+
+  // Match-end "ready up" toggle for non-host players. Host uses this same
+  // intent so its avatar lights up too (keepReadyPlayers always preserves
+  // the host, but this keeps the visual consistent).
+  // Readying up for the next match is permanent — once set, players cannot
+  // un-ready. This prevents accidental cancels and keeps the host's view of
+  // who's in for the next match stable.
+  const onReadyForNext = () => {
+    if (!me) return;
+    if (me.readyForNext) return;
+    // Joiners: same lost-packet trap as the lobby ready; arm the retry.
+    if (!isHost) wantReadyRef.current.readyForNext = 20;
+    dispatch({ kind: "readyForNext", playerId: meId, ready: true });
+  };
+
+  const onPlayAgain = () => {
+    dispatch({ kind: "playAgain" });
+    setShowPlayAgain(false);
+  };
+
+  const onNextMatch = () => {
+    dispatch({ kind: "nextMatch" });
+    setShowPlayAgain(false);
+  };
+
+  const onNewTournament = (limit: number | null) => {
+    dispatch({ kind: "newTournament", pointLimit: limit });
+    setShowPlayAgain(false);
+    setShowNewTournyPicker(false);
+    setNewLimitInput("");
+  };
+
+
+  const copyInvite = () => {
+    if (!inviteUrl) return;
+    navigator.clipboard?.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  // Share a game invite (Ronya 2026-11-03): the system share sheet
+  // with his default message and the room's invite link. The link
+  // carries ?invite=1, which is what puts a signed-out arrival into a
+  // pending seat with the Login / Play as Guest choice in the room.
+  // No share sheet (desktop): copy the message and link instead.
+  const shareGameInvite = async () => {
+    if (!inviteUrl || typeof window === "undefined") return;
+    const url = `${window.location.origin}/join/${inviteUrl}?invite=1`;
+    const text = "Play Bimyah! with me!";
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      try {
+        await navigator.share({ title: "Bimyah!", text, url });
+        void recordShareEvent({
+          data: { method: "web_share", source: "game-invite", user_id: authUser?.id ?? null },
+        }).catch(() => {});
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      toast.success("Invite link copied");
+      void recordShareEvent({
+        data: { method: "clipboard", source: "game-invite", user_id: authUser?.id ?? null },
+      }).catch(() => {});
+    } catch {
+      toast.error("Couldn't copy the invite link");
+    }
+  };
+
+  // ===== Keyboard controls =====
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      // Ignore when typing in an input/textarea or modal forms
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          target.isContentEditable
+        ) return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Normalize this keypress the same way the editor stores keys.
+      const k =
+        e.key === " " || e.key === "Enter" || e.key === "Shift" ||
+        e.key.startsWith("Arrow") || e.key === "Tab" || e.key === "Escape" || e.key === "Backspace"
+          ? e.key
+          : e.key.length === 1
+            ? e.key.toLowerCase()
+            : e.key;
+
+      // Build a reverse map: key -> first matching action.
+      const keyToAction = new Map<string, ActionId>();
+      (Object.entries(keybinds) as [ActionId, string][]).forEach(([id, val]) => {
+        if (val && !keyToAction.has(val)) keyToAction.set(val, id);
+      });
+      const action = keyToAction.get(k);
+
+      // Sizing keys (work in any status)
+      // Sizing keys (work in any status). Up/Down resize the last-moved
+      // Movable HUD element if there is one; otherwise fall back to player
+      // hand zoom so the existing default behavior is preserved. Left/Right
+      // always resize the table.
+      if (action === "playerZoomIn") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(0.1)) bumpPlayerZoom(0.1);
+        return;
+      }
+      if (action === "playerZoomOut") {
+        e.preventDefault();
+        if (!movables.bumpLastMovedScale(-0.1)) bumpPlayerZoom(-0.1);
+        return;
+      }
+      if (action === "centerZoomIn") { e.preventDefault(); bumpCenterZoom(0.1); return; }
+      if (action === "centerZoomOut") { e.preventDefault(); bumpCenterZoom(-0.1); return; }
+
+      if (!me) return;
+
+      // Lobby ready
+      if (state.status === "lobby") {
+        if (action === "bimyah" || action === "set") {
+          if (!me.ready) { e.preventDefault(); onReady(); }
+        }
+        return;
+      }
+      if (state.status !== "playing" && state.status !== "countdown") {
+        return;
+      }
+
+      if (!action) return;
+
+      // BIMYAH
+      if (action === "bimyah") {
+        if (canDeclareBimyah(state, meId)) {
+          e.preventDefault();
+          handleBimyah();
+        }
+        return;
+      }
+
+      // SET
+      if (action === "set") {
+        if (me.openPileIndex !== null && me.hand.length === 4 && isFourOfAKind(me.hand)) {
+          e.preventDefault();
+          handleSet();
+        }
+        return;
+      }
+
+      // SORT
+      if (action === "sort") {
+        if (me.openPileIndex !== null && me.hand.length >= 2) {
+          e.preventDefault();
+          handleSort();
+        }
+        return;
+      }
+
+      // Center cards
+      const centerLen = state.center.length;
+      const split = centerLen >= 8;
+      const centerIdxFromAction = (a: ActionId): number | null => {
+        const m: Partial<Record<ActionId, number>> = {
+          center1: 0, center2: 1, center3: 2, center4: 3,
+          center5: 4, center6: 5, center7: 6, center8: 7,
+          centerAlt1: 0, centerAlt2: 1, centerAlt3: 2, centerAlt4: 3,
+          centerAlt5: 4, centerAlt6: 5, centerAlt7: 6, centerAlt8: 7,
+        };
+        const idx = m[a];
+        if (idx === undefined) return null;
+        // alt bottom row only valid in 8-slot mode
+        if (!split && (a === "centerAlt5" || a === "centerAlt6" || a === "centerAlt7" || a === "centerAlt8")) return null;
+        return idx;
+      };
+      const centerIdx = centerIdxFromAction(action);
+      if (centerIdx !== null && centerIdx < centerLen) {
+        e.preventDefault();
+        handleCenterTap(centerIdx);
+        return;
+      }
+
+      // Piles
+      const pileMap: Partial<Record<ActionId, number>> = {
+        pile1: 0, pile2: 1, pile3: 2, pile4: 3,
+      };
+      if (action in pileMap) {
+        const idx = pileMap[action]!;
+        if (idx < me.piles.length) {
+          e.preventDefault();
+          handlePileTap(idx);
+        }
+        return;
+      }
+
+      // Hand cards
+      const handMap: Partial<Record<ActionId, number>> = {
+        hand1: 0, hand2: 1, hand3: 2, hand4: 3,
+      };
+      if (action in handMap) {
+        const idx = handMap[action]!;
+        const visibleHand = (() => {
+          if (!sortOn || me.hand.length < 2) return me.hand;
+          const counts = new Map<string, number>();
+          for (const c of me.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+          const RANK_ORDER: Record<string, number> = {
+            A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+            "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+          };
+          return [...me.hand].sort((a, b) => {
+            const fa = counts.get(a.rank) ?? 0;
+            const fb = counts.get(b.rank) ?? 0;
+            if (fa !== fb) return fb - fa;
+            const ra = RANK_ORDER[a.rank] ?? 99;
+            const rb = RANK_ORDER[b.rank] ?? 99;
+            if (ra !== rb) return ra - rb;
+            return a.suit.localeCompare(b.suit);
+          });
+        })();
+        const card = visibleHand[idx];
+        if (card) {
+          e.preventDefault();
+          handleHandCardTap(card.id);
+        }
+        return;
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, meId, selectedHandCardId, sortEnabled, autoSort, me, keybinds]);
+
+
+  const hostPlayer = state.hostId
+    ? state.players.find((p) => p.id === state.hostId)
+    : state.players[0];
+  const localPlayer = state.players.find((p) => p.id === meId);
+  // Background follows the local viewer's equipped selection so every player
+  // sees their own active background. Tabletop / table art remain host-driven
+  // because they represent the shared physical table.
+  const hostBackgroundUrl =
+    localPlayer?.backgroundUrl ?? hostPlayer?.backgroundUrl ?? null;
+  // The game root is sized to the dynamic viewport, but on some phones the
+  // browser still paints the page body in strips the root does not reach
+  // (below/behind the system bars), so the default red backdrop showed there
+  // and the equipped background looked layered on top of it. Mirror the
+  // equipped background onto the body while in a room so it truly replaces
+  // the default backdrop everywhere (Ronya 2026-11-07).
+  useEffect(() => {
+    if (!hostBackgroundUrl) return;
+    const body = document.body;
+    const prev = {
+      backgroundImage: body.style.backgroundImage,
+      backgroundSize: body.style.backgroundSize,
+      backgroundPosition: body.style.backgroundPosition,
+      backgroundRepeat: body.style.backgroundRepeat,
+      backgroundColor: body.style.backgroundColor,
+    };
+    body.style.backgroundImage = `url(${hostBackgroundUrl})`;
+    body.style.backgroundSize = "cover";
+    body.style.backgroundPosition = "center";
+    body.style.backgroundRepeat = "no-repeat";
+    body.style.backgroundColor = "#000";
+    return () => {
+      body.style.backgroundImage = prev.backgroundImage;
+      body.style.backgroundSize = prev.backgroundSize;
+      body.style.backgroundPosition = prev.backgroundPosition;
+      body.style.backgroundRepeat = prev.backgroundRepeat;
+      body.style.backgroundColor = prev.backgroundColor;
+    };
+  }, [hostBackgroundUrl]);
+  // In-room pull-to-refresh: the game screen is a fixed full-viewport
+  // surface, so the game itself can no longer be dragged up to reveal the
+  // page backdrop. The first version of this fix also locked document
+  // overflow, which killed pull-to-refresh (Ronya 2026-11-07). Instead,
+  // while in a room the page's overscroll behavior is relaxed so a pull
+  // down at the top reloads the game; the fixed game screen stays pinned
+  // during the pull. Restored on unmount; other screens keep the
+  // stylesheet default from styles.css.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overscrollBehavior;
+    const prevBody = body.style.overscrollBehavior;
+    html.style.overscrollBehavior = "auto";
+    body.style.overscrollBehavior = "auto";
+    return () => {
+      html.style.overscrollBehavior = prevHtml;
+      body.style.overscrollBehavior = prevBody;
+    };
+  }, []);
+  const hostTabletopUrl = hostPlayer?.tabletopUrl ?? null;
+  const hostTableArtUrl = hostPlayer?.tableArtUrl ?? null;
+
+  return (
+    <div
+      ref={tableRootRef}
+      className="fixed inset-0 overflow-hidden"
+      data-spectator={spectator ? "1" : undefined}
+      style={
+        hostBackgroundUrl
+          ? {
+              // Solid base so the body's default red gradient never bleeds
+              // through if the equipped background image has transparency or
+              // doesn't fully cover the viewport.
+              backgroundColor: "#000",
+              backgroundImage: `url(${hostBackgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }
+          : undefined
+      }
+    >
+
+      {/* Top-left: Settings cog with How to Play beside it (Ronya
+          2026-11-02: the How to Play button's default home moved from
+          the top-right cluster to next to the cog); Add Bot below in
+          lobby; Score to the right in tournament) */}
+      <div className="absolute left-2 top-2 z-30 flex flex-col items-start gap-2">
+        <div className="flex items-center gap-2">
+          <Movable id="settings-cog" {...movables}>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-black/30 text-white/80 backdrop-blur active:scale-90"
+              aria-label="Settings"
+            >
+              <img src={iconGear} alt="" className="h-6 w-6 object-contain" draggable={false} />
+            </button>
+          </Movable>
+          <Movable id="how-to-play" {...movables} holdToDragMs={300}>
+            <HowToPlayButton
+              minimizable
+              autoOpenTab={
+                state.mode === "training" && state.status === "lobby" ? "videos" : null
+              }
+            />
+          </Movable>
+          {isTournament && state.pointLimit !== null && (
+            <Movable id="score-display" {...movables}>
+              <ScoreDisplay limit={state.pointLimit} />
+            </Movable>
+          )}
+        </div>
+        {/* 3D eyeball — viewer count + click to list. Only shown when
+            someone is actually spectating (Ronya 2026-10-28). */}
+        {spectators.length > 0 && (
+        <Movable id="viewers-eye" {...movables}>
+          <button
+            onClick={() => setShowViewers(true)}
+            className="relative flex h-9 min-w-9 flex-col items-center justify-center gap-0 rounded-lg bg-gradient-to-b from-white/15 to-black/40 px-2 text-white/90 ring-1 ring-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_3px_6px_rgba(0,0,0,0.45)] backdrop-blur active:scale-90"
+            aria-label={`Viewers (${spectators.length})`}
+            title={`${spectators.length} viewer${spectators.length === 1 ? "" : "s"}`}
+          >
+            <img src={iconEye} alt="" className="h-4 w-4 object-contain drop-shadow" draggable={false} />
+            <span className="text-center font-display text-[10px] font-bold tabular-nums leading-none text-white">
+              {spectators.length}
+            </span>
+          </button>
+        </Movable>
+        )}
+        {state.mode === "training" && (
+          <Movable id="view-all" {...movables}>
+            <LiquidMetalButton
+              onClick={() => setShowViewAll(true)}
+              className="btn-3d btn-3d-dark flex items-center gap-1 px-[10px] py-[3px] text-[9.5px]"
+              aria-label="View all cards"
+            >
+              👁 View All Cards
+            </LiquidMetalButton>
+          </Movable>
+        )}
+        {state.status === "lobby" && isHost && !tournamentUnderway && (
+          <Movable id="add-bot" {...movables}>
+            <div className="btn-3d btn-3d-dark flex flex-col items-stretch overflow-hidden p-0 select-none">
+              <span className="px-3 pt-1 pb-0.5 text-center font-display text-[9px] uppercase tracking-widest underline">{mapMode ? "Seats" : "Bots"}</span>
+              <div className="flex items-stretch border-t-2 border-white/25">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (mapMode && !mapIsSet) {
+                      toast.error(
+                        `SET the current ${seatCount}-seat layout before adding another seat.`,
+                      );
+                      return;
+                    }
+                    if (state.players.length < (state.maxSeats ?? 4)) {
+                      dispatch({ kind: "addBot" });
+                    }
+                  }}
+                  disabled={state.players.length >= (state.maxSeats ?? 4)}
+                  className="flex-1 px-2.5 py-1 font-display text-xl leading-none disabled:opacity-40"
+                  aria-label={mapMode ? "Add a seat" : "Add a bot"}
+                >
+                  +
+                </button>
+                {mapMode && (
+                  <>
+                    <div className="w-0.5 bg-white/25" />
+                    <span className="grid min-w-6 place-items-center font-display text-sm tabular-nums text-white/90">
+                      {state.players.length}
+                    </span>
+                  </>
+                )}
+                <div className="w-0.5 bg-white/25" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (mapMode) {
+                      if (state.players.length > 2) dispatch({ kind: "removeBot" });
+                    } else if (state.players.some((p) => p.isBot)) {
+                      dispatch({ kind: "removeBot" });
+                    }
+                  }}
+                  disabled={
+                    mapMode
+                      ? state.players.length <= 2
+                      : !state.players.some((p) => p.isBot)
+                  }
+                  className="flex-1 px-2.5 py-1 font-display text-xl leading-none disabled:opacity-40"
+                  aria-label={mapMode ? "Remove a seat" : "Remove a bot"}
+                >
+                  −
+                </button>
+              </div>
+            </div>
+          </Movable>
+        )}
+
+      </div>
+
+      {/* Bottom-left: Control All Hands (training only) */}
+      {state.mode === "training" && (
+        <div className="absolute bottom-2 left-2 z-30">
+          <Movable id="control-all-hands-bl" {...movables}>
+            <LiquidMetalButton
+              onClick={() => setControlAllHands((v) => !v)}
+              className={cn(
+                "btn-3d px-[5px] py-[1.5px] text-[7px]",
+                controlAllHands ? "btn-3d-gold" : "btn-3d-dark",
+              )}
+              aria-pressed={controlAllHands}
+              aria-label="Control all hands"
+              title={
+                controlAllHands
+                  ? "Tap to release control of other seats (bots resume)"
+                  : "Drive every seat as if it were your own (pauses bots)"
+              }
+            >
+              {controlAllHands ? "Controlling All" : "Control All Hands"}
+            </LiquidMetalButton>
+          </Movable>
+        </div>
+      )}
+
+
+      {/* Top-right: match clock + Scoreboard (in tournament) */}
+      <div className="absolute right-2 top-2 z-30 flex flex-col items-end gap-2">
+        <Movable id="match-clock" {...movables}>
+          <MatchClock status={state.status} />
+        </Movable>
+        {isTournament && (
+          <Movable id="scoreboard-btn" {...movables}>
+            <ScoreboardButton onClick={() => setShowScoreboard(true)} />
+          </Movable>
+        )}
+      </div>
+
+      {/* Bottom-right: 3D chat button */}
+      <div className="absolute bottom-3 right-3 z-30 flex items-center gap-2">
+        {mapMode && !showMapTips && (
+          <LiquidMetalButton
+            onClick={() => setShowMapTips(true)}
+            className="btn-3d btn-3d-mint px-2 py-1 text-[10px] font-black uppercase tracking-wider"
+            aria-label="Show tips"
+          >
+            Tips
+          </LiquidMetalButton>
+        )}
+        <Movable id="chat-button" {...movables} origin="bottom right">
+          <button
+            onClick={() => setShowChat(true)}
+            className="relative grid h-12 w-12 place-items-center active:scale-90"
+            aria-label="Open chat"
+          >
+            <img src={iconChat} alt="" className="h-12 w-12 object-contain drop-shadow" draggable={false} />
+            {chatUnreadCount > 0 ? (
+              <span className="absolute -top-1 -right-1 grid min-w-5 h-5 place-items-center rounded-full bg-[var(--player-red)] px-1 text-[10px] font-bold text-white ring-2 ring-[oklch(0.18_0.04_165)]">
+                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+              </span>
+            ) : null}
+          </button>
+        </Movable>
+      </div>
+
+      {/* Map Game Screen tooltip — instructs the player how to adjust elements. */}
+      {mapMode && showMapTips && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-xl border border-[var(--gold)]/60 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-2xl">
+            <button
+              onClick={() => setShowMapTips(false)}
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/80 hover:bg-white/20"
+              aria-label="Close tips"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h2 className="font-display text-base uppercase tracking-widest text-[var(--gold)]">
+              Map Game Screen
+            </h2>
+            <p className="mt-2 text-xs text-white/80">
+              Set up how your game board will look. Each adjustment is saved as your default for that seat count.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-[11px] text-white/85">
+              <li>
+                <span className="font-bold text-[var(--gold)]">PC:</span> click &amp; drag any element to move it. Select an element, then press <kbd className="rounded bg-white/10 px-1">↑</kbd> / <kbd className="rounded bg-white/10 px-1">↓</kbd> to resize.
+              </li>
+              <li>
+                <span className="font-bold text-[var(--gold)]">Mobile:</span> tap &amp; drag to move. Pinch with two fingers on an element to resize it.
+              </li>
+              <li>
+                Use the <span className="font-bold">Seats</span> control (top-left) to change how many seats are on the table.
+              </li>
+              <li>
+                When everything is positioned the way you like, click the <span className="font-bold text-[var(--gold)]">SET</span> button to save this configuration.
+              </li>
+            </ul>
+            <label className="mt-3 flex items-center gap-2 text-[11px] text-white/80 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideMapTips}
+                onChange={(e) => setHideMapTips(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--gold)]"
+              />
+              Don't show this message again
+            </label>
+            <LiquidMetalButton
+              onClick={() => setShowMapTips(false)}
+              className="btn-3d btn-3d-gold mt-3 w-full text-xs"
+            >
+              Got it
+            </LiquidMetalButton>
+          </div>
+        </div>
+      )}
+
+      {/* Invite (lobby only) — show 4-digit code */}
+      {state.status === "lobby" && inviteUrl && (
+        <div className="pointer-events-none absolute right-2 top-12 z-30">
+          {!tournamentUnderway && (
+          <Movable id="invite-code" {...movables} origin="top right" defaultLayout={{ s: 0.65 }} className="pointer-events-auto">
+
+
+
+            <div className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mint)]/40 bg-black/40 px-3 py-1.5 text-white backdrop-blur">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-[10px] uppercase tracking-widest text-white">
+                  Code
+                </span>
+                <span className="font-mono text-base font-bold tracking-[0.3em] text-white">
+                  {inviteUrl}
+                </span>
+                <button
+                  onClick={copyInvite}
+                  className="flex items-center gap-1 rounded-full border border-black bg-[var(--mint)] px-2 py-0.5 text-[10px] font-bold text-[oklch(0.18_0.04_165)]"
+                  aria-label="Copy code"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
+              <button
+                onClick={() => setInviteOpen(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-black bg-[var(--mint)]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-[var(--mint)]/25"
+              >
+                <UserPlus className="h-3 w-3" />
+                Invite Friends
+              </button>
+              <button
+                onClick={() => void shareGameInvite()}
+                className="inline-flex items-center gap-1 rounded-full border border-black bg-[var(--mint)]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-[var(--mint)]/25"
+              >
+                <Share2 className="h-3 w-3" />
+                Share Invite
+              </button>
+            </div>
+          </Movable>
+          )}
+          {/* Map Game Screen: SET button to save the current seat-count layout. */}
+          {mapMode && (
+            <div className="pointer-events-auto mt-2 flex justify-end">
+              <LiquidMetalButton
+                onClick={handleMapSet}
+                className={`btn-3d ${mapIsSet ? "btn-3d-mint" : "btn-3d-gold"} flex items-center gap-1.5 px-3 py-1 text-[11px] font-black uppercase tracking-wider`}
+                aria-label={`Save ${seatCount}-seat configuration`}
+              >
+                Set {seatCount}-Seat
+                {mapIsSet && <Check className="h-3.5 w-3.5 text-[oklch(0.18_0.04_165)]" strokeWidth={3} />}
+              </LiquidMetalButton>
+            </div>
+          )}
+        </div>
+      )}
+
+      {inviteUrl && (
+        <InviteFriendsOverlay
+          open={inviteOpen && !tournamentUnderway}
+          onClose={() => setInviteOpen(false)}
+          gameCode={inviteUrl}
+          joinUrl={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/join/${inviteUrl}`
+              : `/join/${inviteUrl}`
+          }
+        />
+      )}
+
+
+
+      {/* Match # banner above the table (tournament only) */}
+      {isTournament && (
+        <div
+          className="absolute left-1/2 z-20 -translate-x-1/2"
+          style={{ top: "calc(50% - min(19vw, 16vh, 140px) - 32px)" }}
+        >
+          <Movable id="match-badge" {...movables} origin="top center">
+            <MatchBadge n={state.matchNumber} />
+          </Movable>
+        </div>
+      )}
+
+      {/* Round table — pinch to zoom (scales table + center cards + Bimyah button together) */}
+      <div
+        className="absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2"
+        onPointerDown={centerPointerDown}
+        onPointerMove={centerPointerMove}
+        onPointerUp={centerPointerUp}
+        onPointerCancel={centerPointerUp}
+        style={{ touchAction: "none" }}
+      >
+        <div style={{ transform: `translate(${centerOffset.dx}px, ${centerOffset.dy}px) scale(${centerZoom})`, transformOrigin: "center center", transition: pinchRef.current.a && pinchRef.current.b ? "none" : pinchRef.current.dragging ? "none" : "transform 140ms ease-out" }}>
+          <div
+            className="grid place-items-center rounded-full relative"
+            style={{
+              width: "min(38vw, 32vh, 280px)",
+              height: "min(38vw, 32vh, 280px)",
+              ...(hostTabletopUrl
+                ? {
+                    backgroundImage: `url(${hostTabletopUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    boxShadow: "0 18px 40px rgba(0,0,0,0.6)",
+                  }
+                : { boxShadow: "0 18px 40px rgba(0,0,0,0.6)" }),
+            }}
+          >
+            {/* Default table: the realistic mahogany top (Ronya 2026-11-02),
+                shown whenever no tabletop is equipped. */}
+            {!hostTabletopUrl && (
+              <img
+                src={tabletopMahogany}
+                alt=""
+                aria-hidden
+                draggable={false}
+                className="pointer-events-none absolute inset-0 h-full w-full rounded-full object-cover"
+              />
+            )}
+            {hostTableArtUrl === "__none__" ? null : hostTableArtUrl ? (
+              <img
+                src={hostTableArtUrl}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+              />
+            ) : (
+              <img
+                src="/bimyah-logo-v2.webp"
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[78%] w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain"
+              />
+            )}
+
+             {/* Inner content: center cards + BIMYAH (free-card piles float above without shifting) */}
+             <div className="relative flex flex-col items-center justify-center gap-1.5">
+               {state.status !== "lobby" && (() => {
+                 const freePlayers = state.players.filter((p) => p.freeCards && p.id !== meId);
+                 if (freePlayers.length === 0) return null;
+                 const fcWidth = 31;
+                 return (
+                   <Movable
+                     id="free-cards-box"
+                     {...movables}
+                     origin="bottom center"
+                     className="pointer-events-auto absolute left-1/2 bottom-full mb-1 -translate-x-1/2"
+                   >
+                    <div className="flex flex-col items-center gap-1.5">
+                    {freePlayers.map((owner) => {
+                      const ownerColor = PLAYER_COLOR_HEX[owner.color];
+                      return (
+                        <div
+                          key={owner.id}
+                          className="flex flex-col items-center gap-0.5 rounded-md bg-black/30 px-1.5 py-1 ring-1 ring-[var(--gold)]/40"
+                        >
+                          <div
+                            className="text-[8px] font-bold uppercase tracking-widest text-white/80"
+                            style={{ borderBottom: `1px solid ${ownerColor}55` }}
+                          >
+                            {owner.name}
+                          </div>
+                          {owner.piles.map((pile, pi) => {
+                            const hold = owner.freePileHolds?.[pi] ?? null;
+                            const holderColor = hold
+                              ? PLAYER_COLOR_HEX[
+                                  state.players.find((pp) => pp.id === hold.heldBy)?.color ?? "green"
+                                ]
+                              : undefined;
+                            return (
+                              <div key={pi} className="flex flex-row gap-0.5">
+                                {pile.map((c) => {
+                                  const heldHere = hold?.cardId === c.id;
+                                  const ringColor = heldHere ? holderColor : undefined;
+                                  return (
+                                    <div
+                                      key={c.id}
+                                      onClick={() => {
+                                        if (hold) return;
+                                        handleFreeCardTap(owner.id, pi, c.id);
+                                      }}
+                                      className={cn(
+                                        "cursor-pointer",
+                                        heldHere && "animate-pulse-ring rounded-md",
+                                      )}
+                                      style={ringColor ? { boxShadow: `0 0 0 2px ${ringColor}` } : undefined}
+                                    >
+                                      <PlayingCard card={c} width={fcWidth} />
+                                    </div>
+                                  );
+                                })}
+                                {/* Pad with empty slots so locked/short piles still align as groups of 4 */}
+                                {pile.length < 4 &&
+                                  Array.from({ length: 4 - pile.length }).map((_, k) => (
+                                    <EmptySlot key={`pad-${k}`} width={fcWidth} />
+                                  ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                    </div>
+                  </Movable>
+                );
+              })()}
+              {state.status !== "lobby" && (() => {
+                const centerSlots = state.center;
+                const splitCenter = centerSlots.length >= 8;
+                const renderSlot = (slot: typeof centerSlots[number], i: number) => {
+                  const heldByPlayer = state.players.find((p) => p.id === slot.heldBy);
+                  const outline = heldByPlayer ? PLAYER_COLOR_HEX[heldByPlayer.color] : undefined;
+                  if (slot.card) {
+                    const isMine = slot.heldBy === meId;
+                    const readyToComplete = isMine && !!selectedHandCardId;
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => handleCenterTap(i)}
+                        className={cn(
+                          "cursor-pointer",
+                          outline && "rounded-lg p-0.5",
+                          readyToComplete && "animate-pulse-ring",
+                        )}
+                        style={outline ? { boxShadow: `0 0 0 2px ${outline}` } : undefined}
+                        aria-label={isMine ? "Holding — pick a hand card to swap" : undefined}
+                      >
+                        <PlayingCard card={slot.card} width={31} />
+                      </div>
+                    );
+                  }
+                  return <EmptySlot key={i} width={31} outlineColor={outline} />;
+                };
+                const bimyahBtn = state.status === "playing" && (
+                  <LiquidMetalButton
+                    onClick={handleBimyah}
+                    disabled={!canDeclareBimyah(state, meId)}
+                    className={cn(
+                      "btn-3d btn-3d-red px-3 py-1.5 text-[11px]",
+                      canDeclareBimyah(state, meId) && "animate-pulse-ring",
+                    )}
+                  >
+                    BIMYAH!
+                  </LiquidMetalButton>
+                );
+                if (splitCenter) {
+                  const top = centerSlots.slice(0, 4);
+                  const bottom = centerSlots.slice(4, 8);
+                  return (
+                    <>
+                      <div className="flex items-center gap-1.5">{top.map((s, i) => renderSlot(s, i))}</div>
+                      {bimyahBtn}
+                      <div className="flex items-center gap-1.5">{bottom.map((s, i) => renderSlot(s, i + 4))}</div>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <div className="flex items-center gap-1.5">{centerSlots.map((s, i) => renderSlot(s, i))}</div>
+                    {bimyahBtn}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lobby prompt (Ronya 2026-10-25): moved out of the table center to
+          below the table, with a down arrow under "Tap Ready!" pointing at
+          the player's own seat. */}
+      {state.status === "lobby" && (
+        <div className="pointer-events-none absolute inset-x-0 top-[59%] z-40 flex flex-col items-center gap-1 px-2 text-center font-display text-sm uppercase tracking-widest text-white/70">
+          {state.players.length < 2 ? null : spectator && isHost ? (
+            <span className="text-[var(--gold)]">Your lobby is ready</span>
+          ) : !spectator && !mePending && state.players.find((p) => p.id === meId && !p.ready) ? (
+            <>
+              <span className="animate-flash text-[var(--gold)]">Tap Ready!</span>
+              <ArrowDown className="h-7 w-7 animate-bounce text-[var(--gold)]" />
+            </>
+          ) : null}
+          {spectator && isHost && state.players.length >= 2 && (
+            <button
+              type="button"
+              onClick={() => dispatch({ kind: "forceStart" })}
+              className="btn-3d btn-3d-lime pointer-events-auto px-4 py-2 text-xs uppercase tracking-widest"
+            >
+              Start Match
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Pending invited seat: the Login / Play as Guest choice sits
+          over the player's hand area (Ronya 2026-11-03). The match
+          cannot start until they choose (engine-enforced). */}
+      {mePending && state.status === "lobby" && (
+        <div className="absolute inset-x-0 bottom-24 z-40 flex justify-center px-4">
+          <div className="pointer-events-auto flex w-full max-w-xs flex-col items-center gap-2 rounded-2xl border border-[var(--mint)]/40 bg-black/70 px-4 py-3 shadow-2xl backdrop-blur">
+            <div className="text-center font-display text-xs font-black uppercase tracking-widest text-white">
+              You were invited to this game
+            </div>
+            <div className="text-center text-[11px] leading-snug text-white/60">
+              Choose how to join. The match will not start until you do.
+            </div>
+            <div className="flex w-full gap-2">
+              <LiquidMetalButton
+                onClick={() => setShowRoomLogin(true)}
+                className="btn-3d btn-3d-mint flex-1 text-sm"
+              >
+                Login
+              </LiquidMetalButton>
+              <LiquidMetalButton
+                onClick={onGuestChoice}
+                className="btn-3d btn-3d-gold flex-1 text-sm"
+              >
+                Play as Guest
+              </LiquidMetalButton>
+            </div>
+          </div>
+        </div>
+      )}
+      {showRoomLogin && (
+        <InRoomAuthModal
+          onCancel={() => setShowRoomLogin(false)}
+          onSuccess={() => {
+            setShowRoomLogin(false);
+            loginIdentifyRef.current = true;
+          }}
+        />
+      )}
+      {showRoomGuest && (
+        <GuestNamePrompt
+          onCancel={() => setShowRoomGuest(false)}
+          onSubmit={(guestName) => {
+            setShowRoomGuest(false);
+            identifyAsGuest(guestName);
+          }}
+        />
+      )}
+
+      {/* Countdown overlay */}
+      {state.status === "countdown" && state.countdownEndsAt && (
+        <Countdown endsAt={state.countdownEndsAt} />
+      )}
+
+      {/* Player seats */}
+      {seatOrder.map((player, seatIdx) => {
+        const isMe = player.id === meId;
+        const canControl = isMe || controlAllHands;
+        const pos = basePositions[seatIdx];
+        const offset = seatOffsets[seatIdx];
+        return (
+          <PlayerSeat
+            key={player.id}
+            player={player}
+            onViewProfile={setProfileUserId}
+            position={pos}
+            offset={offset}
+            draggable
+            onDragEnd={(dx, dy) => updateSeatOffset(seatIdx, dx, dy)}
+            pinchScale={isMe ? playerZoom : seatScales[seatIdx] ?? 1}
+            onPinchEnd={
+              isMe
+                ? (s) => {
+                    // The local seat has ONE size setting: playerZoom. The
+                    // pinch writes it (same store the arrow keys adjust)
+                    // instead of the generic per-seat pinch scale, so the
+                    // two gestures can never fight or stack.
+                    const next = Math.min(2, Math.max(0.6, s));
+                    setPlayerZoom(next);
+                    persistPlayerZoom(next);
+                  }
+                : (s) => updateSeatScale(seatIdx, s)
+            }
+            isMe={isMe}
+            canControl={canControl}
+
+            status={state.status}
+            onReady={canControl && !player.pendingIdentity ? () => onReady(player.id) : undefined}
+            onPileTap={canControl ? (i) => handlePileTap(i, player.id) : undefined}
+            onHandCardTap={canControl ? (cardId) => handleHandCardTap(cardId, player.id) : undefined}
+            onSet={canControl ? () => handleSet(player.id) : undefined}
+            onSort={canControl ? () => handleSort(player.id) : undefined}
+            selectedHandCardId={selectedActorId === player.id ? selectedHandCardId : null}
+            sortEnabled={isMe ? sortOn : false}
+            zoom={1}
+            revealAll={state.mode === "training"}
+            freeView={!isMe && freeView?.ownerId === player.id ? freeView.pileIndex : null}
+            onFreePileTap={!isMe && player.freeCards ? (i) => handleFreePileTap(player.id, i) : undefined}
+            onFreeCardTap={!isMe && player.freeCards ? (i, cardId) => handleFreeCardTap(player.id, i, cardId) : undefined}
+            colorMap={PLAYER_COLOR_HEX}
+            showCrown={tournamentLeaderId === player.id}
+            players={state.players}
+            now={now}
+            inactivityDisabled={state.inactivityDisabled}
+          />
+        );
+      })}
+
+      {/* Emblems layer — rendered as its own element per seat, independent
+          of PlayerSeat's zoom/pinch. Visible in lobby too so players can
+          adjust before the match starts. Layering (Ronya 2026-10-26):
+          emblems sit ONE layer above the room background and below every
+          other element (table, seats, cards), so the anchor z is 0 and
+          the table wrapper carries z-[1]. */}
+      {seatOrder.map((player, seatIdx) => {
+        if (!player.emblemUrl && !player.emblemUrl2) return null;
+        const isMe = player.id === meId;
+        const pos = basePositions[seatIdx];
+        // Intentionally do NOT pass seatOffsets — emblems are independent of
+        // the player hand's drag. The seat base position is only a starting
+        // anchor; per-emblem drag offsets are persisted separately.
+        return (
+          <SeatEmblemsLayer
+            key={`emblems-${player.id}`}
+            playerId={player.id}
+            isMe={isMe}
+            scopeKey={`${state.mode}_${layoutScope}`}
+            position={pos}
+            leftUrl={player.emblemUrl ?? null}
+            rightUrl={player.emblemUrl2 ?? null}
+            leftLayout={player.emblemLayout ?? null}
+            rightLayout={player.emblemLayout2 ?? null}
+            onLayout={(slot, layout) =>
+              dispatch({ kind: "emblemLayout", playerId: player.id, slot, layout })
+            }
+          />
+        );
+      })}
+
+      {/* Win overlay */}
+      {state.status === "won" && (() => {
+        const winner = state.players.find((p) => p.id === state.winnerId);
+        const winnerName = winner?.name ?? "?";
+        const isChampion = isTournament && state.championId === state.winnerId;
+        const borderColor = winner ? PLAYER_COLOR_HEX[winner.color] : "#fbbf24";
+        const isMeWinner = state.winnerId === meId;
+        const subline = !isTournament
+          ? (isMeWinner ? "You Win!" : `${winnerName} Wins!`)
+          : isChampion
+          ? (isMeWinner
+              ? `You Win! ${state.scores[state.winnerId ?? ""] ?? 0} pts`
+              : `${winnerName} Wins! ${state.scores[state.winnerId ?? ""] ?? 0} pts`)
+          : (isMeWinner
+              ? `You Win! +${state.lastMatchPoints ?? 0} pts`
+              : `${winnerName} Wins! +${state.lastMatchPoints ?? 0} pts`);
+        // Determine host status + restart cooldown.
+        const hostId = state.hostId;
+        const amHost = !!hostId && meId === hostId;
+        const RESTART_COOLDOWN_MS = 7000;
+        const wonAt = state.wonAt ?? 0;
+        const cooldownLeft = Math.max(
+          0,
+          Math.ceil((wonAt + RESTART_COOLDOWN_MS - now) / 1000),
+        );
+        const cooldownActive = cooldownLeft > 0;
+
+        // Real (non-bot) players, in seat order.
+        const humans = state.players.filter((p) => !p.isBot);
+        const meReady = !!me?.readyForNext || amHost;
+
+        const hostStartLabel = !isTournament
+          ? "Start Next Match"
+          : isChampion
+          ? "Start New Tournament"
+          : "Start Next Match";
+        const nonHostHumans = humans.filter((p) => p.id !== hostId);
+        const allHumansReady = nonHostHumans.every((p) => !!p.readyForNext);
+        const startNow = () => {
+          if (!isTournament) {
+            onPlayAgain();
+          } else if (isChampion) {
+            setShowNewTournyPicker(true);
+          } else {
+            onNextMatch();
+          }
+        };
+        const onHostStart = () => {
+          if (cooldownActive) return;
+          if (nonHostHumans.length > 0 && !allHumansReady) {
+            setShowStartConfirm(true);
+            return;
+          }
+          startNow();
+        };
+
+        return (
+          <>
+            {(() => {
+              const effectKey = winner?.victoryEffectType;
+              let effectNode: React.ReactNode;
+              if (effectKey && VICTORY_EFFECTS[effectKey as keyof typeof VICTORY_EFFECTS]) {
+                const EffectComp = VICTORY_EFFECTS[effectKey as keyof typeof VICTORY_EFFECTS];
+                effectNode = <EffectComp />;
+              } else if (winner?.victoryUrl) {
+                effectNode = (
+                  <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+                    <img
+                      src={winner.victoryUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover opacity-90 animate-pop-in"
+                    />
+                  </div>
+                );
+              } else {
+                effectNode = <Confetti />;
+              }
+              // When a tournament winner is decided, their victory
+              // effect loops for as long as the champion popup is up
+              // (Ronya 2026-11-02). Match wins still play it once.
+              return isChampion ? (
+                <LoopingVictoryEffect>{effectNode}</LoopingVictoryEffect>
+              ) : (
+                effectNode
+              );
+            })()}
+            <div className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 p-4">
+              {/* Only the announcement itself (ready row, win popup, and
+                  the screenshot share wording under it) sits ABOVE the
+                  table (Ronya 2026-11-03): the shift is a transform on
+                  this group only, so its layout slot stays in the
+                  centered column and every control below it (Start Next
+                  Match, Ready Up) keeps its default position under the
+                  table. He never asked for the other elements to move. */}
+              <div
+                className="flex flex-col items-center gap-4"
+                style={{ transform: "translateY(-22vh)" }}
+              >
+              {/* Ready status row — shown above the winner announcement
+                  whenever there's more than one human in the lobby. */}
+              {showPlayAgain && humans.length > 1 && (
+                <div className="pointer-events-none flex flex-wrap items-center justify-center gap-2 animate-float-up">
+                  {humans.map((p) => {
+                    const ready = !!p.readyForNext || p.id === hostId;
+                    const color = PLAYER_COLOR_HEX[p.color];
+                    return (
+                      <div
+                        key={p.id}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition",
+                          ready
+                            ? "bg-black/60 text-white"
+                            : "bg-black/40 text-white/50",
+                        )}
+                        style={{
+                          borderColor: ready ? color : `${color}55`,
+                          boxShadow: ready ? `0 0 12px ${color}66` : "none",
+                        }}
+                      >
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ background: ready ? color : `${color}55` }}
+                        />
+                        <span>{p.name}</span>
+                        <span className="opacity-70">
+                          {p.id === hostId ? "host" : ready ? "ready" : "waiting"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="relative animate-float-up">
+                <div
+                  className="win-popup"
+                  style={{
+                    borderColor,
+                    boxShadow: `0 0 0 2px ${borderColor}55, 0 18px 50px -10px ${borderColor}aa, 0 8px 24px rgba(0,0,0,0.6)`,
+                  }}
+                >
+                  <div className="win-popup-inner">
+                    <div className="win-popup-title">BIMYAH!</div>
+                    <div className="win-popup-sub">{subline}</div>
+                    {isTournament && (
+                      <div
+                        className={`win-popup-tag${isChampion ? " win-popup-tag-champion animate-flash" : ""}`}
+                        style={{ color: borderColor }}
+                      >
+                        {isChampion ? "Game Champion" : "Match Winner"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Screenshot button (Ronya 2026-11-02): sits in the
+                    space to the right of the winner announcement. */}
+                <button
+                  onClick={() => void takeWinnerScreenshot()}
+                  className="pointer-events-auto absolute -right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-2 bg-black/70 text-white shadow-lg backdrop-blur transition active:scale-90"
+                  style={{ borderColor }}
+                  aria-label="Take a screenshot of the table"
+                >
+                  <Camera className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Screenshot share offer (Ronya 2026-11-03): signed-in
+                  players earn 50 Bimbits for a public share, once a
+                  day. Kept out of the screenshot itself. */}
+              {authUser && (
+                <p
+                  data-shot-hide="1"
+                  className="pointer-events-none max-w-xs animate-float-up text-center text-[11px] leading-snug text-white/75"
+                  style={{
+                    // Black outline so the offer text pops against any
+                    // room background (Ronya 2026-11-03).
+                    textShadow:
+                      "1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 4px #000",
+                  }}
+                >
+                  Share this screenshot with the camera button and earn{" "}
+                  <b className="text-[var(--gold)]">50 Bimbits</b> (once a day). Posts must stay
+                  public: removing a post means the Bimbits are taken back.
+                </p>
+              )}
+              </div>
+
+              {showPlayAgain && amHost && (
+                <LiquidMetalButton
+                  onClick={onHostStart}
+                  disabled={cooldownActive}
+                  className={cn(
+                    "btn-3d pointer-events-auto animate-float-up",
+                    isTournament && isChampion ? "btn-3d-gold" : "btn-3d-mint",
+                    cooldownActive && "opacity-60",
+                  )}
+                >
+                  {cooldownActive ? `${hostStartLabel} (${cooldownLeft}s)` : hostStartLabel}
+                </LiquidMetalButton>
+              )}
+
+              {showPlayAgain && !amHost && (
+                <LiquidMetalButton
+                  onClick={onReadyForNext}
+                  disabled={meReady}
+                  className={cn(
+                    "btn-3d pointer-events-auto animate-float-up",
+                    meReady ? "btn-3d-gold opacity-90" : "btn-3d-mint",
+                  )}
+                >
+                  {meReady ? "Ready ✓" : "Ready Up"}
+                </LiquidMetalButton>
+              )}
+
+              {showPlayAgain && !amHost && (
+                <div className="text-center text-[11px] uppercase tracking-widest text-white/60 animate-float-up">
+                  Waiting for host to start the next match…
+                </div>
+              )}
+
+              {showPlayAgain && amHost && showStartConfirm && (
+                <div
+                  className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                  onClick={() => setShowStartConfirm(false)}
+                >
+                  <div
+                    className="w-full max-w-sm rounded-xl border border-white/15 bg-zinc-900 p-5 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-2 text-base font-bold text-white">
+                      Not everyone is ready
+                    </div>
+                    <div className="mb-4 text-sm text-white/70">
+                      {nonHostHumans
+                        .filter((p) => !p.readyForNext)
+                        .map((p) => p.name)
+                        .join(", ")}{" "}
+                      hasn't readied up yet. Players who aren't ready will be
+                      removed from the next match.
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <LiquidMetalButton
+                        onClick={() => setShowStartConfirm(false)}
+                        className="btn-3d btn-3d-mint"
+                      >
+                        Wait
+                      </LiquidMetalButton>
+                      <LiquidMetalButton
+                        onClick={() => {
+                          setShowStartConfirm(false);
+                          startNow();
+                        }}
+                        className="btn-3d btn-3d-gold"
+                      >
+                        Continue anyway
+                      </LiquidMetalButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Scoreboard overlay */}
+      <Scoreboard
+        state={state}
+        open={showScoreboard}
+        onClose={() => setShowScoreboard(false)}
+      />
+
+      {/* Back-button leave confirmation (mirrors HomeButton behavior). */}
+      <LeaveGameDialog
+        open={showLeaveConfirm}
+        onOpenChange={setShowLeaveConfirm}
+        isHost={isHost}
+        onEndMatch={
+          isHost
+            ? () => {
+                try {
+                  setState((s) => ({ ...s, roomClosed: true }));
+                } catch {
+                  /* ignore */
+                }
+              }
+            : undefined
+        }
+      />
+
+      {/* Settings popup */}
+      {showSettings && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowSettings(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+                Settings
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close settings"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <HomeButton
+                large
+                isHost={isHost}
+                onEndMatch={
+                  isHost
+                    ? () => {
+                        try {
+                          setState((s) => ({ ...s, roomClosed: true }));
+                        } catch {
+                          /* ignore */
+                        }
+                      }
+                    : undefined
+                }
+              />
+              <button
+                onClick={() => {
+                  const next = !muted;
+                  sfx.setMuted(next);
+                  setMuted(next);
+                }}
+                className="grid h-20 w-20 place-items-center rounded-full bg-black/40 text-white/80 ring-1 ring-white/15 active:scale-90"
+                aria-label="Mute"
+              >
+                {muted ? <img src={iconSpeakerMuted} alt="" className="h-12 w-12 object-contain" draggable={false} /> : <img src={iconSpeaker} alt="" className="h-12 w-12 object-contain" draggable={false} />}
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2.5 text-xs uppercase tracking-widest text-white/80">
+              <ToggleSwitch checked={autoSort} onChange={toggleAutoSort} ariaLabel="Auto-sort hand" />
+              <span>Auto-sort hand</span>
+            </div>
+
+            {inviteUrl && (
+              <div className="mt-4">
+                <div className="mb-1 text-center text-[10px] uppercase tracking-widest text-white/50">
+                  Room code
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(inviteUrl);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 1500);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--mint)]/40 bg-black/40 px-3 py-2 font-mono text-xl font-bold tracking-[0.3em] text-white active:scale-95"
+                  aria-label="Copy room code"
+                >
+                  <span>{inviteUrl}</span>
+                  {codeCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+
+
+            <button
+              onClick={() => { setShowSettings(false); setShowKeybinds(true); }}
+              className="mt-4 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[11px] uppercase tracking-widest text-white/80 hover:border-[var(--mint)]/60 hover:text-white"
+            >
+              Keyboard controls
+            </button>
+
+            {isHost && (
+              <div
+                onClick={() => setState((s) => ({ ...s, inactivityDisabled: !s.inactivityDisabled }))}
+                className="mt-2 flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[11px] uppercase tracking-widest text-white/80 hover:border-[var(--mint)]/60 hover:text-white"
+                role="button"
+                aria-pressed={!state.inactivityDisabled}
+              >
+                <span>Inactivity timers</span>
+                <span onClick={(e) => e.stopPropagation()}>
+                  <ToggleSwitch
+                    checked={!state.inactivityDisabled}
+                    onChange={(on) => setState((s) => ({ ...s, inactivityDisabled: !on }))}
+                    ariaLabel="Inactivity timers"
+                  />
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Keybinds modal */}
+      {showKeybinds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowKeybinds(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+                Keyboard controls
+              </div>
+              <button
+                onClick={() => setShowKeybinds(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close keybinds"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <KeybindEditor />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNewTournyPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-xs rounded-2xl border border-[var(--gold)]/40 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-gold)]">
+            <div className="mb-3 text-center font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+              New Tournament
+            </div>
+            <div className="mb-2 text-center text-[11px] uppercase tracking-widest text-white/60">
+              Point limit
+            </div>
+            <input
+              autoFocus
+              inputMode="numeric"
+              value={newLimitInput}
+              onChange={(e) =>
+                setNewLimitInput(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
+              placeholder={state.pointLimit?.toString() ?? "100"}
+              className="mb-2 w-full rounded-lg border border-[var(--gold)]/50 bg-black/40 px-4 py-3 text-center font-display text-2xl text-white placeholder:text-white/30"
+            />
+            <div className="mb-3 text-center text-[10px] text-white/50">
+              1 – 1000. Leave blank to keep {state.pointLimit ?? "—"}.
+            </div>
+            <div className="flex flex-col gap-2">
+              <LiquidMetalButton
+                onClick={() => {
+                  const n = parseInt(newLimitInput, 10);
+                  const limit =
+                    Number.isFinite(n) && n >= 1 && n <= 1000
+                      ? n
+                      : state.pointLimit;
+                  onNewTournament(limit);
+                }}
+                className="btn-3d btn-3d-gold w-full text-sm"
+              >
+                Start
+              </LiquidMetalButton>
+              <button
+                onClick={() => {
+                  setShowNewTournyPicker(false);
+                  setNewLimitInput("");
+                }}
+                className="text-xs text-white/50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showViewAll && (
+        <ViewAllCardsModal
+          state={state}
+          onClose={() => setShowViewAll(false)}
+          botBuilds={
+            state.mode === "training"
+              ? Object.fromEntries(
+                  state.players
+                    .filter((p) => p.isBot)
+                    .map((p) => [p.id, botBuildRanks(p, botMemory.current)]),
+                )
+              : undefined
+          }
+        />
+      )}
+
+      {showViewers && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowViewers(false)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-white/20 bg-[oklch(0.18_0.04_165)] p-5 text-white shadow-[var(--shadow-glow-mint)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+                <img src={iconEye} alt="" className="h-5 w-5 object-contain" draggable={false} />
+                Viewers ({spectators.length})
+              </div>
+              <button
+                onClick={() => setShowViewers(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+                aria-label="Close viewers"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {spectators.length === 0 ? (
+              <div className="py-6 text-center text-xs text-white/50">
+                No one is watching this room.
+              </div>
+            ) : (
+              <ul className="max-h-[50vh] divide-y divide-white/10 overflow-y-auto">
+                {spectators.map((s) => (
+                  <li
+                    key={s.id}
+                    className={`flex items-center gap-2 py-2 text-sm text-white/90 ${s.accountId ? "cursor-pointer" : ""}`}
+                    onClick={s.accountId ? () => setProfileUserId(s.accountId!) : undefined}
+                  >
+                    <ViewerAvatar url={s.avatarUrl} name={s.name} />
+                    <span className="truncate">{s.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-3 text-center text-[10px] uppercase tracking-widest text-white/40">
+              Up to 20 viewers per room
+            </div>
+          </div>
+        </div>
+      )}
+
+      {profileUserId && (
+        <PublicProfileDialog userId={profileUserId} onClose={() => setProfileUserId(null)} />
+      )}
+
+      {showChat && (
+        <ChatPanel
+          state={state}
+          meId={meId}
+          isSpectator={spectator}
+          onViewProfile={setProfileUserId}
+          onClose={() => setShowChat(false)}
+          onSend={(channel: ChatChannel, text: string) => {
+            const author = me ?? null;
+            const spec = (state.spectators ?? []).find((s) => s.id === meId);
+            dispatch({
+              kind: "chat",
+              message: {
+                id: `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+                channel,
+                authorId: meId,
+                authorAccountId: author?.accountId ?? spec?.accountId ?? null,
+                authorName: author?.name ?? spec?.name ?? "Player",
+                avatarUrl: author?.avatarUrl ?? spec?.avatarUrl ?? null,
+                color: author?.color ?? null,
+                isSpectator: spectator,
+                text,
+                ts: Date.now(),
+              },
+            });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============ Seat ============ */
+
+export type SeatPos = {
+  /** Anchor position as percent of viewport (0-100). Origin is the seat center. */
+  x: number; // left %
+  y: number; // top %
+  /** Translate origin: which corner of the seat sits at (x,y). */
+  anchor:
+    | "bottom-center"
+    | "top-center"
+    | "left-center"
+    | "right-center";
+  pileLayout: "row" | "col";
+  rotate?: string;
+  compact?: boolean;
+};
+
+/**
+ * Seat positions (percent of viewport). Order:
+ *   index 0 = me (always South / bottom-center, NOT draggable)
+ *   Seats 1+ are filled per the rules:
+ *     1) North, East, West first
+ *     2) Then SE & SW (raised higher than the side seats so they don't overlap
+ *        the local hand/expanded piles)
+ *     3) Then NE & NW (also kept inset so they don't overlap each other)
+ */
+export function getSeatPositions(n: number): SeatPos[] {
+  // South — local player. y is high (near bottom) so the hand row + piles fit.
+  // Leave ~12% below piles for the SET/SORT buttons that float under them.
+  const SOUTH: SeatPos = { x: 50, y: 86, anchor: "bottom-center", pileLayout: "row" };
+  const NORTH: SeatPos = { x: 50, y: 6, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const EAST:  SeatPos = { x: 99, y: 50, anchor: "right-center", pileLayout: "row", compact: true };
+  const WEST:  SeatPos = { x: 1,  y: 50, anchor: "left-center",  pileLayout: "row", compact: true };
+  // SE / SW — raised above the bottom hand area (y ≈ 62 instead of ~75)
+  const SE:    SeatPos = { x: 96, y: 62, anchor: "right-center", pileLayout: "row", compact: true };
+  const SW:    SeatPos = { x: 4,  y: 62, anchor: "left-center",  pileLayout: "row", compact: true };
+  // NE / NW — kept inset from N and E/W so nothing overlaps
+  const NE:    SeatPos = { x: 78, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+  const NW:    SeatPos = { x: 22, y: 12, anchor: "top-center", pileLayout: "row", rotate: "rotate-180", compact: true };
+
+  if (n === 2) return [SOUTH, NORTH];
+  if (n === 3) return [SOUTH, EAST, WEST];
+  if (n === 4) return [SOUTH, NORTH, EAST, WEST];
+  if (n === 5) return [SOUTH, NORTH, EAST, WEST, SE];
+  if (n === 6) return [SOUTH, NORTH, EAST, WEST, SE, SW];
+  if (n === 7) return [SOUTH, NORTH, EAST, WEST, SE, SW, NE];
+  return [SOUTH, NORTH, EAST, WEST, SE, SW, NE, NW];
+}
+
+function anchorTransform(anchor: SeatPos["anchor"]): string {
+  switch (anchor) {
+    case "bottom-center": return "translate(-50%, -100%)";
+    case "top-center":    return "translate(-50%, 0%)";
+    case "left-center":   return "translate(0%, -50%)";
+    case "right-center":  return "translate(-100%, -50%)";
+  }
+}
+
+export function PlayerSeat({
+  player,
+  position,
+  offset,
+  draggable = false,
+  onDragEnd,
+  pinchScale = 1,
+  onPinchEnd,
+  isMe,
+  canControl,
+  status,
+  onReady,
+  onPileTap,
+  onHandCardTap,
+  onSet,
+  onSort,
+  selectedHandCardId,
+  sortEnabled,
+  zoom = 1,
+  revealAll = false,
+  freeView = null,
+  onFreePileTap,
+  onFreeCardTap,
+  colorMap,
+  showCrown = false,
+  players,
+  now,
+  inactivityDisabled,
+  onViewProfile,
+}: {
+  player: Player;
+  position: SeatPos;
+  offset?: { dx: number; dy: number };
+  draggable?: boolean;
+  onDragEnd?: (dx: number, dy: number) => void;
+  /** Per-seat scale persisted by parent; multiplied on top of `zoom`. */
+  pinchScale?: number;
+  /** Called when a two-finger pinch on this seat ends. */
+  onPinchEnd?: (scale: number) => void;
+  isMe: boolean;
+  /** True when the local player can drive this seat (always for isMe;
+   *  also true for every seat when training's "Control All Hands" is on). */
+  canControl?: boolean;
+  status: GameState["status"];
+  onReady?: () => void;
+  onPileTap?: (i: number) => void;
+  onHandCardTap?: (cardId: string) => void;
+  onSet?: () => void;
+  onSort?: () => void;
+  selectedHandCardId?: string | null;
+  sortEnabled?: boolean;
+  zoom?: number;
+  revealAll?: boolean;
+  /** When this seat belongs to an inactive player and the local viewer has
+   *  one of its piles expanded, this is that pile's index. */
+  freeView?: number | null;
+  onFreePileTap?: (pileIndex: number) => void;
+  onFreeCardTap?: (pileIndex: number, cardId: string) => void;
+  colorMap?: Record<PlayerColor, string>;
+  /** Tournament leader: show the 3D crown over the name plate. */
+  showCrown?: boolean;
+  players?: Player[];
+  now?: number;
+  inactivityDisabled?: boolean;
+  /** Opens the public profile for a signed-in player (avatar tap). */
+  onViewProfile?: (accountId: string) => void;
+}) {
+
+  const colorHex = PLAYER_COLOR_HEX[player.color];
+  const controllable = canControl ?? isMe;
+  const handReady =
+    controllable && player.openPileIndex !== null && player.hand.length === 4 && isFourOfAKind(player.hand);
+
+  const pileWidth = isMe ? 37 : position.compact ? 20 : 26;
+  const pileGap = position.compact ? "gap-1" : "gap-1.5";
+
+  // ===== Drag state (other players only) =====
+  const [dragDelta, setDragDelta] = useState<{ dx: number; dy: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; baseDx: number; baseDy: number; moved: boolean } | null>(null);
+  const baseDx = offset?.dx ?? 0;
+  const baseDy = offset?.dy ?? 0;
+  const liveDx = dragDelta ? dragDelta.dx : baseDx;
+  const liveDy = dragDelta ? dragDelta.dy : baseDy;
+
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    if (!draggable) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, baseDx, baseDy, moved: false };
+    setDragDelta({ dx: baseDx, dy: baseDy });
+  };
+  const onHandlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const { startX, startY, baseDx: bdx, baseDy: bdy } = dragRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true;
+    setDragDelta({ dx: bdx + dx, dy: bdy + dy });
+  };
+  const onHandlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    const final = dragDelta;
+    const moved = dragRef.current.moved;
+    dragRef.current = null;
+    setDragDelta(null);
+    if (moved && final && onDragEnd) onDragEnd(final.dx, final.dy);
+  };
+
+  const orderedHand = (() => {
+    if (!sortEnabled || player.hand.length < 2) return player.hand;
+    const counts = new Map<string, number>();
+    for (const c of player.hand) counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+    const RANK_ORDER: Record<string, number> = {
+      A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
+      "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13,
+    };
+    return [...player.hand].sort((a, b) => {
+      const fa = counts.get(a.rank) ?? 0;
+      const fb = counts.get(b.rank) ?? 0;
+      if (fa !== fb) return fb - fa;
+      const ra = RANK_ORDER[a.rank] ?? 99;
+      const rb = RANK_ORDER[b.rank] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return a.suit.localeCompare(b.suit);
+    });
+  })();
+
+  // ===== Per-seat two-finger pinch to resize (mobile) =====
+  // Multiplies on top of `zoom`. Tracked locally with a live preview; parent
+  // is notified via `onPinchEnd` when the gesture finishes.
+  // Gesture model (Ronya 2026-11-07): ONE thumb anchors on the seat; the
+  // second thumb activates the pinch from ANYWHERE on the screen, in
+  // either order. All touches are tracked at window level in a pointer
+  // map; a touch counts as the anchor when it starts inside this seat's
+  // element (checked via the event target, not event bubbling through
+  // the seat's nested cards, which mobile browsers do not deliver
+  // reliably). The pinch engages the moment an anchor touch and any
+  // other active touch coexist.
+  const [livePinch, setLivePinch] = useState<number | null>(null);
+  const seatRootRef = useRef<HTMLDivElement | null>(null);
+  const pinchScaleRef = useRef(pinchScale);
+  pinchScaleRef.current = pinchScale;
+  const livePinchRef = useRef<number | null>(null);
+  const onPinchEndRef = useRef(onPinchEnd);
+  onPinchEndRef.current = onPinchEnd;
+  const effectivePinch = livePinch ?? pinchScale;
+  useEffect(() => {
+    const touches = new Map<number, { x: number; y: number }>();
+    const gesture: {
+      anchorId?: number;
+      partnerId?: number;
+      startDist: number;
+      startScale: number;
+      pinching: boolean;
+    } = { startDist: 0, startScale: 1, pinching: false };
+    const applyLive = (v: number | null) => {
+      livePinchRef.current = v;
+      setLivePinch(v);
+    };
+    const tryStartPinch = () => {
+      if (gesture.pinching || gesture.anchorId === undefined) return;
+      const anchor = touches.get(gesture.anchorId);
+      if (!anchor) return;
+      for (const [id, pt] of touches) {
+        if (id === gesture.anchorId) continue;
+        gesture.partnerId = id;
+        gesture.startDist = Math.hypot(pt.x - anchor.x, pt.y - anchor.y) || 1;
+        gesture.startScale = pinchScaleRef.current;
+        gesture.pinching = true;
+        // A pinch takes over from any name-tag drag in progress.
+        dragRef.current = null;
+        setDragDelta(null);
+        applyLive(gesture.startScale);
+        return;
+      }
+    };
+    const onWinDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const root = seatRootRef.current;
+      if (
+        gesture.anchorId === undefined &&
+        root &&
+        e.target instanceof Node &&
+        root.contains(e.target)
+      ) {
+        gesture.anchorId = e.pointerId;
+      }
+      tryStartPinch();
+      if (gesture.pinching) e.preventDefault();
+    };
+    const onWinMove = (e: PointerEvent) => {
+      const pt = touches.get(e.pointerId);
+      if (pt) {
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+      }
+      if (!gesture.pinching || gesture.anchorId === undefined || gesture.partnerId === undefined) return;
+      if (e.pointerId !== gesture.anchorId && e.pointerId !== gesture.partnerId) return;
+      const a = touches.get(gesture.anchorId);
+      const b = touches.get(gesture.partnerId);
+      if (!a || !b) return;
+      const dist = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      const next = Math.max(0.5, Math.min(2.5, gesture.startScale * (dist / gesture.startDist)));
+      applyLive(next);
+      e.preventDefault();
+    };
+    const onWinUp = (e: PointerEvent) => {
+      const wasAnchor = gesture.anchorId === e.pointerId;
+      const wasPartner = gesture.partnerId === e.pointerId;
+      touches.delete(e.pointerId);
+      if (!wasAnchor && !wasPartner) return;
+      const wasPinching = gesture.pinching;
+      const final = livePinchRef.current;
+      gesture.anchorId = undefined;
+      gesture.partnerId = undefined;
+      gesture.pinching = false;
+      if (wasPinching && final !== null) {
+        onPinchEndRef.current?.(final);
+      }
+      if (wasPinching) applyLive(null);
+    };
+    window.addEventListener("pointerdown", onWinDown, { passive: false });
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerdown", onWinDown);
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, []);
+
+  const combinedScale = zoom * effectivePinch;
+  const wrapperStyle: React.CSSProperties = {
+    left: `${position.x}%`,
+    top: `${position.y}%`,
+    transform: `${anchorTransform(position.anchor)} translate(${liveDx}px, ${liveDy}px)${combinedScale !== 1 ? ` scale(${combinedScale})` : ""}`,
+    transformOrigin:
+      position.anchor === "bottom-center"
+        ? "center bottom"
+        : position.anchor === "top-center"
+        ? "center top"
+        : position.anchor === "left-center"
+        ? "left center"
+        : "right center",
+    transition: dragRef.current || livePinch !== null ? "none" : "transform 160ms ease-out",
+    touchAction: "none",
+  };
+
+  return (
+    <div
+      ref={seatRootRef}
+      className={cn(
+        "absolute z-10 flex flex-col items-center gap-1",
+        (dragRef.current || livePinch !== null) && "z-30 opacity-95",
+      )}
+      style={wrapperStyle}
+    >
+      {/* Emblems are rendered outside PlayerSeat as their own layer
+          (see SeatEmblemsLayer in the seat map) so they don't inherit
+          seat pinch/zoom and remain independently movable. */}
+
+
+
+      {/* Hand row (for me when pile open; for others in training mode when they have a hand). */}
+      {(((isMe || (controllable && player.openPileIndex !== null)) && player.openPileIndex !== null) ||
+        (!isMe && revealAll && player.hand.length > 0)) &&
+        status === "playing" && (
+        <div className="pointer-events-auto absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 items-end justify-center gap-1.5">
+          {(isMe ? orderedHand : player.hand).map((c) => (
+            <PlayingCard
+              key={c.id}
+              card={c}
+              width={isMe ? 36 : 22}
+              selected={selectedHandCardId === c.id}
+              onClick={controllable && onHandCardTap ? () => onHandCardTap(c.id) : undefined}
+              className="relative z-10"
+            />
+          ))}
+        </div>
+      )}
+
+
+      {/* Name tag — also acts as the drag handle for non-me seats.
+          Title sits outside the oval on the left; badges outside on the right. */}
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-[10px] font-semibold",
+          !isMe && "mb-2",
+        )}
+      >
+        {player.titleUrl && (
+          <img
+            src={player.titleUrl}
+            alt=""
+            aria-hidden
+            className="h-[1.4em] w-auto shrink-0 object-contain drop-shadow"
+          />
+        )}
+        <div
+          onPointerDown={onHandlePointerDown}
+          onPointerMove={onHandlePointerMove}
+          onPointerUp={onHandlePointerUp}
+          onPointerCancel={onHandlePointerUp}
+          className={cn(
+            "relative flex items-center gap-1.5 rounded-full px-2 py-0.5 backdrop-blur select-none",
+            isMe ? "bg-black/50 text-white" : "bg-black/30 text-white/80",
+            draggable && "cursor-grab active:cursor-grabbing ring-1 ring-white/10",
+          )}
+          style={{ borderLeft: `3px solid ${colorHex}`, touchAction: draggable ? "none" : undefined }}
+          title={draggable ? "Drag to reposition" : undefined}
+        >
+          <span className="relative inline-flex shrink-0">
+          {player.avatarUrl ? (
+            <img
+              src={player.avatarUrl}
+              alt=""
+              draggable={false}
+              className="h-4 w-4 rounded-full object-cover"
+            />
+          ) : player.isBot ? (
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full bg-black/40 text-[10px] leading-none"
+              aria-label="Bot"
+            >
+              🤖
+            </span>
+          ) : (
+            <span
+              className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+              style={{ backgroundColor: colorHex }}
+            >
+              {player.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          {player.accountId && onViewProfile && (
+            <button
+              type="button"
+              aria-label={`View ${player.name}'s profile`}
+              className="absolute -inset-1.5 rounded-full"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewProfile(player.accountId!);
+              }}
+            />
+          )}
+          </span>
+          <span>{player.name}</span>
+          {status === "lobby" && player.ready && <span className="text-emerald-400">✓</span>}
+          {showCrown && (
+            <img
+              src={iconCrownLeader}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="pointer-events-none absolute -left-[7px] -top-[13px] z-10 h-[22px] w-[22px] -rotate-[18deg] object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.55)]"
+            />
+          )}
+        </div>
+        {player.badgeUrl && (
+          <img
+            src={player.badgeUrl}
+            alt=""
+            aria-hidden
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+          />
+        )}
+        {player.badgeUrl2 && (
+          <img
+            src={player.badgeUrl2}
+            alt=""
+            aria-hidden
+            className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+          />
+        )}
+      </div>
+
+      {/* Inactivity phase warning — self-ticking so it doesn't re-render
+          the rest of the seat (or the parent GameTable) every second. */}
+      {!player.isBot && status === "playing" && !inactivityDisabled && (
+        <InactivityBadge
+          freeCards={!!player.freeCards}
+          disconnectedAt={player.disconnectedAt ?? null}
+          lastActiveAt={player.lastActiveAt ?? null}
+        />
+      )}
+
+      {/* Piles (with SET/SORT absolutely anchored below for the local player
+          so opening a pile does NOT shift the piles upward).
+          When this player has gone to "free cards", their piles are rendered
+          in the center area instead — hide them at the seat. */}
+      {status !== "lobby" && !(player.freeCards && !isMe) && (
+        <div className="relative">
+          <div
+            className={cn(
+              "flex",
+              pileGap,
+              position.pileLayout === "col" ? "flex-col" : "flex-row",
+              !isMe && position.rotate,
+            )}
+            style={
+              position.pileLayout === "row"
+                ? { minHeight: Math.round(pileWidth * 1.4) + 3 * 14 }
+                : undefined
+            }
+          >
+            {player.piles.map((pile, i) => {
+              const locked = player.pileLocked[i];
+              if (locked) {
+                return <CascadeSet key={i} cards={pile} width={pileWidth} />;
+              }
+              const isOpen = controllable && player.openPileIndex === i;
+              const isFreeOpen = !isMe && player.freeCards && freeView === i;
+              const pileHold = player.freePileHolds?.[i] ?? null;
+              if (pile.length === 0 && !isOpen) {
+                return (
+                  <div
+                    key={i}
+                    style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                    className="rounded-lg border-2 border-dashed border-white/10"
+                  />
+                );
+              }
+              if (pile.length === 0 && isOpen) {
+                return (
+                  <div key={i} className="relative inline-block">
+                    <div
+                      style={{ width: pileWidth, height: pileWidth * 1.4 }}
+                      className="rounded-lg border-2 border-dashed border-[var(--mint)] bg-[var(--mint)]/10 shadow-[0_0_20px_var(--mint)] animate-pulse-ring"
+                    />
+                    <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--mint)] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[oklch(0.18_0.04_165)]">
+                      OPEN
+                    </span>
+                  </div>
+                );
+              }
+              // Inactive player's pile, expanded by viewer → render face-up cards.
+              if (isFreeOpen) {
+                const holderColor = pileHold && colorMap && players
+                  ? colorMap[players.find((pp) => pp.id === pileHold.heldBy)?.color ?? "green"]
+                  : undefined;
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-row gap-0.5 rounded-md bg-black/30 p-0.5 ring-1 ring-[var(--gold)]/40"
+                    onClick={(e) => {
+                      // Tapping empty area of expanded pile collapses it.
+                      if (e.target === e.currentTarget) onFreePileTap?.(i);
+                    }}
+                  >
+                    {pile.map((c) => {
+                      const heldHere = pileHold?.cardId === c.id;
+                      const ringColor = heldHere ? holderColor : undefined;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            if (pileHold) return;
+                            onFreeCardTap?.(i, c.id);
+                          }}
+                          className={cn("cursor-pointer", heldHere && "animate-pulse-ring rounded-md")}
+                          style={ringColor ? { boxShadow: `0 0 0 2px ${ringColor}` } : undefined}
+                        >
+                          <PlayingCard card={c} width={Math.max(18, pileWidth - 4)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+              // Per-pile card back: prefer the player's equipped slot at
+              // this pile index, then fall back to their single cardBackUrl,
+              // then the default image.
+              const pileBackUrl =
+                player.cardBackUrls?.[i] ?? player.cardBackUrl ?? null;
+              if (!isMe && player.freeCards && onFreePileTap) {
+                return (
+                  <CardBack
+                    key={i}
+                    width={pileWidth}
+                    count={pile.length}
+                    onClick={() => onFreePileTap(i)}
+                    highlight={!!pileHold}
+                    imageUrl={pileBackUrl}
+                  />
+                );
+              }
+              return (
+                <CardBack
+                  key={i}
+                  width={pileWidth}
+                  count={isOpen ? 0 : pile.length}
+                  onClick={controllable && onPileTap ? () => onPileTap(i) : undefined}
+                  highlight={isOpen}
+                  imageUrl={pileBackUrl}
+                />
+              );
+            })}
+          </div>
+
+          {/* SET/SORT buttons — absolutely positioned UNDER the piles so the
+              piles never shift when a pile is opened. */}
+          {controllable && player.openPileIndex !== null && status === "playing" && (
+            <div className="absolute left-1/2 top-full mt-1 flex -translate-x-1/2 items-center justify-center gap-1.5">
+              <button
+                onClick={onSet}
+                disabled={!handReady}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  handReady
+                    ? "bg-[var(--gold)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-gold)] animate-pulse-ring"
+                    : "bg-white/10 text-white/40",
+                )}
+              >
+                SET
+              </button>
+              <button
+                onClick={onSort}
+                disabled={player.hand.length < 2}
+                className={cn(
+                  "flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider transition",
+                  sortEnabled
+                    ? "bg-[var(--mint)] text-[oklch(0.18_0.04_165)] shadow-[var(--shadow-glow-mint)]"
+                    : player.hand.length >= 2
+                    ? "border border-[var(--mint)]/60 bg-black/40 text-[var(--gold)] active:scale-95"
+                    : "bg-white/5 text-white/30",
+                )}
+                aria-label="Sort hand by rank"
+              >
+                <ArrowDownUp className="h-2 w-2" />
+                SORT
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ready button (lobby) */}
+      {status === "lobby" && controllable && !player.ready && onReady && (() => {
+        const alone = (players?.length ?? 1) < 2;
+        return (
+          <LiquidMetalButton
+            onClick={alone ? undefined : onReady}
+            disabled={alone}
+            className="btn-3d btn-3d-mint mt-2 text-base disabled:cursor-not-allowed disabled:opacity-50"
+            title={alone ? "Waiting for another player to join…" : undefined}
+          >
+            {alone ? "Waiting for players…" : "Ready?"}
+          </LiquidMetalButton>
+        );
+      })()}
+      {status === "lobby" && !controllable && (
+        <div className="mt-1 text-[10px] text-white/50">
+          {player.ready ? "Ready" : "Waiting…"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ View All Cards modal ============ */
+
+function ViewAllCardsModal({
+  state,
+  onClose,
+  botBuilds,
+}: {
+  state: GameState;
+  onClose: () => void;
+  botBuilds?: Record<string, Array<{ rank: string; count: number }>>;
+}) {
+  const [openPiles, setOpenPiles] = useState<Record<string, number | null>>({});
+  const togglePile = (playerId: string, idx: number) => {
+    setOpenPiles((cur) => ({
+      ...cur,
+      [playerId]: cur[playerId] === idx ? null : idx,
+    }));
+  };
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl border border-[var(--mint)]/40 bg-[oklch(0.18_0.04_165)] text-white shadow-[var(--shadow-glow-mint)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+          <div className="font-display text-sm font-bold uppercase tracking-widest text-[var(--gold)]">
+            All Cards
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 active:scale-90"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+          {state.players.map((player) => {
+            const colorHex = PLAYER_COLOR_HEX[player.color];
+            const openIdx = openPiles[player.id] ?? null;
+            const openPile = openIdx !== null ? player.piles[openIdx] : null;
+            return (
+              <div
+                key={player.id}
+                className="rounded-xl border border-white/10 bg-black/30 p-3"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-semibold w-fit">
+                  {player.titleUrl && (
+                    <img
+                      src={player.titleUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1.4em] w-auto shrink-0 object-contain drop-shadow"
+                    />
+                  )}
+                  <div
+                    className="flex items-center gap-2 rounded-full bg-black/40 px-2 py-1"
+                    style={{ borderLeft: `3px solid ${colorHex}` }}
+                  >
+                    <span
+                      className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-black"
+                      style={{ backgroundColor: colorHex }}
+                    >
+                      {player.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span>{player.name}</span>
+                  </div>
+                  {player.badgeUrl && (
+                    <img
+                      src={player.badgeUrl}
+                      alt=""
+                      aria-hidden
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+                    />
+                  )}
+                  {player.badgeUrl2 && (
+                    <img
+                      src={player.badgeUrl2}
+                      alt=""
+                      aria-hidden
+                      className="h-[1.4em] w-[1.4em] shrink-0 object-contain drop-shadow"
+                    />
+                  )}
+                </div>
+
+                {player.isBot && botBuilds?.[player.id]?.length ? (
+                  <div className="mt-1.5 text-[10px] text-white/60">
+                    Build Ranks:{" "}
+                    {botBuilds[player.id]
+                      .map((b) => `${b.rank}(${b.count})`)
+                      .join(", ")}
+                  </div>
+                ) : null}
+
+                {/* Hand row — reserved space so piles don't shift */}
+                <div className="mt-2 flex min-h-[44px] items-center gap-1">
+                  {player.hand.length > 0 ? (
+                    player.hand.map((c) => (
+                      <PlayingCard key={c.id} card={c} width={28} />
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-white/30">No cards in hand</span>
+                  )}
+                </div>
+
+                {/* Piles row */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {player.piles.map((pile, i) => {
+                    const locked = player.pileLocked[i];
+                    if (locked) {
+                      return (
+                        <div
+                          key={i}
+                          className="rounded border border-[var(--gold)]/40 p-1"
+                          title="Locked set"
+                        >
+                          <CascadeSet cards={pile} width={28} />
+                        </div>
+                      );
+                    }
+                    if (pile.length === 0) {
+                      return (
+                        <div
+                          key={i}
+                          style={{ width: 36, height: 50 }}
+                          className="grid place-items-center rounded border border-dashed border-white/10 text-[9px] text-white/30"
+                        >
+                          open
+                        </div>
+                      );
+                    }
+                    const top = pile[pile.length - 1];
+                    const isOpen = openIdx === i;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => togglePile(player.id, i)}
+                        className={cn(
+                          "relative inline-block rounded transition",
+                          isOpen && "ring-2 ring-[var(--mint)]",
+                        )}
+                        aria-label={`Pile ${i + 1}, ${pile.length} cards`}
+                      >
+                        <PlayingCard card={top} width={36} />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {openPile && openPile.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-[var(--mint)]/30 bg-black/40 p-2">
+                    <div className="mb-1 text-[9px] uppercase tracking-widest text-white/50">
+                      Pile {(openIdx ?? 0) + 1}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {openPile.map((c) => (
+                        <PlayingCard key={c.id} card={c} width={32} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Inactivity warning badge. Ticks ONLY itself once per second instead of
+ * the whole GameTable, so input/animation stay smooth during play.
+ */
+function InactivityBadge({
+  freeCards,
+  disconnectedAt,
+  lastActiveAt,
+}: {
+  freeCards: boolean;
+  disconnectedAt: number | null;
+  lastActiveAt: number | null;
+}) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (freeCards) return; // terminal state, no countdown needed
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [freeCards]);
+  const t = Date.now();
+  if (freeCards) {
+    return (
+      <div className="rounded-full bg-[var(--gold)]/20 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/50">
+        Free Cards
+      </div>
+    );
+  }
+  if (disconnectedAt) {
+    const left = Math.max(0, Math.ceil((INACTIVE_GRACE_MS - (t - disconnectedAt)) / 1000));
+    return (
+      <div className="rounded-full bg-[var(--gold)]/15 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-[var(--gold)] ring-1 ring-[var(--gold)]/40">
+        Inactive · free cards in {left}s
+      </div>
+    );
+  }
+  if (lastActiveAt) {
+    const sinceActive = t - lastActiveAt;
+    const warnAt = IDLE_BEFORE_DISCONNECT_MS - 10_000;
+    if (sinceActive >= warnAt) {
+      const left = Math.max(0, Math.ceil((IDLE_BEFORE_DISCONNECT_MS - sinceActive) / 1000));
+      return (
+        <div className="rounded-full bg-white/10 px-2 py-[1px] text-[9px] font-bold uppercase tracking-widest text-white/70 ring-1 ring-white/20">
+          Inactive in {left}s
+        </div>
+      );
+    }
+  }
+  return null;
+}
+
+/** Renders equipped emblems as independent, movable elements anchored to a
+ *  seat's screen position — but NOT inheriting the seat's zoom/pinch scale
+ *  or transform. For other players, tapping an emblem hides it from the
+ *  local viewer (persisted). The local player's own emblems are draggable
+ *  via one-finger touch/mouse and resizable via pinch (second finger can
+ *  land anywhere on the screen, like InShot) or mouse wheel. */
+function SeatEmblemsLayer({
+  playerId,
+  isMe,
+  scopeKey,
+  position,
+  leftUrl,
+  rightUrl,
+  leftLayout,
+  rightLayout,
+  onLayout,
+}: {
+  playerId: string;
+  isMe: boolean;
+  /** Layout-memory scope: "<mode>_<seatCount>", the same scoping the
+   *  seat-offset memory uses, so emblem placements are remembered per
+   *  table size - including the solo (1 seat) arrangement made while
+   *  waiting alone in the room (Ronya 2026-10-25). */
+  scopeKey: string;
+  position: SeatPos;
+  leftUrl: string | null;
+  rightUrl: string | null;
+  leftLayout: { dx: number; dy: number; s: number } | null;
+  rightLayout: { dx: number; dy: number; s: number } | null;
+  onLayout: (slot: 1 | 2, layout: { dx: number; dy: number; s: number }) => void;
+}) {
+  const storageKey = "bimyah_hidden_emblems";
+  const [hidden, setHidden] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+  const toggleHide = (slot: 1 | 2) => {
+    if (isMe) return;
+    const key = `${playerId}:${slot}`;
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      try { window.localStorage.setItem(storageKey, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  // Zero-size anchor at the seat's base screen position. Emblems do NOT
+  // inherit the player hand's drag offset — they move independently via
+  // per-emblem persisted layout.
+  return (
+    <div
+      className="pointer-events-none absolute"
+      style={{
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        width: 0,
+        height: 0,
+        zIndex: 0,
+      }}
+    >
+      {leftUrl && !hidden.has(`${playerId}:1`) && (
+        <EmblemImg
+          url={leftUrl}
+          defaultOffsetX={-70}
+          movable={isMe}
+          onTap={() => toggleHide(1)}
+          storageId={`emblem-${scopeKey}-${playerId}-1`}
+          layout={leftLayout}
+          onChange={(l) => onLayout(1, l)}
+        />
+      )}
+      {rightUrl && !hidden.has(`${playerId}:2`) && (
+        <EmblemImg
+          url={rightUrl}
+          defaultOffsetX={70}
+          movable={isMe}
+          onTap={() => toggleHide(2)}
+          storageId={`emblem-${scopeKey}-${playerId}-2`}
+          layout={rightLayout}
+          onChange={(l) => onLayout(2, l)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** A single emblem image. For the local player, drag/resize is enabled with
+ *  per-emblem layout persisted to localStorage. Pinch-to-resize is handled
+ *  at the window level: as long as this emblem owns the first finger, a
+ *  second finger placed *anywhere on the screen* resizes it (InShot-style).
+ */
+function EmblemImg({
+  url,
+  defaultOffsetX,
+  movable,
+  onTap,
+  storageId,
+  layout: sharedLayout,
+  onChange,
+}: {
+  url: string;
+  defaultOffsetX: number;
+  movable: boolean;
+  onTap?: () => void;
+  storageId: string;
+  /** Owner-chosen layout coming from shared game state (authoritative). */
+  layout: { dx: number; dy: number; s: number } | null;
+  /** Publish a new layout to the shared game state. */
+  onChange: (l: { dx: number; dy: number; s: number }) => void;
+}) {
+  type L = { dx: number; dy: number; s: number };
+  const key = `bimyah_emblem_layout_${storageId}`;
+  // Default placement (Set Default Placement in the profile emblem menu)
+  // is saved under the ACCOUNT id, but the in-game playerId is a per-room
+  // session id (host_xxxxxxxx / guest ids), so the default key must be
+  // built from the signed-in account, never from the room playerId
+  // (bug found 2026-10-25: the room-id key could never match the editor's
+  // save, so defaults silently never applied). Only my own emblems
+  // (movable) read the local default; remote players' layouts arrive via
+  // shared state. The editor measures dx from the seat anchor with no
+  // side offset, while the game adds defaultOffsetX, so translate.
+  const { user } = useAuth();
+  const slotPart = storageId.split("-").pop() ?? "";
+  const defaultKey =
+    movable && user?.id
+      ? `bimyah_emblem_layout_default-${user.id}-${slotPart}`
+      : null;
+  const readDefault = (): L | null => {
+    const raw = readStored(defaultKey);
+    if (!raw) return null;
+    return { dx: raw.dx - defaultOffsetX, dy: raw.dy, s: raw.s };
+  };
+  const readStored = (k: string | null): { dx: number; dy: number; s: number } | null => {
+    if (!k || typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(k);
+      return raw ? sanitize(JSON.parse(raw)) : null;
+    } catch {
+      return null;
+    }
+  };
+  // Layouts must have finite numeric fields. Anything else (older saves
+  // written while the shared-layout reducer was corrupting them, hand
+  // edits, partial JSON) is rejected so a bad value can never wedge the
+  // emblem's transform again.
+  const sanitize = (v: unknown): L | null => {
+    if (!v || typeof v !== "object") return null;
+    const o = v as Record<string, unknown>;
+    const dx = Number(o.dx);
+    const dy = Number(o.dy);
+    const s = Number(o.s);
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(s)) return null;
+    return { dx, dy, s };
+  };
+  const [layout, setLayout] = useState<L>(() => {
+    const shared = sanitize(sharedLayout);
+    if (shared) return shared;
+    if (typeof window === "undefined") return { dx: 0, dy: 0, s: 1 };
+    return readStored(key) ?? readDefault() ?? { dx: 0, dy: 0, s: 1 };
+  });
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const gestureRef = useRef(false);
+  // Followers (and re-renders) track the owner's shared layout.
+  useEffect(() => {
+    const shared = sanitize(sharedLayout);
+    if (!shared) return;
+    if (gestureRef.current) return;
+    const cur = layoutRef.current;
+    if (cur.dx === shared.dx && cur.dy === shared.dy && cur.s === shared.s) return;
+    setLayout(shared);
+  }, [sharedLayout]);
+  // The storage key is scoped by (mode, seatCount) like the seat-offset
+  // memory. When the scope changes (e.g. a second player joins, or the
+  // player is alone again), restore the layout saved for the new scope
+  // if one exists, and publish it so the table sees the same placement.
+  const keyRef = useRef(key);
+  useEffect(() => {
+    if (keyRef.current === key) return;
+    keyRef.current = key;
+    try {
+      const savedLayout = readStored(key) ?? readDefault();
+      if (savedLayout) {
+        setLayout(savedLayout);
+        layoutRef.current = savedLayout;
+        if (movable) onChange(savedLayout);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  // On mount, publish a locally-remembered layout so peers see it too.
+  const publishedRef = useRef(false);
+  useEffect(() => {
+    if (!movable || publishedRef.current) return;
+    publishedRef.current = true;
+    const cur = layoutRef.current;
+    if (cur.dx !== 0 || cur.dy !== 0 || cur.s !== 1) onChange(cur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movable]);
+  // Throttle network updates while dragging/pinching, always send the last one.
+  const sendRef = useRef<{ last: number; timer: ReturnType<typeof setTimeout> | null }>({ last: 0, timer: null });
+  useEffect(() => () => { if (sendRef.current.timer) clearTimeout(sendRef.current.timer); }, []);
+  const publish = (next: L) => {
+    const st = sendRef.current;
+    const now = Date.now();
+    if (st.timer) { clearTimeout(st.timer); st.timer = null; }
+    if (now - st.last >= 100) { st.last = now; onChange(next); return; }
+    st.timer = setTimeout(() => {
+      st.timer = null;
+      st.last = Date.now();
+      onChange(layoutRef.current);
+    }, 100);
+  };
+  const save = (next: L) => {
+    setLayout(next);
+    layoutRef.current = next;
+    try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+    publish(next);
+  };
+  const stateRef = useRef<{
+    a?: { id: number; x: number; y: number };
+    b?: { id: number; x: number; y: number };
+    origin?: { x: number; y: number };
+    startDx: number; startDy: number; startScale: number; startDist: number;
+    dragging: boolean; pinching: boolean; movedFar: boolean;
+  }>({ startDx: 0, startDy: 0, startScale: 1, startDist: 0, dragging: false, pinching: false, movedFar: false });
+  const clamp = (s: number) => Math.max(0.4, Math.min(3, s));
+
+  // Window-level second-finger pinch (InShot style): once this emblem owns
+  // the primary pointer, any additional touch anywhere on the screen begins
+  // a pinch-resize scaled by the distance between the two fingers.
+  useEffect(() => {
+    if (!movable) return;
+    const onWinDown = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.a || st.b || st.pinching) return;
+      if (e.pointerType !== "touch") return;
+      if (e.pointerId === st.a.id) return;
+      st.b = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      const dxp = st.b.x - st.a.x;
+      const dyp = st.b.y - st.a.y;
+      st.startDist = Math.hypot(dxp, dyp) || 1;
+      st.startScale = layoutRef.current.s;
+      st.pinching = true;
+      gestureRef.current = true;
+      st.dragging = false;
+      e.preventDefault();
+    };
+    const onWinMove = (e: PointerEvent) => {
+      const st = stateRef.current;
+      if (!st.pinching || !st.a || !st.b) return;
+      if (e.pointerId === st.a.id) { st.a.x = e.clientX; st.a.y = e.clientY; }
+      else if (e.pointerId === st.b.id) { st.b.x = e.clientX; st.b.y = e.clientY; }
+      else return;
+      const dxp = st.b.x - st.a.x;
+      const dyp = st.b.y - st.a.y;
+      const dist = Math.hypot(dxp, dyp) || 1;
+      save({ ...layoutRef.current, s: clamp(st.startScale * (dist / st.startDist)) });
+      e.preventDefault();
+    };
+    const onWinUp = (e: PointerEvent) => {
+      const st = stateRef.current;
+      const wasA = st.a?.id === e.pointerId;
+      const wasB = st.b?.id === e.pointerId;
+      if (!wasA && !wasB) return;
+      // Any finger lift ends the whole gesture (matches Movable behavior).
+      st.a = undefined; st.b = undefined; st.origin = undefined;
+      st.dragging = false; st.pinching = false; st.movedFar = false;
+      gestureRef.current = false;
+      onChange(layoutRef.current);
+    };
+    window.addEventListener("pointerdown", onWinDown, { passive: false });
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerdown", onWinDown);
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, [movable]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    if (!movable) {
+      // Non-movable (other players): register a tap to toggle hide.
+      st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      st.origin = { x: e.clientX, y: e.clientY };
+      st.movedFar = false;
+      return;
+    }
+    if (st.a) return;
+    st.a = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    st.origin = { x: e.clientX, y: e.clientY };
+    st.startDx = layoutRef.current.dx;
+    st.startDy = layoutRef.current.dy;
+    st.startScale = layoutRef.current.s;
+    st.dragging = false; st.movedFar = false;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    if (!movable || !st.a || st.pinching) return;
+    if (e.pointerId !== st.a.id || !st.origin) return;
+    const ddx = e.clientX - st.origin.x, ddy = e.clientY - st.origin.y;
+    if (!st.dragging && Math.hypot(ddx, ddy) < 6) return;
+    st.dragging = true; st.movedFar = true;
+    gestureRef.current = true;
+    save({ ...layoutRef.current, dx: st.startDx + ddx, dy: st.startDy + ddy });
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const st = stateRef.current;
+    const wasA = st.a?.id === e.pointerId;
+    const wasB = st.b?.id === e.pointerId;
+    if (!wasA && !wasB) return;
+    const wasTap = wasA && !st.movedFar && !st.pinching;
+    st.a = undefined; st.b = undefined; st.origin = undefined;
+    st.dragging = false; st.pinching = false; st.movedFar = false;
+    if (gestureRef.current) {
+      gestureRef.current = false;
+      onChange(layoutRef.current);
+    }
+    if (wasTap && !movable && onTap) onTap();
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    if (!movable) return;
+    e.preventDefault();
+    save({ ...layoutRef.current, s: clamp(layoutRef.current.s + (e.deltaY < 0 ? 0.08 : -0.08)) });
+  };
+  const size = 56;
+  return (
+    <div
+      className="pointer-events-auto absolute select-none"
+      style={{
+        width: size,
+        height: size,
+        left: 0,
+        top: 0,
+        // Center on the seat anchor, then apply the default side offset
+        // plus the user's saved drag offset and pinch scale.
+        transform: `translate(calc(-50% + ${defaultOffsetX + layout.dx}px), calc(-50% + ${layout.dy}px)) scale(${layout.s})`,
+        transformOrigin: "center center",
+        touchAction: "none",
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onWheel={onWheel}
+      title={movable ? "Drag to move · pinch anywhere with a second finger to resize" : "Tap to hide"}
+    >
+      <img
+        src={url}
+        alt=""
+        draggable={false}
+        className="h-full w-full object-contain drop-shadow-lg"
+      />
+    </div>
+  );
+}
+
+
+
