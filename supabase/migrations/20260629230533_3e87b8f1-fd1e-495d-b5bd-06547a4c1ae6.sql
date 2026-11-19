@@ -1,0 +1,2 @@
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_method_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_method_check CHECK (method = ANY (ARRAY['web_share'::text, 'clipboard'::text, 'referral'::text]));

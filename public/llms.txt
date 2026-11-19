@@ -1,0 +1,12 @@
+# Bimyah!
+
+> Bimyah! is a fast-paced, no-turns multiplayer card race. Everyone plays at the same time, swapping cards from a shared center pile to be the first to collect four-of-a-kind sets.
+
+Bimyah! is free to play in the browser — solo against bots, with friends via invite link, or against the world in public matches. Bimyah!+ unlocks cosmetics and perks, and Bmart is the in-game marketplace for card backs, victory effects, backgrounds, and table tops.
+
+## Pages
+
+- [Home](/): What Bimyah! is, how it plays, and how to start a match.
+- [Public Matches](/public): Open lobbies you can join right now.
+- [Bmart](/bmart): Marketplace for card backs, victories, backgrounds, and table tops.
+- [Bimyah!+](/plus): Premium membership with perks and exclusive cosmetics.

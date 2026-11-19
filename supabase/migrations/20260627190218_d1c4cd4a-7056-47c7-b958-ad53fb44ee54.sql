@@ -1,0 +1,1 @@
+ALTER TABLE public.bmart_products DROP CONSTRAINT bmart_products_category_check;
