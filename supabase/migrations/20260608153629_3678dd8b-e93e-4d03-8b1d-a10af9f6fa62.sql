@@ -1,0 +1,1 @@
+ALTER TABLE public.bmart_products ADD COLUMN IF NOT EXISTS effect_type TEXT NULL;

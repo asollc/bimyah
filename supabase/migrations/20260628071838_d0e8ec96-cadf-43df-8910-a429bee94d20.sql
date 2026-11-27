@@ -1,0 +1,1 @@
+UPDATE public.bplus_config SET lifetime_quota = 50 WHERE id = 1;
